@@ -276,7 +276,7 @@ function DataTable(props: Props) {
   return (
     <div className={join("iui-el iui-table", props.className)} style={props.style}>
       <div className="iui-table-scroll">
-        <table>
+        <table style={{ "--iui-columns": columns.length } as CSSProperties}>
           <thead>
             <tr>
               {columns.map((column) => {
@@ -348,6 +348,11 @@ function DataTable(props: Props) {
                           textAlign: (column.align ?? (numeric ? "right" : "left")) as "left",
                         }}
                         data-numeric={numeric ? "" : undefined}
+                        data-short={
+                          column.badge || (typeof value === "string" && value.length <= 16)
+                            ? ""
+                            : undefined
+                        }
                       >
                         {column.badge ? (
                           <span
@@ -359,7 +364,7 @@ function DataTable(props: Props) {
                                 : undefined
                             }
                           >
-                            {String(value ?? "")}
+                            {humanize(String(value ?? ""))}
                           </span>
                         ) : column.format || numeric ? (
                           formatValue(value, column)

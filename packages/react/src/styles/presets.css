@@ -28,6 +28,13 @@
     font-variant-numeric: tabular-nums;
     line-height: 1.15;
     letter-spacing: -0.02em;
+    white-space: nowrap;
+  }
+
+  @container iui (width < 420px) {
+    .iui-stat-value {
+      font-size: var(--iui-c-stat-font-size, 1.5rem);
+    }
   }
 
   .iui-stat-meta {
@@ -161,6 +168,15 @@
 
   .iui-table-scroll {
     overflow-x: auto;
+  }
+
+  /* Wide tables scroll sideways on a narrow surface instead of crushing their columns. */
+  .iui-table-scroll > table {
+    min-width: min(calc(var(--iui-columns, 1) * 6.5rem), 44rem);
+  }
+
+  .iui-table td:is([data-numeric], [data-short]) {
+    white-space: nowrap;
   }
 
   .iui-table th {

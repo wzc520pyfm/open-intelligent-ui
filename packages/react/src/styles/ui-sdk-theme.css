@@ -115,6 +115,25 @@
     }
   }
 
+  /* UI SDK draws these icons itself; a part that brings its own text keeps only that. */
+  .iui-root
+    :is(
+      [data-slot="checkbox-indicator"],
+      [data-slot="select-item-indicator"],
+      [data-slot="combobox-item-indicator"],
+      [data-slot="listbox-item-indicator"],
+      [data-slot="menu-item-indicator"],
+      [data-slot="number-input-decrement"],
+      [data-slot="number-input-increment"]
+    ):not(:empty)::before {
+    content: none;
+  }
+
+  .iui-root [data-iui-icon-only] {
+    aspect-ratio: 1;
+    padding-inline: 0;
+  }
+
   @keyframes iui-spin {
     to {
       rotate: 1turn;

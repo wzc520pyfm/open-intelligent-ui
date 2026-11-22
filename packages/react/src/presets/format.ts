@@ -8,7 +8,31 @@ export interface FormatOptions {
   locale?: string
 }
 
-/** Formats a value for display: `number`, `currency`, `percent`, `compact` or `date`. */
+/** Seconds as the two largest units that matter: `2d 4h`, `1h 30m`, `45s`. */
+function formatDuration(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds))
+  const units: [string, number][] = [
+    ["d", 86400],
+    ["h", 3600],
+    ["m", 60],
+    ["s", 1],
+  ]
+  const parts: string[] = []
+  let rest = total
+  for (const [label, size] of units) {
+    const count = Math.floor(rest / size)
+    rest -= count * size
+    if (count > 0 || (label === "s" && parts.length === 0)) parts.push(`${count}${label}`)
+    else if (parts.length > 0) break
+    if (parts.length === 2) break
+  }
+  return parts.join(" ")
+}
+
+/**
+ * Formats a value for display: `number`, `currency`, `percent`, `compact`,
+ * `duration` (from seconds), `date`, `time` or `datetime`.
+ */
 export function formatValue(value: unknown, options: FormatOptions = {}): string {
   if (value === null || value === undefined || value === "") return "–"
   const { locale } = options
@@ -25,14 +49,16 @@ export function formatValue(value: unknown, options: FormatOptions = {}): string
   }
   const number = typeof value === "number" ? value : Number(value)
   if (!Number.isFinite(number)) return String(value)
+  if (format === "duration") return formatDuration(number)
+  const whole = Number.isInteger(number) || Math.abs(number) >= 1000
   let out: string
   try {
     if (format === "currency") {
       out = new Intl.NumberFormat(locale, {
         style: "currency",
         currency: typeof options.currency === "string" ? options.currency : "USD",
-        maximumFractionDigits: digits ?? (Math.abs(number) >= 1000 ? 0 : 2),
-        minimumFractionDigits: digits ?? 0,
+        maximumFractionDigits: digits ?? (whole ? 0 : 2),
+        minimumFractionDigits: digits ?? (whole ? 0 : 2),
       }).format(number)
     } else if (format === "percent") {
       out = new Intl.NumberFormat(locale, {

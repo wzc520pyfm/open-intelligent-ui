@@ -330,11 +330,21 @@ export function renderElement(
   }
 
   const children = renderNodes(node.children, ctx)
+  if (kind === "ui-sdk" && isOnlyIcon(node)) props["data-iui-icon-only"] = ""
   if (kind === "component" && name === "CodeBlock" && children.length) {
     props.code ??= children.filter((child) => typeof child === "string").join("")
   }
   const element = createElement(component, { ...props, key: reactKey }, ...children)
   return wrap(element, show, reactKey)
+}
+
+/** Whether an element holds one icon and nothing else, so it can be drawn square. */
+function isOnlyIcon(node: ElementNode): boolean {
+  const content = node.children.filter(
+    (child) => !(child.type === "text" && child.value.trim() === "")
+  )
+  const only = content[0]
+  return content.length === 1 && only?.type === "element" && only.name === "icon"
 }
 
 const VOID_HTML = new Set(["br", "hr", "img", "input", "col", "wbr"])

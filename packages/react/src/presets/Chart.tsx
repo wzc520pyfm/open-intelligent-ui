@@ -120,17 +120,38 @@ function readData(props: ChartProps): { rows: Datum[]; labels: string[]; series:
   return { rows, labels, series }
 }
 
+/**
+ * A smooth line through the points that never overshoots them (monotone
+ * cubic interpolation), so a steady rise doesn't appear to wobble.
+ */
 function linePath(points: [number, number][]): string {
-  let path = ""
-  points.forEach(([x, y], index) => {
-    if (index === 0) {
-      path += `M${x.toFixed(1)},${y.toFixed(1)}`
-      return
-    }
-    const [px, py] = points[index - 1] as [number, number]
-    const mid = (px + x) / 2
-    path += `C${mid.toFixed(1)},${py.toFixed(1)} ${mid.toFixed(1)},${y.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`
+  const count = points.length
+  if (count === 0) return ""
+  const [x0, y0] = points[0] as [number, number]
+  let path = `M${x0.toFixed(1)},${y0.toFixed(1)}`
+  if (count === 1) return path
+  const slopes: number[] = []
+  for (let i = 0; i < count - 1; i++) {
+    const [ax, ay] = points[i] as [number, number]
+    const [bx, by] = points[i + 1] as [number, number]
+    slopes.push(bx === ax ? 0 : (by - ay) / (bx - ax))
+  }
+  const tangents = points.map((_, i) => {
+    if (i === 0) return slopes[0] as number
+    if (i === count - 1) return slopes[count - 2] as number
+    const before = slopes[i - 1] as number
+    const after = slopes[i] as number
+    if (before * after <= 0) return 0
+    return (2 * before * after) / (before + after)
   })
+  for (let i = 0; i < count - 1; i++) {
+    const [ax, ay] = points[i] as [number, number]
+    const [bx, by] = points[i + 1] as [number, number]
+    const third = (bx - ax) / 3
+    const c1y = ay + (tangents[i] as number) * third
+    const c2y = by - (tangents[i + 1] as number) * third
+    path += `C${(ax + third).toFixed(1)},${c1y.toFixed(1)} ${(bx - third).toFixed(1)},${c2y.toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)}`
+  }
   return path
 }
 

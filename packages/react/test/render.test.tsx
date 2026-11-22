@@ -71,7 +71,7 @@ describe("state", () => {
 Total: {currency(total, "USD")}`}
       />
     )
-    expect(text(container)).toBe("Total: $120.00")
+    expect(text(container)).toBe("Total: $120")
   })
 
   test("bind: on a native input reads and writes state", () => {

@@ -1,0 +1,95 @@
+<state priority="balance" choice="kyoto" nights={6} details="kyoto" />
+<state trips={[
+  { id: "kyoto", name: "Kyoto", country: "Japan", flight: 980, night: 140, weather: 17, rain: 9, food: 9.4, crowd: 8.5, blurb: "Cherry blossom peaks in the first week. Temples at dawn, izakaya at night.", days: ["Fushimi Inari before 7am, then Nishiki market", "Arashiyama bamboo grove and the river", "Day trip to Nara", "Philosopher's Path, Ginkaku-ji, tea ceremony"] },
+  { id: "lisbon", name: "Lisbon", country: "Portugal", flight: 420, night: 110, weather: 19, rain: 7, food: 8.6, crowd: 6.0, blurb: "Warm, bright and unhurried. Tiled hills, grilled fish, the Atlantic an hour away.", days: ["Alfama on foot, fado after dinner", "Belém: the tower, the monastery, the tarts", "Day trip to Sintra", "LX Factory and a sunset at Miradouro da Graça"] },
+  { id: "mexico", name: "Mexico City", country: "Mexico", flight: 610, night: 95, weather: 25, rain: 4, food: 9.6, crowd: 7.0, blurb: "Dry season's last weeks. The best street food on the list and jacarandas in bloom.", days: ["Centro Histórico and the Templo Mayor", "Coyoacán and the Frida Kahlo house", "Teotihuacán at opening time", "Roma and Condesa: galleries, mezcal, tacos"] }
+]} />
+<derive
+  scored={trips.map(t => ({ ...t, total: t.flight + t.night * nights, score: priority == "budget" ? 10 - (t.flight + t.night * nights) / 250 : priority == "food" ? t.food : priority == "quiet" ? 10 - t.crowd : (t.food + (10 - t.crowd) + 10 - (t.flight + t.night * nights) / 250) / 3 }))}
+  best={maxBy(scored, "score")}
+  picked={scored.find(t => t.id == choice)}
+/>
+
+<style>
+  .trip-art { height: 84px; border-radius: var(--iui-radius-md); overflow: hidden; }
+  .bar { height: 6px; border-radius: 99px; background: var(--iui-color-muted); overflow: hidden; }
+  .bar > i { display: block; height: 100%; border-radius: inherit; background: var(--iui-color-accent); transition: width var(--iui-motion-layout-duration) var(--iui-motion-layout-easing); }
+</style>
+
+For a week in April, **{best.name}** fits best if you care most about {priority == "balance" ? "a bit of everything" : priority == "quiet" ? "avoiding crowds" : priority}.
+
+<row gap={3} wrap>
+  <SegmentedControl aria-label="What matters most" bind:value={priority}>
+    <SegmentedControlIndicator />
+    <SegmentedControlItem value="balance">Balanced</SegmentedControlItem>
+    <SegmentedControlItem value="budget">Budget</SegmentedControlItem>
+    <SegmentedControlItem value="food">Food</SegmentedControlItem>
+    <SegmentedControlItem value="quiet">Fewer crowds</SegmentedControlItem>
+  </SegmentedControl>
+  <spacer />
+  <NumberInput min={3} max={14} bind:value={nights}>
+    <NumberInputGroup>
+      <NumberInputDecrement aria-label="Fewer nights">−</NumberInputDecrement>
+      <NumberInputControl aria-label="Nights" style="width: 3rem; text-align: center" />
+      <NumberInputIncrement aria-label="More nights">+</NumberInputIncrement>
+    </NumberInputGroup>
+  </NumberInput>
+  <text size="sm" color="muted">nights</text>
+</row>
+
+<grid columns={3} gap={3} stagger>
+  {#each scored as trip (trip.id)}
+    <card interactive padding={3} gap={3} border={choice == trip.id ? "accent" : true} on:click={choice = trip.id}>
+      <svg class="trip-art" viewBox="0 0 200 84" preserveAspectRatio="xMidYMid slice" role="img" aria-label="{trip.name}">
+        {#if trip.id == "kyoto"}
+          <rect width="200" height="84" fill="var(--iui-color-chart-5)" opacity="0.18" />
+          <circle cx="150" cy="30" r="16" fill="var(--iui-color-chart-5)" opacity="0.7" />
+          <path d="M40 84 V40 M30 44 H110 M26 34 Q70 26 114 34 M100 84 V40 M36 54 H104" stroke="var(--iui-color-danger)" stroke-width="5" fill="none" stroke-linecap="round" />
+        {:else if trip.id == "lisbon"}
+          <rect width="200" height="84" fill="var(--iui-color-chart-3)" opacity="0.2" />
+          <circle cx="160" cy="24" r="14" fill="var(--iui-color-chart-3)" />
+          <path d="M0 84 L0 60 L30 44 L52 58 L80 36 L104 54 L130 40 L160 58 L200 46 L200 84 Z" fill="var(--iui-color-chart-1)" opacity="0.55" />
+          <path d="M0 84 L0 72 L40 62 L90 70 L140 60 L200 68 L200 84 Z" fill="var(--iui-color-chart-1)" opacity="0.85" />
+        {:else}
+          <rect width="200" height="84" fill="var(--iui-color-chart-4)" opacity="0.2" />
+          <path d="M60 84 L100 26 L140 84 Z" fill="var(--iui-color-chart-4)" opacity="0.7" />
+          <path d="M84 50 H116 M76 62 H124 M68 74 H132" stroke="var(--iui-color-surface)" stroke-width="2" />
+          <circle cx="36" cy="26" r="10" fill="var(--iui-color-chart-3)" />
+        {/if}
+      </svg>
+      <row>
+        <box gap={0}><text weight="semibold">{trip.name}</text><text size="xs" color="muted">{trip.country}</text></box>
+        <spacer />
+        {#if trip.id == best.id}<badge color="accent" motion="pop">Best fit</badge>{/if}
+      </row>
+      <text size="2xl" weight="bold" tabular>{currency(trip.total)}</text>
+      <box gap={1}>
+        <row><text size="xs" color="muted">Fit</text><spacer /><text size="xs" tabular>{num(clamp(trip.score, 0, 10), 1)} / 10</text></row>
+        <div class="bar"><i style:width="{clamp(trip.score, 0, 10) * 10}%"></i></div>
+      </box>
+      <row gap={3}>
+        <row gap={1}><icon name="sun" size="sm" color="muted" /><text size="xs">{trip.weather}°C</text></row>
+        <row gap={1}><icon name="cloud-rain" size="sm" color="muted" /><text size="xs">{trip.rain} wet days</text></row>
+        <row gap={1}><icon name="utensils" size="sm" color="muted" /><text size="xs">{trip.food}</text></row>
+      </row>
+    </card>
+  {/each}
+</grid>
+
+<card padding={4} gap={3}>
+  <row>
+    <title level={3}>{picked.name} in {nights} nights</title>
+    <spacer />
+    <text size="sm" color="muted">{currency(picked.flight)} flights + {currency(picked.night)} × {nights}</text>
+  </row>
+  <text color="muted">{picked.blurb}</text>
+  <list marker="number" connector>
+    {#each picked.days as day}
+      <list-item>{day}</list-item>
+    {/each}
+  </list>
+  <row gap={2} wrap>
+    <Button variant="solid" on:click={send("Book " + picked.name + " for " + nights + " nights", { trip: picked.id, nights, total: picked.total })}>Plan {picked.name}</Button>
+    <Button on:click={send("Show me cheaper dates for " + picked.name)}>Find cheaper dates</Button>
+  </row>
+</card>

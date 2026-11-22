@@ -1,0 +1,123 @@
+<state status="open" search="" selected={null} creating={false} />
+<state draft={{ subject: "", customer: "", priority: "normal" }} />
+<query id="tickets" tool="listTickets" input={{ status, search }} every={20} />
+<query id="stats" tool="ticketStats" />
+<derive ticket={tickets.data ? tickets.data.find(t => t.id == selected) : null} />
+
+<row gap={3} wrap>
+  <box gap={0}>
+    <title level={2}>Support queue</title>
+    <text size="sm" color="muted">{stats.data ? stats.data.open + " open · " + stats.data.urgent + " urgent · median wait " + duration(stats.data.medianWait) : "Loading…"}</text>
+  </box>
+  <spacer />
+  <Dialog bind:open={creating}>
+    <DialogTrigger variant="solid"><icon name="plus" size="sm" /> New ticket</DialogTrigger>
+    <DialogBackdrop />
+    <DialogContent>
+      <DialogTitle>New ticket</DialogTitle>
+      <DialogDescription>It joins the open queue.</DialogDescription>
+      <box gap={3} marginY={3}>
+        <Field>
+          <FieldLabel>Subject</FieldLabel>
+          <Input bind:value={draft.subject} placeholder="What went wrong?" />
+        </Field>
+        <Field>
+          <FieldLabel>Customer</FieldLabel>
+          <Input bind:value={draft.customer} placeholder="Company or person" />
+        </Field>
+        <Select bind:value={draft.priority}>
+          <SelectLabel>Priority</SelectLabel>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="low">Low</SelectItem>
+            <SelectItem value="normal">Normal</SelectItem>
+            <SelectItem value="urgent">Urgent</SelectItem>
+          </SelectContent>
+        </Select>
+      </box>
+      <row gap={2} justify="end">
+        <DialogClose variant="ghost">Cancel</DialogClose>
+        <Button variant="solid" disabled={draft.subject == ""} on:click={const made = await call("createTicket", draft); creating = false; selected = made.id; status = "open"; reset("draft"); toast("Ticket " + made.id + " created", "success")}>Create</Button>
+      </row>
+    </DialogContent>
+  </Dialog>
+</row>
+
+<row gap={3} wrap>
+  <SegmentedControl aria-label="Status" bind:value={status}>
+    <SegmentedControlIndicator />
+    <SegmentedControlItem value="open">Open</SegmentedControlItem>
+    <SegmentedControlItem value="pending">Pending</SegmentedControlItem>
+    <SegmentedControlItem value="solved">Solved</SegmentedControlItem>
+  </SegmentedControl>
+  <InputGroup style="flex: 1; min-width: 180px">
+    <Input type="search" aria-label="Search tickets" placeholder="Search subject or customer" bind:value={search} />
+    <InputClear aria-label="Clear search" />
+  </InputGroup>
+  <Button variant="ghost" aria-label="Refresh" on:click={refetch()}><icon name="refresh-cw" size="sm" class:spinning={tickets.loading} /></Button>
+</row>
+
+<style>
+  .spinning { animation: wb-spin 0.8s linear infinite; }
+  @keyframes wb-spin { to { rotate: 360deg; } }
+</style>
+
+<grid columns={ticket ? 3 : 1} gap={3}>
+  <grid-item span={ticket ? 2 : 1}>
+    <card padding={0}>
+      {#if tickets.loading && !tickets.data}
+        <box padding={4}><Skeleton lines={5} /></box>
+      {:else if tickets.error}
+        <box padding={4}><text color="danger">{tickets.error}</text></box>
+      {:else}
+        <DataTable data={tickets.data} rowKey="id" selected={selected} on:select={selected = selected == $value.id ? null : $value.id} empty="No {status} tickets{search ? ' match “' + search + '”' : ''}." columns={[
+          { key: "id", label: "ID", width: 76 },
+          { key: "subject", label: "Subject" },
+          { key: "customer", label: "Customer" },
+          { key: "priority", label: "Priority", badge: { urgent: "danger", normal: "neutral", low: "neutral" } },
+          { key: "waiting", label: "Waiting", format: "duration", align: "right" }
+        ]} />
+      {/if}
+    </card>
+  </grid-item>
+
+  {#if ticket}
+    <card padding={4} gap={3} motion="slide-left">
+      <row align="start">
+        <box gap={1}>
+          <text size="xs" color="muted" mono>{ticket.id}</text>
+          <title level={3}>{ticket.subject}</title>
+        </box>
+        <spacer />
+        <Button variant="ghost" size="sm" aria-label="Close" on:click={selected = null}><icon name="x" size="sm" /></Button>
+      </row>
+      <row gap={2} wrap>
+        <badge color={ticket.priority == "urgent" ? "danger" : "neutral"} variant="dot">{capitalize(ticket.priority)}</badge>
+        <badge variant="outline">{ticket.customer}</badge>
+        <text size="xs" color="muted">waiting {duration(ticket.waiting)}</text>
+      </row>
+      <text size="sm">{ticket.body}</text>
+      <divider />
+      <Select value={ticket.assignee} on:valueChange={call("updateTicket", { id: ticket.id, assignee: $value })} placeholder="Unassigned">
+        <SelectLabel>Assignee</SelectLabel>
+        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="Mina">Mina</SelectItem>
+          <SelectItem value="Jonas">Jonas</SelectItem>
+          <SelectItem value="Priya">Priya</SelectItem>
+        </SelectContent>
+      </Select>
+      <row gap={2} wrap>
+        {#if ticket.status != "solved"}
+          <Button variant="solid" on:click={await call("updateTicket", { id: ticket.id, status: "solved" }); toast(ticket.id + " solved", "success"); selected = null}><icon name="check" size="sm" /> Solve</Button>
+        {/if}
+        {#if ticket.status == "open"}
+          <Button on:click={await call("updateTicket", { id: ticket.id, status: "pending" }); selected = null}>Wait on customer</Button>
+        {:else}
+          <Button on:click={await call("updateTicket", { id: ticket.id, status: "open" }); selected = null}>Reopen</Button>
+        {/if}
+        <Button variant="ghost" on:click={send("Draft a reply to ticket " + ticket.id, { ticket })}><icon name="sparkles" size="sm" /> Draft reply</Button>
+      </row>
+    </card>
+  {/if}
+</grid>

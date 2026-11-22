@@ -168,7 +168,9 @@ export function createBuiltins(
         style: "currency",
         currency: typeof code === "string" ? code : defaultCurrency,
         ...(digits === undefined
-          ? {}
+          ? Number.isInteger(Number(value))
+            ? { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+            : {}
           : {
               minimumFractionDigits: Number(digits),
               maximumFractionDigits: Number(digits),
@@ -237,6 +239,11 @@ export function createBuiltins(
     },
     duration: (seconds) => {
       const total = Math.max(0, Math.round(Number(seconds) || 0))
+      const d = Math.floor(total / 86400)
+      if (d > 0) {
+        const hours = Math.floor((total % 86400) / 3600)
+        return hours > 0 ? `${d}d ${hours}h` : `${d}d`
+      }
       const h = Math.floor(total / 3600)
       const m = Math.floor((total % 3600) / 60)
       const s = total % 60

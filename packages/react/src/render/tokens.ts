@@ -59,11 +59,15 @@ export function size(value: Input): string | undefined {
   return raw("width", input)
 }
 
+/** Names a model reaches for that aren't color tokens: they mean "no particular color". */
+const NEUTRAL = new Set(["neutral", "default", "secondary", "subtle"])
+
 /** Colors: a name is a design token first and a CSS color second. */
 export function color(value: Input): string | undefined {
   const input = text(value)
   if (input === null) return undefined
   if (CSS_WIDE.has(input)) return input
+  if (NEUTRAL.has(input)) return "var(--iui-color-muted-foreground)"
   if (TOKEN_NAME.test(input)) return `var(--iui-color-${input}, ${input})`
   return raw("color", input)
 }

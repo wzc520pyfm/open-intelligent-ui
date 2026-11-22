@@ -37,6 +37,11 @@
     min-width: 0;
   }
 
+  /* A lone card in a cell fills it, so neighbours in a row end level. */
+  .iui-grid-item > .iui-card:only-child {
+    flex: 1;
+  }
+
   /* A fixed column count folds when the surface gets narrow. */
   @container iui (width < 640px) {
     .iui-grid:is(

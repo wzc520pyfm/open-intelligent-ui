@@ -123,6 +123,8 @@ Helpers:
   signed(n) unit(n, "kilometer") date(d, "medium") time(d) datetime(d)
   relative(d) duration(seconds) plural(n, "item", "items") ordinal(n)
   capitalize(s) truncate(s, 80) initials(name)\`.
+  \`currency\` leaves the cents off whole amounts; \`currency(n, "USD", 2)\`
+  keeps them, for columns that should line up.
 - Lists: \`len sortBy(list, key, "desc") groupBy countBy sumBy maxBy minBy
   unique toggle(list, item) without(list, item) chunk first last keys values
   entries\`. A key is a property name or a function.

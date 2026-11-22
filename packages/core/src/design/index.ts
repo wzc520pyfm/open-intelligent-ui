@@ -1,3 +1,4 @@
+export { DEFAULT_DESIGN } from "./default.generated"
 export {
   parseInlineStyle,
   type ScopedCss,

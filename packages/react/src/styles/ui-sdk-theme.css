@@ -1,0 +1,313 @@
+/*
+ * What UI SDK's base stylesheet leaves to the product: extra button looks,
+ * sizes, and motion for every part that opens, closes or changes state.
+ */
+@layer iui {
+  /* Buttons */
+  .iui-root [data-slot="button"] {
+    border-radius: var(--iui-c-button-radius, var(--ui-radius));
+    transition:
+      background var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      border-color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      scale var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
+  }
+
+  .iui-root [data-slot="button"]:active:not([data-disabled]) {
+    scale: 0.98;
+  }
+
+  .iui-root [data-slot="button"]:is([data-variant="solid"], [data-variant="primary"]) {
+    border-color: var(--ui-primary);
+    border-radius: var(--iui-c-button-primary-radius, var(--iui-c-button-radius, var(--ui-radius)));
+    background: var(--ui-primary);
+    color: var(--ui-primary-foreground);
+  }
+
+  .iui-root
+    [data-slot="button"]:is([data-variant="solid"], [data-variant="primary"]):hover:not(
+      [data-disabled]
+    ) {
+    background: var(
+      --iui-c-button-primary-hover-background,
+      color-mix(in oklab, var(--ui-primary) 86%, var(--iui-color-surface))
+    );
+  }
+
+  .iui-root [data-slot="button"][data-variant="accent"] {
+    border-color: var(--iui-color-accent);
+    background: var(--iui-color-accent);
+    color: var(--iui-color-accent-foreground);
+  }
+
+  .iui-root [data-slot="button"][data-variant="accent"]:hover:not([data-disabled]) {
+    background: color-mix(in oklab, var(--iui-color-accent) 88%, var(--iui-color-foreground));
+  }
+
+  .iui-root [data-slot="button"][data-variant="soft"] {
+    border-color: transparent;
+    background: var(--iui-color-muted);
+  }
+
+  .iui-root [data-slot="button"][data-variant="soft"]:hover:not([data-disabled]) {
+    background: color-mix(in oklab, var(--iui-color-foreground) 12%, var(--iui-color-surface));
+  }
+
+  .iui-root [data-slot="button"][data-variant="ghost"] {
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .iui-root [data-slot="button"][data-variant="ghost"]:hover:not([data-disabled]) {
+    background: var(--iui-color-muted);
+  }
+
+  .iui-root [data-slot="button"][data-variant="link"] {
+    height: auto;
+    padding: 0;
+    border-color: transparent;
+    background: none;
+    color: var(--iui-color-accent);
+  }
+
+  .iui-root [data-slot="button"][data-variant="link"]:hover:not([data-disabled]) {
+    background: none;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
+  .iui-root [data-slot="button"][data-size="sm"] {
+    height: calc(var(--ui-spacing) * 7);
+    padding-inline: calc(var(--ui-spacing) * 2.5);
+    font-size: 0.75rem;
+  }
+
+  .iui-root [data-slot="button"][data-size="lg"] {
+    height: calc(var(--ui-spacing) * 10);
+    padding-inline: calc(var(--ui-spacing) * 4.5);
+    font-size: var(--iui-font-body-size, 0.9375rem);
+  }
+
+  .iui-root [data-slot="button"][data-pending] {
+    cursor: progress;
+  }
+
+  .iui-root [data-slot="button"][data-pending]::before {
+    width: 0.85em;
+    height: 0.85em;
+    border: 2px solid currentColor;
+    border-inline-end-color: transparent;
+    border-radius: 50%;
+    content: "";
+    animation: iui-spin 0.7s linear infinite;
+  }
+
+  @keyframes iui-spin {
+    to {
+      rotate: 1turn;
+    }
+  }
+
+  /* Controls: quick color and position changes */
+  .iui-root
+    :is(
+      [data-slot="input"],
+      [data-slot="textarea"],
+      [data-slot="select-trigger"],
+      [data-slot="checkbox"],
+      [data-slot="radio"],
+      [data-slot="switch"],
+      [data-slot="toggle"],
+      [data-slot="tabs-tab"],
+      [data-slot="segmented-control-item"],
+      [data-slot="accordion-trigger"],
+      [data-slot="collapsible-trigger"],
+      [data-slot="menu-item"],
+      [data-slot="select-item"],
+      [data-slot="slider-thumb"]
+    ) {
+    transition:
+      background var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      border-color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      outline-color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      scale var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
+  }
+
+  .iui-root [data-slot="switch-thumb"] {
+    transition:
+      translate var(--iui-motion-layout-duration) var(--iui-motion-emphasis-easing),
+      margin var(--iui-motion-layout-duration) var(--iui-motion-emphasis-easing),
+      inset var(--iui-motion-layout-duration) var(--iui-motion-emphasis-easing);
+  }
+
+  .iui-root [data-slot="switch"][data-checked] {
+    border-color: var(--iui-color-primary);
+    background: var(--iui-color-primary);
+  }
+
+  .iui-root [data-slot="slider-thumb"][data-dragging] {
+    scale: 1.12;
+  }
+
+  .iui-root :is([data-slot="progress-indicator"], [data-slot="meter-indicator"]) {
+    background: var(--iui-color-accent);
+    transition:
+      width var(--iui-motion-layout-duration) var(--iui-motion-layout-easing),
+      inline-size var(--iui-motion-layout-duration) var(--iui-motion-layout-easing);
+  }
+
+  .iui-root [data-slot="slider-indicator"] {
+    background: var(--iui-color-accent);
+  }
+
+  .iui-root :is([data-slot="tabs-tab"], [data-slot="tabs-indicator"]) {
+    transition:
+      color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      border-color var(--iui-motion-layout-duration) var(--iui-motion-layout-easing),
+      translate var(--iui-motion-layout-duration) var(--iui-motion-layout-easing),
+      width var(--iui-motion-layout-duration) var(--iui-motion-layout-easing);
+  }
+
+  .iui-root [data-slot="tabs-panel"] {
+    font-size: inherit;
+    transition: opacity var(--iui-motion-surface-enter-duration)
+      var(--iui-motion-surface-enter-easing);
+  }
+
+  .iui-root [data-slot="tabs-panel"][data-starting-style] {
+    opacity: 0;
+  }
+
+  /* Indicators that pop in */
+  .iui-root :is([data-slot="checkbox-indicator"], [data-slot="radio-indicator"]) {
+    transition:
+      opacity var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      scale var(--iui-motion-surface-enter-duration) var(--iui-motion-emphasis-easing);
+  }
+
+  .iui-root
+    :is([data-slot="checkbox-indicator"], [data-slot="radio-indicator"]):is(
+      [data-starting-style],
+      [data-ending-style]
+    ) {
+    opacity: 0;
+    scale: 0.5;
+  }
+
+  /* Panels that open by height */
+  .iui-root [data-slot="accordion-panel"] {
+    height: var(--accordion-panel-height);
+    overflow: hidden;
+    transition:
+      height var(--iui-motion-layout-duration) var(--iui-motion-layout-easing),
+      opacity var(--iui-motion-layout-duration) var(--iui-motion-layout-easing);
+  }
+
+  .iui-root [data-slot="collapsible-panel"] {
+    height: var(--collapsible-panel-height);
+    overflow: hidden;
+    transition:
+      height var(--iui-motion-layout-duration) var(--iui-motion-layout-easing),
+      opacity var(--iui-motion-layout-duration) var(--iui-motion-layout-easing);
+  }
+
+  .iui-root
+    :is([data-slot="accordion-panel"], [data-slot="collapsible-panel"]):is(
+      [data-starting-style],
+      [data-ending-style]
+    ) {
+    height: 0;
+    opacity: 0;
+  }
+
+  /* Things that float above the surface */
+  .iui-root
+    :is(
+      [data-slot="popover-content"],
+      [data-slot="hover-card-content"],
+      [data-slot="tooltip-content"],
+      [data-slot="menu-content"],
+      [data-slot="select-content"],
+      [data-slot="combobox-content"],
+      [data-slot="autocomplete-content"],
+      [data-slot="date-picker-content"]
+    ) {
+    transform-origin: var(--transform-origin, center);
+    transition:
+      opacity var(--iui-motion-surface-enter-duration) var(--iui-motion-surface-enter-easing),
+      scale var(--iui-motion-surface-enter-duration) var(--iui-motion-surface-enter-easing),
+      translate var(--iui-motion-surface-enter-duration) var(--iui-motion-surface-enter-easing);
+  }
+
+  .iui-root
+    :is(
+      [data-slot="popover-content"],
+      [data-slot="hover-card-content"],
+      [data-slot="tooltip-content"],
+      [data-slot="menu-content"],
+      [data-slot="select-content"],
+      [data-slot="combobox-content"],
+      [data-slot="autocomplete-content"],
+      [data-slot="date-picker-content"]
+    ):is([data-starting-style], [data-ending-style]) {
+    opacity: 0;
+    scale: 0.96;
+  }
+
+  .iui-root :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) {
+    transition:
+      opacity var(--iui-motion-surface-enter-duration) var(--iui-motion-surface-enter-easing),
+      scale var(--iui-motion-surface-enter-duration) var(--iui-motion-surface-enter-easing),
+      translate var(--iui-motion-surface-enter-duration) var(--iui-motion-surface-enter-easing);
+  }
+
+  .iui-root
+    :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]):is(
+      [data-starting-style],
+      [data-ending-style]
+    ) {
+    opacity: 0;
+    scale: 0.97;
+    translate: 0 12px;
+  }
+
+  .iui-root
+    :is(
+      [data-slot="dialog-backdrop"],
+      [data-slot="alert-dialog-backdrop"],
+      [data-slot="drawer-backdrop"]
+    ) {
+    backdrop-filter: blur(2px);
+    transition: opacity var(--iui-motion-surface-enter-duration)
+      var(--iui-motion-surface-enter-easing);
+  }
+
+  .iui-root
+    :is(
+      [data-slot="dialog-backdrop"],
+      [data-slot="alert-dialog-backdrop"],
+      [data-slot="drawer-backdrop"]
+    ):is([data-starting-style], [data-ending-style]) {
+    opacity: 0;
+  }
+
+  /* Leaving is quicker than arriving. */
+  .iui-root [data-slot][data-ending-style] {
+    transition-duration: var(--iui-motion-surface-exit-duration);
+    transition-timing-function: var(--iui-motion-surface-exit-easing);
+  }
+
+  .iui-root :is([data-slot="dialog-title"], [data-slot="alert-dialog-title"]) {
+    margin: 0;
+    font-family: var(--iui-heading);
+    font-size: var(--iui-font-h3-size, 1.0625rem);
+    font-weight: var(--iui-font-h3-weight, 600);
+    line-height: var(--iui-font-h3-line, 1.4);
+  }
+
+  .iui-root :is([data-slot="dialog-description"], [data-slot="alert-dialog-description"]) {
+    margin: 0;
+    color: var(--iui-color-muted-foreground);
+  }
+}

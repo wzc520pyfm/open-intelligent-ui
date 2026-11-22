@@ -1,0 +1,269 @@
+/*
+ * Motion for generated content.
+ *
+ * Timing comes from the DESIGN.md motion tokens:
+ *   state-change   hover, press, toggle
+ *   surface-enter  content arriving
+ *   surface-exit   content leaving
+ *   layout         things changing size or place
+ *   emphasis       the one moment worth noticing
+ *   stagger        pause between siblings entering in sequence
+ *
+ * Markup opts in with `motion="rise"`, `delay={120}`, `stagger` on a parent,
+ * `show={cond}` for enter and exit, and `morph="name"` for view transitions.
+ */
+@layer iui {
+  /* Top-level blocks rise in as they mount, which is also how a stream arrives. */
+  .iui-root > :where(.iui-el, p, ul, ol, blockquote, table, h1, h2, h3, h4, h5, h6, figure) {
+    animation: iui-rise var(--iui-motion-surface-enter-duration)
+      var(--iui-motion-surface-enter-easing) both;
+  }
+
+  /* While streaming, nested blocks fade in as each one is written. */
+  .iui-root[data-streaming] :where(.iui-el, li, tr) {
+    animation: iui-fade var(--iui-motion-surface-enter-duration)
+      var(--iui-motion-surface-enter-easing) both;
+  }
+
+  .iui-root[data-streaming] > :where(.iui-el) {
+    animation-name: iui-rise;
+  }
+
+  /* Named entrances */
+  .iui-root [data-iui-motion] {
+    animation-duration: var(--iui-motion-surface-enter-duration);
+    animation-timing-function: var(--iui-motion-surface-enter-easing);
+    animation-delay: var(--iui-delay, 0ms);
+    animation-fill-mode: both;
+  }
+
+  .iui-root [data-iui-motion="none"] {
+    animation: none;
+  }
+
+  .iui-root [data-iui-motion="fade"] {
+    animation-name: iui-fade;
+  }
+
+  .iui-root [data-iui-motion="rise"] {
+    animation-name: iui-rise;
+  }
+
+  .iui-root [data-iui-motion="drop"] {
+    animation-name: iui-drop;
+  }
+
+  .iui-root [data-iui-motion="scale"] {
+    animation-name: iui-scale;
+  }
+
+  .iui-root [data-iui-motion="slide-left"] {
+    animation-name: iui-slide-left;
+  }
+
+  .iui-root [data-iui-motion="slide-right"] {
+    animation-name: iui-slide-right;
+  }
+
+  .iui-root [data-iui-motion="blur"] {
+    animation-name: iui-blur;
+  }
+
+  .iui-root [data-iui-motion="pop"] {
+    animation-name: iui-pop;
+    animation-duration: var(--iui-motion-emphasis-duration);
+    animation-timing-function: var(--iui-motion-emphasis-easing);
+  }
+
+  .iui-root [data-iui-motion="draw"] {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    animation-name: iui-draw;
+    animation-duration: calc(var(--iui-motion-emphasis-duration) * 1.6);
+    animation-timing-function: var(--iui-motion-layout-easing);
+  }
+
+  /* Looping motion, for status rather than decoration. */
+  .iui-root [data-iui-motion="pulse"] {
+    animation: iui-pulse 1.6s ease-in-out var(--iui-delay, 0ms) infinite;
+  }
+
+  .iui-root [data-iui-motion="spin"] {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: iui-spin 1s linear var(--iui-delay, 0ms) infinite;
+  }
+
+  .iui-root [data-iui-motion="float"] {
+    animation: iui-float 3s ease-in-out var(--iui-delay, 0ms) infinite alternate;
+  }
+
+  /* A parent with `stagger` lets its children enter one after another. */
+  .iui-root [data-iui-stagger] > :where(*) {
+    animation: iui-rise var(--iui-motion-surface-enter-duration)
+      var(--iui-motion-surface-enter-easing) both;
+    animation-delay: calc(
+      var(--iui-delay, 0ms) + var(--iui-stagger, var(--iui-motion-stagger-duration)) * var(--iui-i, 0)
+    );
+  }
+
+  .iui-root [data-iui-stagger] > :where(:nth-child(2)) {
+    --iui-i: 1;
+  }
+
+  .iui-root [data-iui-stagger] > :where(:nth-child(3)) {
+    --iui-i: 2;
+  }
+
+  .iui-root [data-iui-stagger] > :where(:nth-child(4)) {
+    --iui-i: 3;
+  }
+
+  .iui-root [data-iui-stagger] > :where(:nth-child(5)) {
+    --iui-i: 4;
+  }
+
+  .iui-root [data-iui-stagger] > :where(:nth-child(6)) {
+    --iui-i: 5;
+  }
+
+  .iui-root [data-iui-stagger] > :where(:nth-child(7)) {
+    --iui-i: 6;
+  }
+
+  .iui-root [data-iui-stagger] > :where(:nth-child(8)) {
+    --iui-i: 7;
+  }
+
+  .iui-root [data-iui-stagger] > :where(:nth-child(9)) {
+    --iui-i: 8;
+  }
+
+  .iui-root [data-iui-stagger] > :where(:nth-child(10)) {
+    --iui-i: 9;
+  }
+
+  .iui-root [data-iui-stagger] > :where(:nth-child(11)) {
+    --iui-i: 10;
+  }
+
+  .iui-root [data-iui-stagger] > :where(:nth-child(n + 12)) {
+    --iui-i: 11;
+  }
+
+  /* `show={cond}`: enter when it turns true, leave before unmounting. */
+  .iui-root .iui-presence > :where(*) {
+    animation: iui-rise var(--iui-motion-surface-enter-duration)
+      var(--iui-motion-surface-enter-easing) both;
+  }
+
+  .iui-root .iui-presence[data-iui-exit] > :where(*) {
+    animation: iui-leave var(--iui-motion-surface-exit-duration)
+      var(--iui-motion-surface-exit-easing) both;
+    pointer-events: none;
+  }
+
+  @keyframes iui-fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes iui-rise {
+    from {
+      opacity: 0;
+      translate: 0 8px;
+    }
+  }
+
+  @keyframes iui-drop {
+    from {
+      opacity: 0;
+      translate: 0 -8px;
+    }
+  }
+
+  @keyframes iui-scale {
+    from {
+      opacity: 0;
+      scale: 0.96;
+    }
+  }
+
+  @keyframes iui-slide-left {
+    from {
+      opacity: 0;
+      translate: 16px 0;
+    }
+  }
+
+  @keyframes iui-slide-right {
+    from {
+      opacity: 0;
+      translate: -16px 0;
+    }
+  }
+
+  @keyframes iui-blur {
+    from {
+      opacity: 0;
+      filter: blur(6px);
+    }
+  }
+
+  @keyframes iui-pop {
+    from {
+      opacity: 0;
+      scale: 0.8;
+    }
+  }
+
+  @keyframes iui-draw {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
+
+  @keyframes iui-pulse {
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  @keyframes iui-float {
+    to {
+      translate: 0 -4px;
+    }
+  }
+
+  @keyframes iui-leave {
+    to {
+      opacity: 0;
+      translate: 0 -4px;
+    }
+  }
+
+  @supports (view-transition-name: none) {
+    ::view-transition-group(*) {
+      animation-duration: var(--iui-motion-layout-duration, 320ms);
+      animation-timing-function: var(--iui-motion-layout-easing, cubic-bezier(0.2, 0, 0, 1));
+    }
+  }
+
+  /* Reduced motion: nothing moves; changes cross-fade briefly or apply at once. */
+  @media (prefers-reduced-motion: reduce) {
+    .iui-root,
+    .iui-root :where(*, *::before, *::after) {
+      animation-duration: 1ms !important;
+      animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      transition-delay: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+
+    .iui-root [data-iui-motion="draw"] {
+      stroke-dashoffset: 0;
+    }
+  }
+}

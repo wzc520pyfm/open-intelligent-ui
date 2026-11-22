@@ -1,0 +1,20 @@
+/*
+ * Styles for @open-intelligent-ui/react. Import once, anywhere:
+ *
+ *   import "@open-intelligent-ui/react/styles.css"
+ *
+ * Two cascade layers, in this order:
+ *   ui-sdk  UI SDK's own look, confined to `.iui-root`
+ *   iui     primitives, Markdown, presets and motion, themed by DESIGN.md
+ *
+ * CSS a model writes in `<style>` is scoped to its surface and not layered,
+ * so it wins over both.
+ */
+@layer ui-sdk, iui;
+
+@import "./ui-sdk.generated.css";
+@import "./base.css";
+@import "./primitives.css";
+@import "./presets.css";
+@import "./ui-sdk-theme.css";
+@import "./motion.css";

@@ -155,8 +155,8 @@ const EVENT_NAMES: Record<string, string> = {
   transitionend: "onTransitionEnd",
 }
 
-function eventProp(name: string, native: boolean): string {
-  if (native && Object.hasOwn(EVENT_NAMES, name.toLowerCase())) {
+function eventProp(name: string, dom: boolean): string {
+  if (dom && Object.hasOwn(EVENT_NAMES, name.toLowerCase())) {
     return EVENT_NAMES[name.toLowerCase()] as string
   }
   return `on${capitalize(camel(name))}`
@@ -494,7 +494,7 @@ export function buildProps(
 
     if (directive === "on" || (/^on[A-Z]/.test(name) && value.kind === "expr")) {
       if (value.kind !== "expr") continue
-      const event = directive === "on" ? eventProp(argument, native) : name
+      const event = directive === "on" ? eventProp(argument, kind !== "component") : name
       handlers[event] = chain(handlers[event], handler(value.expr, ctx))
       continue
     }

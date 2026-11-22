@@ -40,6 +40,11 @@ export interface EvalHost {
   lookup(name: string): { found: boolean; value?: unknown }
   /** Writes a state variable. Called only while an action runs. */
   assign(name: string, value: unknown): void
+  /**
+   * Swaps an object or list held somewhere in state for an edited copy,
+   * finding it by identity. Returns whether it was found.
+   */
+  replace?(previous: object, next: unknown): boolean
   /** Pure functions and namespaces, available everywhere. */
   functions: Record<string, unknown>
   /** Functions with side effects, available only while an action runs. */
@@ -422,16 +427,48 @@ function binary(op: string, a: unknown, b: unknown): unknown {
   }
 }
 
-function assignTo(target: Expr, value: unknown, scope: Scope, env: Env): void {
+/** Whether writing to this expression can follow its path back to state. */
+function isPath(target: Expr, scope: Scope): boolean {
+  if (target.type === "Member") return isPath(target.object, scope)
+  if (target.type !== "Ident") return false
+  const owner = scope.owner(target.name)
+  if (!owner) return true
+  const alias = owner.aliasOf(target.name)
+  return alias ? isPath(alias.expr, alias.scope) : false
+}
+
+function isContainer(value: unknown): value is object {
+  return Array.isArray(value) || isPlainObject(value)
+}
+
+/**
+ * Writes `value` where `target` points. `previous` is the object or list the
+ * target held, when the write replaces one with an edited copy: a target
+ * without a path back to state (a component prop, an item of a filtered
+ * list) is then found in state by identity.
+ */
+function assignTo(
+  target: Expr,
+  value: unknown,
+  scope: Scope,
+  env: Env,
+  previous?: unknown
+): void {
   if (env.mode !== "action") {
     throw new ExprRuntimeError("State can only change from an event handler")
   }
+  const replace = (): boolean =>
+    isContainer(previous) && (env.host.replace?.(previous, value) ?? false)
   if (target.type === "Ident") {
     const owner = scope.owner(target.name)
     if (owner) {
       const alias = owner.aliasOf(target.name)
-      if (alias) {
+      if (alias && isPath(alias.expr, alias.scope)) {
         assignTo(alias.expr, value, alias.scope, env)
+      } else if (!replace() && alias) {
+        throw new ExprRuntimeError(
+          `Can't write to "${target.name}": it comes from a computed list`
+        )
       }
       owner.write(target.name, value)
       return
@@ -440,6 +477,7 @@ function assignTo(target: Expr, value: unknown, scope: Scope, env: Env): void {
     return
   }
   if (target.type === "Member") {
+    if (!isPath(target, scope) && replace()) return
     const container = evalNode(target.object, scope, env)
     const key =
       typeof target.property === "string"
@@ -468,9 +506,10 @@ function assignTo(target: Expr, value: unknown, scope: Scope, env: Env): void {
     } else {
       throw new ExprRuntimeError("Cannot set a property on this value")
     }
-    assignTo(target.object, next, scope, env)
+    assignTo(target.object, next, scope, env, container)
     return
   }
+  if (replace()) return
   throw new ExprRuntimeError("Invalid assignment target")
 }
 
@@ -634,7 +673,7 @@ function evalNode(node: Expr, scope: Scope, env: Env): unknown {
             Array.prototype[key as "push"] as (...a: unknown[]) => unknown
           ).apply(copy, args)
           checkSize(copy)
-          assignTo(callee.object, copy, scope, env)
+          assignTo(callee.object, copy, scope, env, target)
           return result
         }
         const method = methodOf(target, key)

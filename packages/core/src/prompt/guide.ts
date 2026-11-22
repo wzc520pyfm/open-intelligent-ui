@@ -103,6 +103,7 @@ A handler that awaits keeps its \`<Button>\` in a pending state until it is done
 - \`(item.name)\` is the key that keeps each row's identity; give one when rows
   can be added, removed or reordered.
 - Inside \`{#each}\`, writing to \`item\` writes to the list: \`item.qty += 1\`.
+  That holds for a filtered or sorted list too, when its items are objects.
 - \`{#each 5 as n}\` repeats five times, with \`n\` from 0 to 4.
 
 ## Expressions
@@ -167,7 +168,8 @@ Only use tools you were told exist. With no tools, put the data in \`<state>\`.
 \`\`\`
 
 A defined component sees its props and the surface's state. \`<slot />\` is
-where the caller's children go.
+where the caller's children go. Editing an object it was handed edits state:
+\`plan.price += 5\`.
 
 Some components hand a value to their children. Name it with \`let:\`:
 

@@ -67,7 +67,7 @@ function Stat(props: Props) {
   const tone = trend === null || trend === "flat" ? "muted" : good ? "success" : "danger"
   const icon = textValue(rest.icon)
   const value = rest.value
-  const animated = typeof value === "number" && rest.format !== undefined
+  const animated = typeof value === "number"
   const boxStyle = takeBoxStyle(rest)
   return (
     <div className={join("iui-el iui-stat", className)} style={{ ...boxStyle, ...style }}>

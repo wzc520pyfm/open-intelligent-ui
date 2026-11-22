@@ -129,6 +129,30 @@ function errorMessage(error: unknown): string {
  * State survives re-parsing, so a surface that is still streaming in keeps
  * what the user has already typed or toggled.
  */
+const SWAP_DEPTH = 12
+
+/** A copy of `value` with `previous` replaced by `next`, or `value` itself when it isn't inside. */
+function swapByIdentity(value: unknown, previous: object, next: unknown, depth: number): unknown {
+  if (value === previous) return next
+  if (depth >= SWAP_DEPTH || value === null || typeof value !== "object") return value
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index++) {
+      const swapped = swapByIdentity(value[index], previous, next, depth + 1)
+      if (swapped === value[index]) continue
+      const copy = value.slice()
+      copy[index] = swapped
+      return copy
+    }
+    return value
+  }
+  for (const [key, item] of Object.entries(value)) {
+    const swapped = swapByIdentity(item, previous, next, depth + 1)
+    if (swapped === item) continue
+    return { ...value, [key]: swapped }
+  }
+  return value
+}
+
 export class Surface {
   readonly scope = new Scope()
   readonly host: EvalHost
@@ -212,6 +236,7 @@ export class Surface {
     this.host = {
       lookup: (name) => this.lookup(name),
       assign: (name, value) => this.set(name, value),
+      replace: (previous, next) => this.replace(previous, next),
       functions,
       actions,
       warn: (message) => this.warn(message),
@@ -273,6 +298,20 @@ export class Surface {
     this.state.set(name, value)
     if (this.persisted.has(name)) this.writeStorage()
     this.changed()
+  }
+
+  /**
+   * Swaps an object or list held somewhere in state for `next`, so a handler
+   * can edit a value it was handed without knowing where it lives.
+   */
+  private replace(previous: object, next: unknown): boolean {
+    for (const [name, value] of this.state) {
+      const swapped = swapByIdentity(value, previous, next, 0)
+      if (swapped === value) continue
+      this.set(name, swapped)
+      return true
+    }
+    return false
   }
 
   /** Sets several state values and notifies once. */

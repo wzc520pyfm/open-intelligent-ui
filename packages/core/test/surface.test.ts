@@ -70,6 +70,31 @@ describe("state", () => {
     expect(surface.get("open")).toBe(1)
   })
 
+  test("a handler can edit a value it was handed, wherever it lives", () => {
+    const surface = new Surface()
+    surface.update(
+      parse(`<state board={{ cards: [{ id: 1, lane: 0, tags: ["a"] }, { id: 2, lane: 1, tags: [] }] }} />`)
+    )
+    const board = surface.get("board") as { cards: { id: number; lane: number; tags: string[] }[] }
+    const first = board.cards[0]
+
+    // A component prop: a local name that holds an object from state.
+    const prop = surface.scope.child().declare("card", first)
+    run(parseProgram("card.lane += 2; card.tags.push('b')"), prop, surface.host)
+    expect(surface.get("board")).toEqual({
+      cards: [{ id: 1, lane: 2, tags: ["a", "b"] }, { id: 2, lane: 1, tags: [] }],
+    })
+    expect(board.cards[0]).toEqual({ id: 1, lane: 0, tags: ["a"] })
+
+    // An item of a filtered list.
+    act(surface, "board.cards.filter(c => c.id == 2)[0].lane = 3")
+    expect((surface.get("board") as typeof board).cards[1]?.lane).toBe(3)
+
+    // A value that isn't in state stays local.
+    expect(act(surface, "const made = { n: 1 }; made.n = 2; made.n")).toBe(2)
+    expect(surface.snapshot()).toEqual({ board: surface.get("board") })
+  })
+
   test("derived values can't be assigned and cycles don't hang", () => {
     const warnings: string[] = []
     const surface = new Surface({ onWarning: (message) => warnings.push(message) })

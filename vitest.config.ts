@@ -17,7 +17,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: "react",
-          include: ["packages/react/test/**/*.test.tsx"],
+          include: ["packages/react/test/**/*.test.tsx", "apps/playground/test/**/*.test.tsx"],
           environment: "jsdom",
           setupFiles: ["packages/react/test/setup.ts"],
           css: false,

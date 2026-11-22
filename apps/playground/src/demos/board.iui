@@ -12,9 +12,9 @@
 <define name="Ticket" props="card">
   <card class="ticket" padding={3} gap={2} morph="card-{card.id}" shadow="sm">
     <text size="sm" weight="medium">{card.title}</text>
-    <row gap={2}>
+    <row gap={1}>
       <Avatar class="who"><AvatarFallback>{initials(card.who)}</AvatarFallback></Avatar>
-      <text size="xs" color="muted">{card.size} pt</text>
+      <text size="xs" color="muted" class="points">{card.size} pt</text>
       <spacer />
       <Button size="sm" variant="ghost" aria-label="Move back" disabled={card.lane == 0} on:click={card.lane -= 1}><icon name="arrow-left" size="sm" /></Button>
       <Button size="sm" variant="ghost" aria-label="Move forward" disabled={card.lane == 3} on:click={card.lane += 1}><icon name="arrow-right" size="sm" /></Button>
@@ -25,6 +25,8 @@
 <style>
   .lane { background: var(--iui-color-muted); border-radius: var(--iui-radius-lg); min-height: 180px; }
   .who { width: 22px; height: 22px; font-size: 10px; }
+  .points { white-space: nowrap; }
+  .ticket [data-slot="button"] { padding-inline: 6px; }
   .lane-count { min-width: 20px; text-align: center; }
 </style>
 

@@ -3,6 +3,13 @@
 <query id="tickets" tool="listTickets" input={{ status, search }} every={20} />
 <query id="stats" tool="ticketStats" />
 <derive ticket={tickets.data ? tickets.data.find(t => t.id == selected) : null} />
+<state columns={[
+  { key: "id", label: "ID", width: 76 },
+  { key: "subject", label: "Subject" },
+  { key: "customer", label: "Customer", wide: true },
+  { key: "priority", label: "Priority", badge: { urgent: "danger", normal: "neutral", low: "neutral" } },
+  { key: "waiting", label: "Waiting", format: "duration", align: "right", wide: true }
+]} />
 
 <row gap={3} wrap>
   <box gap={0}>
@@ -70,13 +77,7 @@
       {:else if tickets.error}
         <box padding={4}><text color="danger">{tickets.error}</text></box>
       {:else}
-        <DataTable data={tickets.data} rowKey="id" selected={selected} on:select={selected = selected == $value.id ? null : $value.id} empty="No {status} tickets{search ? ' match “' + search + '”' : ''}." columns={[
-          { key: "id", label: "ID", width: 76 },
-          { key: "subject", label: "Subject" },
-          { key: "customer", label: "Customer" },
-          { key: "priority", label: "Priority", badge: { urgent: "danger", normal: "neutral", low: "neutral" } },
-          { key: "waiting", label: "Waiting", format: "duration", align: "right" }
-        ]} />
+        <DataTable data={tickets.data} rowKey="id" selected={selected} on:select={selected = selected == $value.id ? null : $value.id} empty="No {status} tickets{search ? ' match “' + search + '”' : ''}." columns={ticket ? columns.filter(c => !c.wide) : columns} />
       {/if}
     </card>
   </grid-item>

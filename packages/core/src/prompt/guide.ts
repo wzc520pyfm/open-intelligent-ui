@@ -299,7 +299,8 @@ count to new values. Add motion only where it tells the reader something:
 - \`motion="pulse|spin|float"\` loop, for live status only: a recording dot, a
   loading spinner.
 - \`morph="name"\` gives an element a shared identity, so it glides between
-  two places when state moves it.
+  two places when state moves it. Give each element its own name
+  (\`morph="card-{card.id}"\`). Elements out of view change in place.
 
 In CSS, use the motion tokens instead of numbers:
 

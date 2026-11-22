@@ -7,6 +7,7 @@ export {
   type PromptTool,
 } from "./prompt"
 export { CORE_COMPONENTS, RECIPES, UNSUPPORTED } from "./recipes"
+export { skillReferences } from "./reference"
 export {
   type CatalogEntry,
   type CatalogProp,

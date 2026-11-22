@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "typecheck": "pnpm -r typecheck",
     "generate": "node scripts/generate-ui-sdk.mjs",
+    "generate:skills": "node scripts/generate-skills.mjs",
     "design:lint": "node scripts/lint-design.mjs"
   },
   "devDependencies": {

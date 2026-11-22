@@ -129,6 +129,16 @@
     content: none;
   }
 
+  /* These are drawn as icons; whatever text they hold stays for screen readers. */
+  .iui-root
+    :is(
+      [data-slot="date-picker-trigger"],
+      [data-slot="calendar-previous"],
+      [data-slot="calendar-next"]
+    ):not(:has(svg)) {
+    font-size: 0;
+  }
+
   .iui-root [data-iui-icon-only] {
     aspect-ratio: 1;
     padding-inline: 0;
@@ -324,6 +334,21 @@
     opacity: 0;
   }
 
+  /* A dialog written without its backdrop part still dims the page behind it. */
+  .iui-root
+    :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]):not(
+      [data-slot$="-backdrop"] + *
+    )::backdrop {
+    background: var(--ui-overlay);
+    backdrop-filter: blur(2px);
+    transition: background-color var(--iui-motion-surface-enter-duration)
+      var(--iui-motion-surface-enter-easing);
+
+    @starting-style {
+      background: transparent;
+    }
+  }
+
   /* Leaving is quicker than arriving. */
   .iui-root [data-slot][data-ending-style] {
     transition-duration: var(--iui-motion-surface-exit-duration);
@@ -341,5 +366,14 @@
   .iui-root :is([data-slot="dialog-description"], [data-slot="alert-dialog-description"]) {
     margin: 0;
     color: var(--iui-color-muted-foreground);
+  }
+
+  .iui-root :is([data-slot="pagination-previous"], [data-slot="pagination-next"]):not(:empty) {
+    width: auto;
+    padding-inline: calc(var(--ui-spacing) * 2);
+  }
+
+  .iui-root [data-slot="pagination-next"] {
+    flex-direction: row-reverse;
   }
 }

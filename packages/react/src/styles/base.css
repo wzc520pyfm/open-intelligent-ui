@@ -131,7 +131,7 @@
     text-wrap: balance;
   }
 
-  .iui-root :where(h1) {
+  .iui-root :where(h1:not([data-slot])) {
     font-family: var(--iui-font-h1-family, var(--iui-heading));
     font-size: var(--iui-font-h1-size, 1.75rem);
     font-weight: var(--iui-font-h1-weight, 650);
@@ -139,7 +139,7 @@
     letter-spacing: var(--iui-font-h1-tracking, -0.02em);
   }
 
-  .iui-root :where(h2) {
+  .iui-root :where(h2:not([data-slot])) {
     font-family: var(--iui-font-h2-family, var(--iui-heading));
     font-size: var(--iui-font-h2-size, 1.3125rem);
     font-weight: var(--iui-font-h2-weight, 600);
@@ -147,7 +147,7 @@
     letter-spacing: var(--iui-font-h2-tracking, -0.015em);
   }
 
-  .iui-root :where(h3) {
+  .iui-root :where(h3:not([data-slot])) {
     font-family: var(--iui-font-h3-family, var(--iui-heading));
     font-size: var(--iui-font-h3-size, 1.0625rem);
     font-weight: var(--iui-font-h3-weight, 600);
@@ -155,7 +155,7 @@
     letter-spacing: var(--iui-font-h3-tracking, -0.01em);
   }
 
-  .iui-root :where(h4, h5, h6) {
+  .iui-root :where(h4:not([data-slot]), h5:not([data-slot]), h6:not([data-slot])) {
     font-family: var(--iui-font-h4-family, var(--iui-heading));
     font-size: var(--iui-font-h4-size, 0.9375rem);
     font-weight: var(--iui-font-h4-weight, 600);
@@ -163,7 +163,7 @@
     letter-spacing: var(--iui-font-h4-tracking, normal);
   }
 
-  .iui-root :where(h6) {
+  .iui-root :where(h6:not([data-slot])) {
     color: var(--iui-color-muted-foreground);
   }
 
@@ -277,21 +277,21 @@
     font-size: var(--iui-font-small-size, 0.8125rem);
   }
 
-  .iui-root :where(table) {
+  .iui-root :where(table:not([data-slot])) {
     width: 100%;
     border-collapse: collapse;
     font-size: var(--iui-font-small-size, 0.8125rem);
     font-variant-numeric: tabular-nums;
   }
 
-  .iui-root :where(th, td) {
+  .iui-root :where(th:not([data-slot]), td:not([data-slot])) {
     padding: 0.625em 0.875em;
     border-bottom: 1px solid var(--iui-color-border);
     text-align: start;
     vertical-align: top;
   }
 
-  .iui-root :where(th) {
+  .iui-root :where(th:not([data-slot])) {
     color: var(--iui-color-muted-foreground);
     font-weight: 500;
     white-space: nowrap;
@@ -317,7 +317,13 @@
   }
 
   /* Plain HTML controls, for when a model reaches for them directly. */
-  .iui-root :where(button, input, select, textarea) {
+  .iui-root
+    :where(
+      button:not([data-slot]),
+      input:not([data-slot]),
+      select:not([data-slot]),
+      textarea:not([data-slot])
+    ) {
     font: inherit;
     color: inherit;
   }
@@ -343,7 +349,7 @@
     background: var(--iui-color-muted);
   }
 
-  .iui-root :where(button:disabled) {
+  .iui-root :where(button:not([data-slot]):disabled) {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -376,7 +382,7 @@
     font-weight: var(--iui-font-label-weight, 500);
   }
 
-  .iui-root :where(:focus-visible) {
+  .iui-root :where(:focus-visible:not([data-slot])) {
     outline: 2px solid var(--iui-color-ring);
     outline-offset: 2px;
   }

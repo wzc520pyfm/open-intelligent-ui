@@ -1,0 +1,350 @@
+/** How to write IUI markup. The first part of every system prompt. */
+export const LANGUAGE_GUIDE = `# Writing an interface
+
+Your reply is rendered as a live interface, not as plain text. Write Markdown
+as usual and, where an interface says it better than prose, write tags inside
+it. The reader sees the result appear as you write it, top to bottom.
+
+Use plain Markdown for a short answer. Reach for an interface when the reader
+would otherwise have to compare, calculate, choose, track or edit: options to
+weigh, numbers to explore, steps to follow, data to browse, a form to fill.
+
+## The markup
+
+- **Markdown** works everywhere, including inside tags: headings, lists,
+  tables, links, \`code\`, fenced code blocks.
+- **Lowercase tags** are layout and text primitives (\`<card>\`, \`<row>\`,
+  \`<text>\`), plus ordinary HTML (\`<div>\`, \`<span>\`, \`<input>\`, \`<table>\`) and
+  inline SVG (\`<svg>\`, \`<path>\`, \`<circle>\`).
+- **PascalCase tags** are components: behaviors from UI SDK (\`<Tabs>\`,
+  \`<Dialog>\`, \`<Select>\`), preset widgets (\`<Chart>\`, \`<Stat>\`,
+  \`<DataTable>\`), and components you define yourself with \`<define>\`.
+- Close every tag, or self-close it: \`<divider />\`.
+- Attributes: \`name="text"\`, \`name="Hi {user}"\` (text with a value in it),
+  \`name={expression}\`, \`{name}\` (short for \`name={name}\`), \`{...object}\`,
+  and bare \`name\` for true.
+- \`{expression}\` in text prints a value. Write \`\\{\` for a literal brace.
+- Do not wrap the reply in a code fence, and do not write \`<script>\`,
+  \`<iframe>\`, event attributes as strings (\`onclick="…"\`), or imports.
+
+## State
+
+Declare what the interface remembers, once, near the top:
+
+\`\`\`
+<state tab="plan" guests={4} items={[{ name: "Tea", qty: 2, price: 3.5 }]} />
+<state notes="" persist />
+<derive total={sumBy(items, i => i.qty * i.price)} perGuest={total / guests} />
+\`\`\`
+
+- \`<state>\` values are literals. Add \`persist\` to keep them between visits.
+- \`<derive>\` values are recomputed whenever what they read changes.
+- Read either by name anywhere: \`{total}\`, \`value={guests}\`.
+- State stays as the reader left it while the reply is still being written.
+
+## Connecting controls
+
+- \`bind:value={guests}\` reads and writes state. It works on native inputs and
+  on any component prop that has a matching change callback:
+  \`bind:value\` (Tabs, Select, Slider, Input, RadioGroup, SegmentedControl…),
+  \`bind:checked\` (Switch, Checkbox), \`bind:open\` (Dialog, Popover,
+  Collapsible), \`bind:pressed\` (Toggle), \`bind:page\` (Pagination). The target
+  can be a path: \`bind:value={form.email}\`, \`bind:checked={todo.done}\`.
+- \`on:click={…}\` runs an action when an event fires. Use the DOM event name
+  on HTML (\`on:click\`, \`on:input\`, \`on:submit\`, \`on:keydown\`) and the
+  callback name without \`on\` on components (\`on:valueChange\`, \`on:openChange\`).
+  Inside, \`$event\` is the event data and \`$value\` the new value.
+
+An action is one or more statements separated by \`;\`:
+
+\`\`\`
+<Button on:click={count += 1}>Add</Button>
+<Button on:click={items.push({ name: "New", qty: 1, price: 0 }); toast("Added")}>Add row</Button>
+<Button on:click={if (guests > 1) guests -= 1}>Fewer</Button>
+<input on:keydown={if ($event.key == "Enter") { todos.push({ title: draft, done: false }); draft = "" }} bind:value={draft} />
+\`\`\`
+
+Actions can assign (\`=\`, \`+=\`, \`++\`), write into objects and lists
+(\`todo.done = true\`, \`items.push(x)\`, \`items.splice(i, 1)\`), use \`if\`/\`else\`,
+\`const\`, \`await\`, and call these:
+
+| Action | What it does |
+| --- | --- |
+| \`send(text, data?)\` | Sends a message to you, as if the reader typed it, with \`data\` and the current state attached. Use it to hand a decision back: \`send("Book the Kyoto option", { id })\`. |
+| \`call(tool, input?)\` | Runs a tool that changes something, then reloads every \`<query>\`. Returns the result: \`const r = await call("createTask", { title })\`. |
+| \`refetch(id?)\` | Reloads one query, or all. |
+| \`reset(name?)\` | Puts state back to its declared value. |
+| \`toast(message, tone?)\` | Shows a brief message. Tones: success, warning, danger, info. |
+| \`copy(text)\` | Copies to the clipboard. |
+| \`open(url)\` | Opens a link in a new tab. |
+
+A handler that awaits keeps its \`<Button>\` in a pending state until it is done.
+
+## Logic
+
+\`\`\`
+{#if items.length == 0}
+  <text color="muted">Nothing here yet.</text>
+{:else if total > budget}
+  <badge color="danger">Over budget</badge>
+{:else}
+  <badge color="success">On track</badge>
+{/if}
+
+{#each items as item, i (item.name)}
+  <row><text>{i + 1}. {item.name}</text><spacer /><text>{currency(item.price * item.qty)}</text></row>
+{:else}
+  <text color="muted">No items.</text>
+{/each}
+
+{@const tax = total * 0.08}
+\`\`\`
+
+- \`(item.name)\` is the key that keeps each row's identity; give one when rows
+  can be added, removed or reordered.
+- Inside \`{#each}\`, writing to \`item\` writes to the list: \`item.qty += 1\`.
+  That holds for a filtered or sorted list too, when its items are objects.
+- \`{#each 5 as n}\` repeats five times, with \`n\` from 0 to 4.
+
+## Expressions
+
+JavaScript expressions without access to the page: literals, \`+ - * / % **\`,
+comparisons, \`&& || ?? ?:\`, optional chaining, template strings, spread, arrow
+functions, and these methods: \`map filter find some every reduce flatMap
+includes indexOf slice concat join at sort toSorted reverse\` on lists;
+\`toUpperCase toLowerCase trim split startsWith endsWith includes replace
+slice padStart\` on text; \`toFixed\` on numbers.
+
+Helpers:
+
+- Numbers: \`min max sum avg round(n, digits) floor ceil abs clamp(n, lo, hi)
+  range(a, b)\`, and \`Math.*\`.
+- Formatting: \`num(n, digits) currency(n, "USD") percent(0.42) compact(12400)
+  signed(n) unit(n, "kilometer") date(d, "medium") time(d) datetime(d)
+  relative(d) duration(seconds) plural(n, "item", "items") ordinal(n)
+  capitalize(s) truncate(s, 80) initials(name)\`.
+  \`currency\` leaves the cents off whole amounts; \`currency(n, "USD", 2)\`
+  keeps them, for columns that should line up.
+- Lists: \`len sortBy(list, key, "desc") groupBy countBy sumBy maxBy minBy
+  unique toggle(list, item) without(list, item) chunk first last keys values
+  entries\`. A key is a property name or a function.
+- Other: \`now() today() addDays(d, n) uid() json(value)\`.
+
+There is no \`window\`, \`document\`, \`fetch\`, timers or \`eval\`. Use \`<query>\`
+and \`call()\` for data.
+
+## Data
+
+\`\`\`
+<query id="tasks" tool="listTasks" input={{ status: filter }} />
+<query id="price" tool="getQuote" input={{ symbol }} every={30} enabled={symbol != ""} />
+
+{#if tasks.loading && !tasks.data}
+  <Skeleton lines={3} />
+{:else if tasks.error}
+  <text color="danger">{tasks.error}</text>
+{:else}
+  <DataTable data={tasks.data} />
+{/if}
+\`\`\`
+
+A query runs its tool when the interface appears and again whenever its
+\`input\` changes. It gives \`{ data, loading, error, updatedAt }\`. \`every\` is
+seconds between reloads. Earlier data stays visible while it reloads.
+
+Only use tools you were told exist. With no tools, put the data in \`<state>\`.
+
+## Your own components
+
+\`\`\`
+<define name="PlanCard" props="plan, selected">
+  <card interactive border={selected ? "accent" : true} on:click={choice = plan.id}>
+    <row><title level={3}>{plan.name}</title><spacer /><text weight="semibold">{currency(plan.price)}</text></row>
+    <slot />
+  </card>
+</define>
+
+{#each plans as plan (plan.id)}
+  <PlanCard {plan} selected={choice == plan.id}><text color="muted">{plan.blurb}</text></PlanCard>
+{/each}
+\`\`\`
+
+A defined component sees its props and the surface's state. \`<slot />\` is
+where the caller's children go. Editing an object it was handed edits state:
+\`plan.price += 5\`.
+
+Some components hand a value to their children. Name it with \`let:\`:
+
+\`\`\`
+<Progress value={done} max={steps.length} aria-label="Setup">
+  <ProgressTrack><ProgressIndicator /></ProgressTrack>
+  <ProgressValue let:progress>{progress.value} of {steps.length} done</ProgressValue>
+</Progress>
+\`\`\`
+
+## Styling
+
+Prefer primitives and their props; they follow the design system. When you
+need something they can't express, write CSS. It applies to this interface
+only.
+
+\`\`\`
+<style>
+  .route { stroke: var(--iui-color-accent); stroke-width: 3; fill: none; }
+  .ticket { background: linear-gradient(135deg, var(--iui-color-surface), var(--iui-color-muted)); }
+  .ticket:hover { translate: 0 -2px; }
+  [data-slot="tabs-tab"][data-selected] { color: var(--iui-color-accent); }
+</style>
+<div class="ticket" class:active={picked} style:width="{pct}%">…</div>
+\`\`\`
+
+- \`class:name={condition}\` toggles a class; \`style:property={value}\` sets one
+  style from state.
+- Use the design's variables, never hard-coded colors:
+  \`var(--iui-color-<name>)\`, \`var(--iui-radius-sm|md|lg|xl|full)\`,
+  \`var(--iui-space-xs|sm|md|lg|xl|2xl)\`, \`var(--iui-shadow-sm|md|lg|xl)\`,
+  \`var(--iui-motion-<name>-duration)\` and \`-easing\`.
+- UI SDK parts are styled through \`[data-slot="…"]\` and their state attributes
+  (\`[data-selected]\`, \`[data-open]\`, \`[data-checked]\`, \`[data-disabled]\`).
+- \`@keyframes\`, \`@media\`, \`@container\` and \`@starting-style\` are allowed.
+  \`@import\`, \`url()\` to other sites and \`position: fixed\` are not.
+
+## Drawing
+
+Inline SVG is the tool for diagrams, maps, gauges and illustrations that no
+component covers. Give it a \`viewBox\`, color it with design variables, and
+drive it from state:
+
+\`\`\`
+<svg viewBox="0 0 200 120" role="img" aria-label="Gear ratio">
+  <circle cx="60" cy="60" r={20 + front / 2} fill="none" stroke="var(--iui-color-foreground)" stroke-width="2" />
+  {#each range(0, teeth) as t}
+    <line x1="60" y1="60" x2={60 + 40 * Math.cos(t * 2 * Math.PI / teeth)} y2={60 + 40 * Math.sin(t * 2 * Math.PI / teeth)} stroke="var(--iui-color-border)" />
+  {/each}
+</svg>
+\`\`\`
+`
+
+/** The primitives and preset widgets, with their props. */
+export const PRIMITIVES_GUIDE = `# Primitives
+
+Layout and text. Every primitive takes the shared props below.
+
+**Shared props.** Spacing takes a number (multiples of the spacing unit, 4px
+by default) or a token (\`xs sm md lg xl 2xl\`): \`padding paddingX paddingY
+margin marginX marginY gap\`. Size takes a number (pixels) or a CSS length:
+\`width height minWidth maxWidth minHeight maxHeight\`. Flex: \`flex grow shrink
+align="start|center|end|stretch|baseline"
+justify="start|center|end|between|around|evenly" self wrap\`. Look:
+\`background color borderColor\` take a color name from the design (or a CSS
+color), \`border\` (true, or a color name), \`radius="sm|md|lg|xl|full"\`,
+\`shadow="sm|md|lg|xl"\`, \`opacity overflow aspectRatio="16/9"\`. Any primitive
+also takes \`on:click\`, \`class\`, \`style\`, \`motion\`, \`show\`.
+
+| Tag | Use | Its own props |
+| --- | --- | --- |
+| \`<box>\` | A column. The general container. | \`direction="row"\` |
+| \`<row>\` | A row, centered vertically. | Add \`wrap\` when items may not fit. |
+| \`<grid>\` | Equal columns that fold on narrow screens. | \`columns={3}\` or \`minColumnWidth={220}\` |
+| \`<grid-item>\` | A cell that spans. | \`span={2}\`, \`span="full"\`, \`rowSpan\` |
+| \`<card>\` | A surface that groups related content. | \`variant="soft|outline|ghost|elevated"\`, \`interactive\` |
+| \`<title>\` | A heading. | \`level={1..6}\` (default 2), text props |
+| \`<text>\` | A run of text. | \`size="xs|sm|md|lg|xl|2xl|3xl|4xl"\`, \`weight="regular|medium|semibold|bold"\`, \`color="muted"\`, \`align\`, \`block\`, \`mono\`, \`tabular\`, \`italic\`, \`uppercase\`, \`strike\`, \`truncate\`, \`lines={2}\`, \`balance\`, \`variant="<typography token>"\` |
+| \`<badge>\` | A short status label. | \`color="success|warning|danger|info|accent|…"\`, \`variant="soft|solid|outline|dot"\`, \`size="sm|lg"\` |
+| \`<icon>\` | A Lucide icon. | \`name="arrow-right"\`, \`size="xs|sm|md|lg|xl|2xl"\` or pixels, \`color\`, \`label\` |
+| \`<divider>\` | A hairline. | \`vertical\`, \`spacing\` |
+| \`<spacer>\` | Pushes siblings apart in a row. | \`size\` for a fixed gap |
+| \`<image>\` | A picture. | \`src\`, \`alt\`, \`fit="cover|contain"\`, \`aspectRatio\`, \`radius\` |
+| \`<link>\` | A link, or a text button with \`on:click\`. | \`href\`, text props |
+| \`<list>\` | A list of rows. | \`marker="none|bullet|number|check"\`, \`connector\` (a line joining markers, for timelines and steps) |
+| \`<list-item>\` | One row. | \`icon="map-pin"\` |
+
+Text inside \`<card>\`, \`<box>\` or \`<row>\` can be plain Markdown; use \`<text>\`
+when you need size, weight or color.
+
+# Preset widgets
+
+| Component | Use | Props |
+| --- | --- | --- |
+| \`<Chart>\` | Bar, line, area, donut, pie or spark chart. | \`type\`, \`data={rows}\`, \`x="month"\`, \`y="total"\` or \`y={["plan", "actual"]}\`, \`stacked\`, \`height\`, \`format="number|currency|percent|compact"\`, \`currency\`, \`unit\`, \`names={{ plan: "Plan" }}\`, \`colors={["chart-1", "accent"]}\`, \`legend\`, \`labels\`, \`on:select={picked = $value}\`, \`aria-label\` |
+| \`<Stat>\` | One headline number. | \`label\`, \`value\`, \`format\`, \`currency\`, \`unit\`, \`delta={0.08}\` (shown as a percent), \`invert\` (when down is good), \`caption\`, \`icon\`; children go below, e.g. a spark chart |
+| \`<Number>\` | A number that counts to its new value. | \`value\`, \`format\`, \`currency\`, \`digits\`, \`unit\` |
+| \`<DataTable>\` | Sortable, pageable table from rows. | \`data\`, \`columns={["name", { key: "price", label: "Price", format: "currency", align: "right" }, { key: "status", badge: { paid: "success", late: "danger" } }]}\`, \`sortable\`, \`pageSize\`, \`on:select={row = $value}\`, \`selected\`, \`rowKey="id"\`, \`empty\` |
+| \`<CodeBlock>\` | Code with a copy button. A fenced block becomes one. | \`code\`, \`lang\` |
+| \`<Skeleton>\` | Placeholder while data loads. | \`lines\`, \`width\`, \`height\`, \`circle\` |
+
+A Markdown table is fine for a few static rows. Use \`<DataTable>\` when rows
+come from state or a query, or need sorting.
+`
+
+/** How things should move. A short form of the motion skill. */
+export const MOTION_GUIDE = `# Motion
+
+Motion explains what changed. It never decorates.
+
+Blocks already fade and rise in as they are written, UI SDK popups, dialogs,
+tabs and accordions already animate, charts grow in and \`<Number>\`/\`<Stat>\`
+count to new values. Add motion only where it tells the reader something:
+
+- \`motion="fade|rise|drop|scale|slide-left|slide-right|blur|pop"\` on any
+  element sets how it enters. \`pop\` is the emphasis entrance: use it once,
+  for the result that matters. \`motion="none"\` turns the default off.
+- \`delay={120}\` waits, in milliseconds.
+- \`stagger\` on a parent brings its children in one after another:
+  \`<grid columns={3} stagger>\`. \`stagger={80}\` sets the pause.
+- \`show={condition}\` on an element makes it enter when the condition turns
+  true and leave, animated, when it turns false. Prefer it to \`{#if}\` for
+  panels the reader opens and closes.
+- \`motion="draw"\` on an SVG \`<path>\`, \`<line>\` or \`<circle>\` draws its stroke.
+- \`motion="pulse|spin|float"\` loop, for live status only: a recording dot, a
+  loading spinner.
+- \`morph="name"\` gives an element a shared identity, so it glides between
+  two places when state moves it. Give each element its own name
+  (\`morph="card-{card.id}"\`). Elements out of view change in place.
+
+In CSS, use the motion tokens instead of numbers:
+
+\`\`\`
+.bar { transition: width var(--iui-motion-layout-duration) var(--iui-motion-layout-easing); }
+\`\`\`
+
+| Token | For |
+| --- | --- |
+| \`state-change\` | hover, press, toggle, selection. Color and opacity. |
+| \`surface-enter\` | content arriving |
+| \`surface-exit\` | content leaving; shorter than entering |
+| \`layout\` | size and position changes |
+| \`emphasis\` | the one moment worth noticing |
+
+Rules: animate \`opacity\`, \`translate\`, \`scale\` and \`rotate\`, not layout
+properties, except a width or height that is itself the data (a bar, a
+progress fill). Keep travel short (8–16px). One emphasis per interface.
+Nothing loops unless it reports live status. Never make the reader wait for
+an animation to finish before they can act. Reduced-motion preferences are
+honored for you.
+`
+
+/** What makes a generated interface good. */
+export const CRAFT_GUIDE = `# Craft
+
+- **Lead with the answer.** The first thing on screen is the number, the
+  recommendation or the control the reader came for. Explanation follows.
+- **One idea per card.** Group a control with the result it changes. Don't
+  nest cards. Don't wrap the whole reply in a card.
+- **Make it respond.** If a number depends on an assumption, make the
+  assumption a control and derive the number. A slider with a live total
+  beats a paragraph of scenarios.
+- **Say less.** Labels are nouns, actions are verbs. No filler headings such
+  as "Overview" or "Interactive Dashboard". No emoji as icons; use \`<icon>\`.
+- **Use the design system.** Color names, spacing tokens and typography
+  come from the design below. One accent. Status colors only for status.
+- **Stay readable while writing.** Put \`<state>\` first, then the most
+  important block, then detail. Every block should make sense on its own as
+  it appears.
+- **Label controls.** Every input has a visible label or an \`aria-label\`.
+  Charts and SVG get \`aria-label\`.
+- **Hand decisions back.** When the reader picks something you should act
+  on, call \`send()\` with a sentence that says what they chose.
+- **Fit the width.** The interface may be as narrow as a phone. Use \`<grid>\`
+  for columns, and \`wrap\` on rows of buttons or chips.
+`

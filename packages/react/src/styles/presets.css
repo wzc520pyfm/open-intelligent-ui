@@ -1,0 +1,467 @@
+/* Preset widgets: Stat, Number, Skeleton, CodeBlock, DataTable, Chart. */
+@layer iui {
+  .iui-number {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Stat */
+  .iui-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .iui-stat-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    color: var(--iui-color-muted-foreground);
+    font-size: var(--iui-font-small-size, 0.8125rem);
+    font-weight: 500;
+  }
+
+  .iui-stat-value {
+    font-family: var(--iui-heading);
+    font-size: var(--iui-c-stat-font-size, 1.75rem);
+    font-weight: var(--iui-c-stat-font-weight, 650);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+  }
+
+  @container iui (width < 420px) {
+    .iui-stat-value {
+      font-size: var(--iui-c-stat-font-size, 1.5rem);
+    }
+  }
+
+  .iui-stat-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em;
+    color: var(--iui-color-muted-foreground);
+    font-size: var(--iui-font-small-size, 0.8125rem);
+  }
+
+  .iui-stat-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15em;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .iui-stat-delta[data-tone="success"] {
+    color: var(--iui-color-success);
+  }
+
+  .iui-stat-delta[data-tone="danger"] {
+    color: var(--iui-color-danger);
+  }
+
+  .iui-stat-extra {
+    margin-block-start: 0.375rem;
+  }
+
+  /* Skeleton */
+  .iui-skeleton {
+    display: block;
+    min-height: 0.75em;
+    border-radius: var(--iui-radius-sm);
+    background: linear-gradient(
+        100deg,
+        transparent 30%,
+        color-mix(in oklab, var(--iui-color-surface) 70%, transparent) 50%,
+        transparent 70%
+      )
+      0 0 / 200% 100% var(--iui-color-muted);
+    animation: iui-shimmer 1.4s linear infinite;
+  }
+
+  .iui-skeleton-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6em;
+  }
+
+  .iui-skeleton-lines > .iui-skeleton {
+    height: 0.8em;
+  }
+
+  @keyframes iui-shimmer {
+    from {
+      background-position: 200% 0;
+    }
+
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  /* CodeBlock */
+  .iui-code {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--iui-color-border);
+    border-radius: var(--iui-radius-md);
+    background: color-mix(in oklab, var(--iui-color-muted) 55%, var(--iui-color-surface));
+  }
+
+  .iui-code-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 0.375rem 0.25rem 0.75rem;
+    border-bottom: 1px solid var(--iui-color-border);
+    color: var(--iui-color-muted-foreground);
+    font-family: var(--iui-mono);
+    font-size: 0.75rem;
+  }
+
+  .iui-code-bar > button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    min-height: 1.5rem;
+    padding: 0 0.5rem;
+    border: 0;
+    border-radius: var(--iui-radius-sm);
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .iui-code-bar > button:hover {
+    background: var(--iui-color-muted);
+    color: var(--iui-color-foreground);
+  }
+
+  .iui-code > pre {
+    margin: 0;
+    padding: 0.75rem;
+    overflow-x: auto;
+    font-family: var(--iui-font-code-family, var(--iui-mono));
+    font-size: var(--iui-font-code-size, 0.8125rem);
+    line-height: var(--iui-font-code-line, 1.6);
+    tab-size: 2;
+    overflow-wrap: normal;
+  }
+
+  .iui-code > pre > code {
+    padding: 0;
+    background: none;
+    font-size: inherit;
+  }
+
+  /* DataTable */
+  .iui-table {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--iui-color-border);
+    border-radius: var(--iui-radius-lg);
+    background: var(--iui-color-surface);
+  }
+
+  .iui-table-scroll {
+    overflow-x: auto;
+  }
+
+  /* Wide tables scroll sideways on a narrow surface instead of crushing their columns. */
+  .iui-table-scroll > table {
+    min-width: min(calc(var(--iui-columns, 1) * 6.5rem), 44rem);
+  }
+
+  .iui-table td:is([data-numeric], [data-short]) {
+    white-space: nowrap;
+  }
+
+  .iui-table th {
+    background: color-mix(in oklab, var(--iui-color-muted) 50%, transparent);
+    vertical-align: middle;
+  }
+
+  .iui-table td {
+    vertical-align: middle;
+    overflow-wrap: normal;
+  }
+
+  .iui-table th > button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .iui-table th > button:hover {
+    color: var(--iui-color-foreground);
+  }
+
+  .iui-table tbody > tr {
+    transition: background var(--iui-motion-state-change-duration)
+      var(--iui-motion-state-change-easing);
+  }
+
+  .iui-table tr[data-interactive] {
+    cursor: pointer;
+  }
+
+  .iui-table tr[data-interactive]:hover {
+    background: color-mix(in oklab, var(--iui-color-muted) 60%, transparent);
+  }
+
+  .iui-table tr[data-selected] {
+    background: color-mix(in oklab, var(--iui-color-accent) 9%, transparent);
+  }
+
+  .iui-table-empty {
+    padding: 1.5rem;
+    color: var(--iui-color-muted-foreground);
+    text-align: center;
+  }
+
+  .iui-table-pager {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    padding: 0.375rem 0.5rem;
+    border-top: 1px solid var(--iui-color-border);
+    color: var(--iui-color-muted-foreground);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .iui-table-pager > span {
+    margin-inline-end: 0.5rem;
+  }
+
+  .iui-table-pager > button {
+    display: grid;
+    width: 1.75rem;
+    min-height: 1.75rem;
+    padding: 0;
+    place-items: center;
+    border: 0;
+    border-radius: var(--iui-radius-sm);
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .iui-table-pager > button:hover:not(:disabled) {
+    background: var(--iui-color-muted);
+    color: var(--iui-color-foreground);
+  }
+
+  /* Chart */
+  .iui-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .iui-chart[data-type="spark"],
+  .iui-chart[data-type="sparkline"] {
+    gap: 0;
+  }
+
+  .iui-chart-plot {
+    position: relative;
+    width: 100%;
+  }
+
+  .iui-chart-plot > svg {
+    display: block;
+    max-width: none;
+    overflow: visible;
+  }
+
+  .iui-chart-grid {
+    stroke: var(--iui-color-border);
+    stroke-dasharray: 2 4;
+    shape-rendering: crispEdges;
+  }
+
+  .iui-chart-grid[data-zero] {
+    stroke: color-mix(in oklab, var(--iui-color-foreground) 28%, var(--iui-color-border));
+    stroke-dasharray: none;
+  }
+
+  .iui-chart-tick {
+    fill: var(--iui-color-muted-foreground);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .iui-chart-value {
+    fill: var(--iui-color-foreground);
+    font-size: 11px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .iui-chart-bar,
+  .iui-chart-segment,
+  .iui-chart-legend-item {
+    transition: opacity var(--iui-motion-state-change-duration)
+      var(--iui-motion-state-change-easing);
+  }
+
+  :is(.iui-chart-bar, .iui-chart-segment, .iui-chart-legend-item)[data-dim] {
+    opacity: 0.35;
+  }
+
+  .iui-chart-line {
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .iui-chart-dot {
+    stroke: var(--iui-color-surface);
+    stroke-width: 2;
+  }
+
+  .iui-chart-cursor {
+    stroke: color-mix(in oklab, var(--iui-color-foreground) 30%, transparent);
+    stroke-width: 1;
+    pointer-events: none;
+  }
+
+  .iui-chart-tooltip {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.375rem 0.625rem;
+    translate: -50% 0;
+    border: 1px solid var(--iui-color-border);
+    border-radius: var(--iui-radius-md);
+    background: var(--iui-color-surface);
+    box-shadow: var(--iui-shadow-md);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    white-space: nowrap;
+    pointer-events: none;
+    transition:
+      left var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      top var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
+  }
+
+  .iui-chart-tooltip > strong {
+    font-weight: 600;
+  }
+
+  .iui-chart-tooltip > span {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    color: var(--iui-color-muted-foreground);
+  }
+
+  .iui-chart-tooltip b {
+    margin-inline-start: auto;
+    padding-inline-start: 0.75em;
+    color: var(--iui-color-foreground);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .iui-chart i {
+    display: inline-block;
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 2px;
+  }
+
+  .iui-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.875rem;
+    color: var(--iui-color-muted-foreground);
+    font-size: 0.75rem;
+  }
+
+  .iui-chart-legend[data-side] {
+    flex: 1;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: 8rem;
+  }
+
+  .iui-chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.45em;
+  }
+
+  .iui-chart-legend-item > b {
+    margin-inline-start: auto;
+    padding-inline-start: 1em;
+    color: var(--iui-color-foreground);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .iui-chart-donut {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .iui-chart-donut > .iui-chart-plot {
+    flex: none;
+  }
+
+  .iui-chart-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .iui-chart-center > b {
+    font-family: var(--iui-heading);
+    font-size: 1.25rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+
+  .iui-chart-center > span {
+    max-width: 70%;
+    overflow: hidden;
+    color: var(--iui-color-muted-foreground);
+    font-size: 0.75rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .iui-chart-empty {
+    display: grid;
+    min-height: 7.5rem;
+    place-items: center;
+    border: 1px dashed var(--iui-color-border);
+    border-radius: var(--iui-radius-md);
+    color: var(--iui-color-muted-foreground);
+    font-size: var(--iui-font-small-size, 0.8125rem);
+  }
+}

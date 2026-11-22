@@ -1,0 +1,251 @@
+# 架构
+
+本文说明各部分怎么分工、数据怎么流动，以及几个不显而易见的设计决定。语言本身见 [`spec.md`](spec.md)，调研和取舍的依据见 [`research.md`](research.md)。
+
+- [一次回复的全过程](#一次回复的全过程)
+- [代码在哪里](#代码在哪里)
+- [解析器](#解析器)
+- [表达式解释器](#表达式解释器)
+- [状态仓库](#状态仓库)
+- [渲染](#渲染)
+- [UI SDK 的接入](#ui-sdk-的接入)
+- [设计系统](#设计系统)
+- [样式分层](#样式分层)
+- [动效](#动效)
+- [提示词](#提示词)
+- [安全模型](#安全模型)
+- [测试守着什么](#测试守着什么)
+
+## 一次回复的全过程
+
+```
+            DESIGN.md ──────────────┬──────────────────────────────┐
+                                    │                              │
+  工具描述 ──▶ buildSystemPrompt ◀──┘                              ▼
+                    │                                        designToCss
+                    ▼                                              │
+                  模型 ──(流式文本)──▶ parse ──▶ Surface ──▶ render ◀┘
+                    ▲                              │  ▲          │
+                    │                              │  │          ▼
+                    └────── send(text, data) ◀─────┘  └──── 读者操作界面
+                                                   │
+                                宿主的工具 ◀── <query> / call()
+```
+
+1. 宿主用 `buildSystemPrompt` 生成系统提示词：语言、原语、UI SDK 组件、动效规则、DESIGN.md 的令牌和正文、可用工具。
+2. 模型流式返回 IUI 标记。每来一段，宿主把到目前为止的全文交给 `<IntelligentUI source streaming>`。
+3. `parse` 把全文解析成树。流式期间，末尾半截的标签和表达式先不解析。
+4. `Surface` 读树里的声明：建立状态、派生值、查询、自定义组件和样式。已有的状态不动。
+5. 渲染器把树变成 React 元素：原语、预置组件、UI SDK 部件、HTML 和 SVG。
+6. 读者操作界面。事件处理是标记里的动作，在解释器里执行，写状态仓库；读过这些状态的地方重新渲染。这一步没有模型参与。
+7. `<query>` 和 `call()` 直接调用宿主提供的工具，读写真实数据。这一步也没有模型参与。
+8. 动作调用 `send()` 时，宿主收到一句话、附带的数据和当时的全部状态，把它作为用户消息交给模型，开始下一轮。
+
+第 6、7 步是和“每次点击都问一次模型”的方案的主要区别：模型只写一次接线。
+
+## 代码在哪里
+
+```
+packages/core            不依赖任何框架
+  src/markup             标记解析：扫描器、Markdown、标签白名单
+  src/expr               表达式：分词、解析、求值、内置函数
+  src/runtime            Surface：状态、派生值、查询、动作
+  src/design             DESIGN.md 解析、令牌到 CSS 变量、CSS 作用域与净化
+  src/prompt             系统提示词、语言指南、UI SDK 清单（生成）
+packages/react           React 渲染器
+  src/IntelligentUI.tsx  组件本体
+  src/render             树到 React 元素、属性与指令、入场与离场
+  src/primitives         15 个布局与文字原语
+  src/presets            6 个预置组件
+  src/registry           UI SDK 部件的懒加载表（生成）
+  src/styles             样式表
+apps/playground          演示站：六个示例、流式回放、接真实模型
+design                   三份 DESIGN.md
+skills                   给编码智能体的两个 skill
+scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DESIGN.md
+```
+
+运行时依赖只有三个：`marked`（Markdown）、`yaml`（DESIGN.md 的令牌）、`lucide-react`（图标）。UI SDK 和 React 是 peer 依赖。
+
+## 解析器
+
+`packages/core/src/markup/scan.ts`。一个手写的递归下降扫描器，输出 `Document`。
+
+- **两种语法交织。** 扫描器负责标签、`{表达式}` 和 `{#if}`/`{#each}` 块；它们之间的文字交给 `marked` 处理成 Markdown 节点。Markdown 生成的元素标记为 `origin: "markdown"`，标签写出的标记为 `origin: "tag"`。渲染器据此区分：只有写成标签的名字才会被当作原语或声明。
+- **从不抛错。** 看不懂的内容保留为文字或丢弃，并记入 `diagnostics`。模型的输出不保证合法，解析器必须对任何输入都给出一棵树。
+- **流式模式。** `parse(source, { streaming: true })` 把“输入结束”理解为“还没写完”：未闭合的元素保持打开（`closed: false`）；末尾的半截标签、半截闭合标签、未闭合的表达式被暂缓，`Document.complete` 为 `false`。
+- **每次全量重新解析。** 没有做增量解析。演示里最长的一份标记约 5900 字符，在这台机器的 Node 里完整解析一次约 0.3 毫秒，按每 40 个字符一段重新解析完整个流共约 27 毫秒。全量解析换来的是实现简单，以及“相同输入必然得到相同的树”。
+
+## 表达式解释器
+
+`packages/core/src/expr`。分词、解析成 AST、在作用域链上求值。
+
+- **不使用 `eval` 或 `Function`。** 标记永远不会变成可执行的 JavaScript。
+- **白名单。** 全局只有内置函数和 `Math` 这样没有原型的命名空间；方法调用只允许列出的列表、文本、数字方法；属性访问屏蔽 `__proto__`、`constructor`、`prototype`。
+- **两种模式。** 属性和文字里的表达式是只读的，赋值会报错；`on:` 里的动作可以赋值、调用动作函数、`await`。
+- **步数上限。** 每次求值最多 20 万步，超过即中止，防止死循环卡住页面。
+- **赋值的含义。** 见下一节。
+
+## 状态仓库
+
+`packages/core/src/runtime/surface.ts`。每个界面一个 `Surface`。
+
+**状态不可变。** 赋值不修改对象，而是沿路径复制：`todo.done = true` 会生成新的 todo、新的列表，再替换状态里的那一项。React 侧用 `useSyncExternalStore` 订阅版本号。
+
+**按身份写回。** 难点在于被赋值的对象常常不是从状态里直接取的：
+
+```
+{#each todos.filter(t => !t.done) as todo}
+  <Checkbox bind:checked={todo.done} />
+{/each}
+```
+
+`todo` 来自 `filter` 的结果，没有路径可循。做法是按对象身份在状态里找到它原来的位置，再沿那条路径复制替换。对 `{#each}` 的项、`<define>` 收到的属性、`find` 的结果都适用。找不到（比如项是数字这样的原始值）时动作报错并通过 `onWarning` 报告，而不是悄悄不生效。
+
+**派生值惰性求值。** `<derive>` 在被读到时计算，按状态版本缓存；自己依赖自己会被检测出来。
+
+**查询。** 每个 `<query>` 以“工具名加参数的稳定序列化”为键。键变了才重新请求，所以 `input` 引用的状态变化会自动触发刷新；请求有序号，过期的响应被丢弃；刷新时保留旧数据。`call()` 成功后所有查询失效重取。
+
+**重新解析时保留状态。** `update(doc)` 每次解析后都会调用。已经存在的状态保持当前值，派生值、自定义组件、样式按新的树替换，树里不再出现的查询被清理。这是“边流边交互”的基础。
+
+## 渲染
+
+`packages/react/src/render`。
+
+- **树到元素。** `renderNodes` 逐节点生成 React 元素。大写名字的查找顺序是宿主组件、`<define>`、预置组件、UI SDK。
+- **属性。** `props.ts` 把标记属性转成组件属性：`bind:` 变成值加回调，`on:` 变成事件处理函数，`class:`、`style:` 合并，危险属性（`dangerouslySetInnerHTML`、`srcdoc`、`formaction` 等）丢弃，链接和媒体地址经过 `safeUrl`。
+- **原语的属性是令牌。** `tokens.ts` 把 `gap={3}`、`color="muted"`、`radius="lg"` 解析成 `var(--iui-…)`；不认识的颜色名按 CSS 颜色处理并经过净化。
+- **错误边界。** 每个顶层块包在一个 `Boundary` 里。一块出错只影响这一块；流式期间不显示错误，只显示占位，因为下一个数据块可能就修好了。
+- **离场。** `show={false}` 的元素由 `Presence` 多保留一段时间：先加上离场状态，等动画结束再卸载。
+- **提示。** `toast()` 渲染在界面自己的一个 `popover` 区域里，进入浏览器顶层。
+
+## UI SDK 的接入
+
+`scripts/generate-ui-sdk.mjs` 读取随包发布的文档和样式，生成三个文件：
+
+| 文件 | 内容 | 用途 |
+| --- | --- | --- |
+| `packages/react/src/registry/ui-sdk.generated.ts` | 组件名到入口的表，每个入口一个动态 `import()` | 渲染器按名字懒加载 |
+| `packages/core/src/prompt/ui-sdk-catalog.generated.ts` | 每个入口的说明、部件、结构、示例、属性 | 提示词和 `describeComponent` |
+| `packages/react/src/styles/ui-sdk.generated.css` | UI SDK 的 `web.css`，限定在 `.iui-root` 和 `ui-sdk` 层里 | 默认外观 |
+
+渲染器不认识任何一个具体的 UI SDK 组件：标记里出现 `<Tabs>`，就按名字加载、传属性、渲染子节点。所以 UI SDK 新增组件后，重新运行 `pnpm generate` 即可用，不需要改渲染器。
+
+需要特别处理的只有一类：以函数作为子节点的部件（Calendar 的周和日）。带 `let:` 的元素会把自己的子树编译成一个函数再传给组件。
+
+加载是异步的。部件第一次出现时先渲染占位，模块到达后触发重新渲染；`preloadUiSdk()` 可以提前加载。
+
+## 设计系统
+
+`packages/core/src/design`。
+
+`parseDesign` 读 DESIGN.md 的 YAML 头和正文。`designToCss` 把令牌写成限定在某个界面上的 CSS 变量：
+
+| DESIGN.md | CSS 变量 | 谁在用 |
+| --- | --- | --- |
+| `colors.light.*`、`colors.dark.*` | `--iui-color-<name>` | 原语、预置组件、模型写的 CSS |
+| `typography.*` | `--iui-font-<role>-family\|size\|weight\|line\|tracking` | `<text variant>`、标题、正文 |
+| `rounded.*` | `--iui-radius-<name>` | `radius="lg"` |
+| `spacing.*` | `--iui-space-<name>`、`--iui-space-unit` | `gap={3}`、`padding="md"` |
+| `motion.*` | `--iui-motion-<name>-duration`、`-easing` | 入场、离场、状态过渡 |
+| `components.*` | `--iui-c-<component>-<property>` | 按钮、卡片等的细节 |
+
+几个决定：
+
+- **角色有回退。** 设计里没写 `success` 或 `chart-3` 时，从已有颜色推出一个，所以任意一份合法的 DESIGN.md 都能驱动整个界面。`variables.ts` 列出了每个角色和它的回退。
+- **明暗两套。** 设计同时有 `colors.light` 和 `colors.dark` 时两套变量都输出：暗色那套挂在 `data-iui-scheme="dark"` 上，`scheme="auto"` 时由媒体查询切换。
+- **UI SDK 走同一套变量。** 在 `.iui-root` 上把 UI SDK 的 `--ui-*` 指向 `--iui-*`，行为组件和原语的视觉因此一致。
+- **令牌值会被检查。** DESIGN.md 可能来自不受信任的地方；含有 `;`、`{`、`}`、`<`、`url(`、`@import` 的值被丢弃，不写进样式表。
+- **正文给模型。** 令牌解决“用什么值”，正文解决“什么时候用”。`buildSystemPrompt` 把两者都放进提示词。
+
+## 样式分层
+
+`packages/react/src/styles/index.css` 声明两个层叠层：
+
+```css
+@layer ui-sdk, iui;
+```
+
+| 层 | 内容 |
+| --- | --- |
+| `ui-sdk` | UI SDK 的默认外观 |
+| `iui` | Markdown 元素、原语、预置组件、UI SDK 的主题化、动效 |
+| 不分层 | 模型在 `<style>` 里写的 CSS |
+
+所有选择器都限定在 `.iui-root` 之内，所以渲染器不会改动宿主页面。模型的 CSS 不分层，因此不需要 `!important` 就能覆盖前两层；它被 `scopeCss` 限定在所属界面上（选择器加前缀，`@keyframes` 改名），两个界面不会互相影响。
+
+两个需要知道的后果：
+
+- **宿主不分层的 CSS 优先级更高。** 这是层叠层的规则。宿主的全局 reset（`button { color: inherit }`）会影响界面内部。集成文档给出了做法：把 reset 放进一个更早声明的层。
+- **`iui` 层的元素选择器要避开 UI SDK 部件。** Markdown 的 `table`、`h2`、`button` 样式都带 `:not([data-slot])`，否则会改掉日历、手风琴标题这些部件的外观。
+
+## 动效
+
+三个来源，一套令牌。
+
+1. **入场。** 顶层块在出现时淡入并上移；`motion`、`delay`、`stagger` 属性调整它。实现是 CSS 动画，时长和缓动取 `surface-enter` 令牌。
+2. **状态变化。** UI SDK 部件用 `data-starting-style`、`data-ending-style` 和状态属性做过渡；原语和预置组件用 `transition`。取 `state-change` 和 `layout` 令牌。
+3. **位置变化。** `morph="name"` 用 View Transitions API。动作执行时，渲染器给当前完整可见的 morph 元素分配 `view-transition-name`，在 `document.startViewTransition` 的回调里同步提交状态变化，再给新位置上的元素分配名字；过渡结束后清除。
+
+第 3 点的几个细节来自逐帧截图发现的问题：
+
+- 只给完整可见的元素命名。被滚动容器裁掉的元素一旦参与过渡，会在过渡期间画到容器外面。
+- 同名元素只取第一个。重名会让整个过渡被浏览器取消。
+- 读者正在操作的那个元素的过渡组提到最上层，否则它会从邻居下面穿过去。
+- 浏览器不支持时直接更新，没有动画。
+
+`prefers-reduced-motion: reduce` 下，所有动画和过渡的时长降到 1 毫秒，循环动画只播一次。
+
+## 提示词
+
+`packages/core/src/prompt`。`buildSystemPrompt` 把几份指南拼起来：
+
+| 部分 | 内容 |
+| --- | --- |
+| 语言 | 标记、状态、绑定、动作、逻辑、表达式、查询、自定义组件、样式、SVG |
+| 原语与预置组件 | 每个标签的用途和属性 |
+| UI SDK | 常用组件给出结构和示例，其余列出名字；`components` 选项控制详略 |
+| 动效 | 属性、令牌、规则 |
+| 写法 | 先给答案、一卡一事、让它可调、少说、把决定交还 |
+| 设计 | DESIGN.md 的令牌名和正文 |
+| 工具 | 宿主声明的读、写工具 |
+
+两条约束：
+
+- **提示词里的每个示例都由测试渲染。** 提示词不能教渲染器做不到的事。
+- **skill 的参考页由同一份指南生成。** `pnpm generate:skills` 写出 `skills/**/references/` 下的三个文件，测试检查它们没有过期。
+
+## 安全模型
+
+前提：标记由模型写成，模型可能被提示词注入，所以标记按不可信输入处理。
+
+| 风险 | 做法 |
+| --- | --- |
+| 执行脚本 | 标记是被解释的数据。没有 `eval`；`<script>` 等标签在解析后丢弃；字符串事件属性丢弃 |
+| 逃出解释器 | 表达式访问不到 `window`、`document`、原型链；方法是白名单 |
+| 卡死页面 | 求值有步数上限；自定义组件嵌套最多 24 层 |
+| 加载外部资源 | CSS 里的 `@import` 和外站 `url()` 被移除；链接和媒体地址按协议过滤，宿主可用 `allowUrl` 收紧 |
+| 遮盖宿主页面 | 样式限定在界面内；`position: fixed` 改为 `absolute` |
+| 嵌入其他文档 | `iframe`、`object`、`embed`、SVG `foreignObject` 被丢弃 |
+| 越权读写数据 | 标记只能调用宿主传入的工具。工具在读者的会话里运行，宿主应在服务端校验每一次调用 |
+
+渲染器挡不住的：模型写出有误导性的界面，比如按钮文字和它 `send()` 的内容不一致。建议宿主把每次 `send` 的文字作为用户消息显示出来，并把有后果的写操作放在自己控制的工具后面。
+
+这套模型没有经过外部安全审计。
+
+## 测试守着什么
+
+| 测试 | 断言 |
+| --- | --- |
+| `packages/core/test/markup.test.ts` | 解析结果；任意位置截断都不抛错 |
+| `packages/core/test/expr.test.ts` | 表达式语义；访问不到宿主环境 |
+| `packages/core/test/surface.test.ts` | 状态、按身份写回、派生值、查询 |
+| `packages/core/test/design.test.ts` | DESIGN.md 到 CSS 变量；不安全的值被丢弃；模型 CSS 的作用域 |
+| `packages/core/test/prompt.test.ts` | 提示词内容；其中的示例都能解析 |
+| `packages/react/test/guide.test.tsx` | 提示词里的每个示例都能渲染，且没有警告 |
+| `packages/react/test/claims.test.tsx` | 提示词里的每条承诺（按钮 pending、查询轮询、morph、离场动画等） |
+| `packages/react/test/ui-sdk.test.tsx` | UI SDK 55 个入口的官方示例；预置组件不重名；智能体桥 |
+| `apps/playground/test/demos.test.tsx` | 六个演示能渲染、能交互、在任意截断点都能流式显示 |
+| `apps/playground/test/docs.test.tsx` | 文档和 skill 里的每个 `iui` 示例；skill 参考页没有过期 |
+
+测试在 jsdom 里运行，不覆盖布局、绘制和动画。这些是在 Chrome 里用截图检查的，见 [`skills/motion/SKILL.md`](../skills/motion/SKILL.md) 里的截图脚本。

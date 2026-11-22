@@ -1,0 +1,67 @@
+import board from "./board.iui?raw"
+import dashboard from "./dashboard.iui?raw"
+import gears from "./gears.iui?raw"
+import invest from "./invest.iui?raw"
+import trip from "./trip.iui?raw"
+import workbench from "./workbench.iui?raw"
+
+export interface Demo {
+  id: string
+  /** Short name for the list. */
+  title: string
+  /** What it shows off. */
+  caption: string
+  /** What the person asked the agent. */
+  prompt: string
+  /** What the agent answered, in IUI markup. */
+  source: string
+  /** The design the demo looks best in. */
+  theme?: string
+}
+
+export const DEMOS: Demo[] = [
+  {
+    id: "gears",
+    title: "Explain",
+    caption: "A live diagram drawn in SVG, driven by sliders",
+    prompt: "How do bike gears actually work?",
+    source: gears,
+  },
+  {
+    id: "invest",
+    title: "Calculate",
+    caption: "Assumptions become controls; the answer is derived",
+    prompt: "If I put $500 a month into an index fund, what will I have in 20 years?",
+    source: invest,
+  },
+  {
+    id: "trip",
+    title: "Decide",
+    caption: "Options re-rank as priorities change, then hand back to the agent",
+    prompt: "Kyoto, Lisbon or Mexico City for a week in April?",
+    source: trip,
+    theme: "heritage",
+  },
+  {
+    id: "dashboard",
+    title: "Dashboard",
+    caption: "Stats, charts and a table that filter each other",
+    prompt: "How did sales do in Q4?",
+    source: dashboard,
+  },
+  {
+    id: "workbench",
+    title: "Workbench",
+    caption: "Reads and writes a ticket system through tools, without the agent in the loop",
+    prompt: "Give me a place to work the support queue.",
+    source: workbench,
+    theme: "signal",
+  },
+  {
+    id: "board",
+    title: "Invent",
+    caption: "A component nobody predefined: a sprint board with cards that glide",
+    prompt: "Show sprint 14 as a board I can move cards on.",
+    source: board,
+  },
+]

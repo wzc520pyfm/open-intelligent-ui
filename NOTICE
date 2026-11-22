@@ -1,0 +1,17 @@
+Open Intelligent UI
+
+This repository includes files generated from UI SDK
+(@ui-sdk/core and @ui-sdk/react, https://ui-sdk.dev), which is
+Copyright 2026 Vercel, Inc. and licensed under the Apache License,
+Version 2.0:
+
+  packages/react/src/styles/ui-sdk.generated.css
+    UI SDK's web.css, confined to the renderer's root element.
+
+  packages/core/src/prompt/ui-sdk-catalog.generated.ts
+  skills/intelligent-ui/references/components.md
+    Component descriptions, structures, examples and props taken from
+    the documentation published in the @ui-sdk/react package.
+
+Icons are drawn with Lucide (https://lucide.dev), licensed under the
+ISC License.

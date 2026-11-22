@@ -1,0 +1,107 @@
+<state metric="revenue" channel={null} />
+<state months={[
+  { month: "Jul", revenue: 412000, orders: 3180, web: 221000, retail: 131000, partners: 60000 },
+  { month: "Aug", revenue: 438000, orders: 3320, web: 240000, retail: 134000, partners: 64000 },
+  { month: "Sep", revenue: 471000, orders: 3610, web: 268000, retail: 133000, partners: 70000 },
+  { month: "Oct", revenue: 455000, orders: 3490, web: 262000, retail: 121000, partners: 72000 },
+  { month: "Nov", revenue: 529000, orders: 4120, web: 322000, retail: 128000, partners: 79000 },
+  { month: "Dec", revenue: 604000, orders: 4710, web: 371000, retail: 146000, partners: 87000 }
+]} />
+<state products={[
+  { name: "Trail Runner 3", channel: "web", units: 4210, revenue: 547300, change: 0.22, status: "growing" },
+  { name: "Summit Shell", channel: "retail", units: 1880, revenue: 413600, change: 0.06, status: "steady" },
+  { name: "Basecamp Tent", channel: "web", units: 960, revenue: 345600, change: -0.11, status: "slipping" },
+  { name: "Ridge Pack 40", channel: "partners", units: 2240, revenue: 291200, change: 0.31, status: "growing" },
+  { name: "Merino Base", channel: "web", units: 5120, revenue: 256000, change: 0.02, status: "steady" },
+  { name: "Glacier Bottle", channel: "retail", units: 7300, revenue: 182500, change: -0.04, status: "steady" }
+]} />
+<derive
+  q4={months.slice(3)}
+  q3={months.slice(0, 3)}
+  revenue={sumBy(q4, "revenue")}
+  orders={sumBy(q4, "orders")}
+  revenueDelta={revenue / sumBy(q3, "revenue") - 1}
+  ordersDelta={orders / sumBy(q3, "orders") - 1}
+  aov={revenue / orders}
+  aovDelta={aov / (sumBy(q3, "revenue") / sumBy(q3, "orders")) - 1}
+  mix={[
+    { channel: "web", label: "Web", value: sumBy(q4, "web") },
+    { channel: "retail", label: "Retail", value: sumBy(q4, "retail") },
+    { channel: "partners", label: "Partners", value: sumBy(q4, "partners") }
+  ]}
+  shown={channel ? products.filter(p => p.channel == channel) : products}
+/>
+
+**Q4 closed at {currency(revenue)}, up {percent(revenueDelta)} on Q3.** December carried it; web is now {percent(mix[0].value / revenue)} of sales. One product needs attention.
+
+<grid columns={3} gap={3} stagger>
+  <card padding={4}>
+    <Stat label="Revenue" value={revenue} format="currency" digits={0} delta={revenueDelta} caption="vs Q3">
+      <Chart type="spark" data={months} y="revenue" height={36} aria-label="Revenue trend" />
+    </Stat>
+  </card>
+  <card padding={4}>
+    <Stat label="Orders" value={orders} delta={ordersDelta} caption="vs Q3">
+      <Chart type="spark" data={months} y="orders" height={36} colors={["chart-2"]} aria-label="Orders trend" />
+    </Stat>
+  </card>
+  <card padding={4}>
+    <Stat label="Average order" value={aov} format="currency" delta={aovDelta} caption="vs Q3" />
+  </card>
+</grid>
+
+<grid columns={3} gap={3}>
+  <grid-item span={2}>
+    <card padding={4} gap={3}>
+      <row wrap gap={2}>
+        <title level={3}>By month</title>
+        <spacer />
+        <SegmentedControl aria-label="Metric" bind:value={metric}>
+          <SegmentedControlIndicator />
+          <SegmentedControlItem value="revenue">Revenue</SegmentedControlItem>
+          <SegmentedControlItem value="orders">Orders</SegmentedControlItem>
+          <SegmentedControlItem value="channels">Channels</SegmentedControlItem>
+        </SegmentedControl>
+      </row>
+      {#if metric == "channels"}
+        <Chart type="bar" stacked data={months} x="month" y={["web", "retail", "partners"]} names={{ web: "Web", retail: "Retail", partners: "Partners" }} format="compact" currency="USD" height={230} legend aria-label="Revenue by channel and month" />
+      {:else}
+        <Chart type="bar" data={months} x="month" y={metric} format={metric == "revenue" ? "compact" : "number"} height={230} labels aria-label="{capitalize(metric)} by month" />
+      {/if}
+    </card>
+  </grid-item>
+  <card padding={4} gap={3}>
+    <row><title level={3}>Channel mix</title><spacer />{#if channel}<link on:click={channel = null} size="sm">Clear</link>{/if}</row>
+    <Chart type="donut" data={mix} x="label" y="value" format="compact" height={170} legend={false} on:select={channel = channel == $value.channel ? null : $value.channel} aria-label="Q4 revenue by channel" />
+    <box gap={2}>
+      {#each mix as part, i (part.channel)}
+        <row gap={2} class="mix-row" on:click={channel = channel == part.channel ? null : part.channel} style="cursor: pointer" opacity={channel && channel != part.channel ? 0.45 : 1}>
+          <box width={8} height={8} radius="full" background="chart-{i + 1}" />
+          <text size="sm">{part.label}</text>
+          <spacer />
+          <text size="sm" tabular color="muted">{percent(part.value / revenue)}</text>
+        </row>
+      {/each}
+    </box>
+  </card>
+</grid>
+
+<card padding={4} gap={3}>
+  <row>
+    <title level={3}>Top products{channel ? " · " + capitalize(channel) : ""}</title>
+    <spacer />
+    <text size="sm" color="muted">{shown.length} of {products.length}</text>
+  </row>
+  <DataTable data={shown} rowKey="name" sortable columns={[
+    { key: "name", label: "Product" },
+    { key: "units", label: "Units", align: "right" },
+    { key: "revenue", label: "Revenue", format: "currency", align: "right" },
+    { key: "change", label: "vs Q3", format: "percent", align: "right" },
+    { key: "status", label: "Trend", badge: { growing: "success", steady: "neutral", slipping: "danger" } }
+  ]} />
+</card>
+
+<row gap={2} wrap>
+  <Button variant="solid" on:click={send("Why is Basecamp Tent slipping?", { product: "Basecamp Tent" })}>Why is Basecamp Tent slipping?</Button>
+  <Button on:click={send("Forecast Q1 from this quarter")}>Forecast Q1</Button>
+</row>

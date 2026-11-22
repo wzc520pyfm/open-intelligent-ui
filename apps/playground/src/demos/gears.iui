@@ -1,0 +1,69 @@
+<state front={34} rear={18} cadence={85} />
+<derive ratio={front / rear} speed={ratio * cadence * 2.1 * 60 / 1000} />
+
+A gear is a trade: **a bigger chainring or a smaller cog turns the wheel further per pedal stroke**, so you go faster but push harder. Try it.
+
+<style>
+  .wheel { animation: gear-turn linear infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes gear-turn { to { rotate: 360deg; } }
+  .tooth { stroke: var(--iui-color-foreground); stroke-width: 3; stroke-linecap: round; }
+  .chain { stroke: var(--iui-color-accent); stroke-width: 2.5; stroke-dasharray: 5 4; fill: none; animation: chain-run 0.6s linear infinite; }
+  @keyframes chain-run { to { stroke-dashoffset: -9; } }
+</style>
+
+<card padding={5}>
+  <grid columns={2} gap={6} align="center">
+    <svg viewBox="0 0 320 190" role="img" aria-label="A chainring with {front} teeth driving a cog with {rear} teeth">
+      {@const big = 22 + front * 0.9}
+      {@const small = 8 + rear * 0.9}
+      <line class="chain" x1="100" y1={95 - big} x2="250" y2={95 - small} />
+      <line class="chain" x1="250" y1={95 + small} x2="100" y2={95 + big} />
+      <g class="wheel" style:animation-duration="{60 / cadence}s">
+        <circle cx="100" cy="95" r={big + 4} fill="none" />
+        <circle cx="100" cy="95" r={big} fill="var(--iui-color-muted)" stroke="var(--iui-color-foreground)" stroke-width="2" />
+        {#each range(0, front) as t}
+          <line class="tooth" x1={100 + big * Math.cos(t * 2 * Math.PI / front)} y1={95 + big * Math.sin(t * 2 * Math.PI / front)} x2={100 + (big + 4) * Math.cos(t * 2 * Math.PI / front)} y2={95 + (big + 4) * Math.sin(t * 2 * Math.PI / front)} />
+        {/each}
+        <line x1="100" y1="95" x2={100 + big * 0.8} y2="95" stroke="var(--iui-color-foreground)" stroke-width="5" stroke-linecap="round" />
+        <circle cx="100" cy="95" r="5" fill="var(--iui-color-foreground)" />
+      </g>
+      <g class="wheel" style:animation-duration="{60 / cadence / ratio}s">
+        <circle cx="250" cy="95" r={small + 4} fill="none" />
+        <circle cx="250" cy="95" r={small} fill="var(--iui-color-muted)" stroke="var(--iui-color-foreground)" stroke-width="2" />
+        {#each range(0, rear) as t}
+          <line class="tooth" x1={250 + small * Math.cos(t * 2 * Math.PI / rear)} y1={95 + small * Math.sin(t * 2 * Math.PI / rear)} x2={250 + (small + 4) * Math.cos(t * 2 * Math.PI / rear)} y2={95 + (small + 4) * Math.sin(t * 2 * Math.PI / rear)} />
+        {/each}
+        <line x1="250" y1="95" x2={250 + small * 0.7} y2="95" stroke="var(--iui-color-accent)" stroke-width="3" stroke-linecap="round" />
+      </g>
+      <text x="100" y="182" text-anchor="middle" font-size="11" fill="var(--iui-color-muted-foreground)">{front}T chainring</text>
+      <text x="250" y="182" text-anchor="middle" font-size="11" fill="var(--iui-color-muted-foreground)">{rear}T cog</text>
+    </svg>
+
+    <box gap={4}>
+      <Slider min={22} max={53} bind:value={front}>
+        <row><text size="sm" color="muted">Chainring (front)</text><spacer /><text size="sm" tabular>{front} teeth</text></row>
+        <SliderControl><SliderTrack><SliderIndicator /><SliderThumb aria-label="Chainring teeth" /></SliderTrack></SliderControl>
+      </Slider>
+      <Slider min={11} max={34} bind:value={rear}>
+        <row><text size="sm" color="muted">Cog (rear)</text><spacer /><text size="sm" tabular>{rear} teeth</text></row>
+        <SliderControl><SliderTrack><SliderIndicator /><SliderThumb aria-label="Cog teeth" /></SliderTrack></SliderControl>
+      </Slider>
+      <Slider min={50} max={120} step={5} bind:value={cadence}>
+        <row><text size="sm" color="muted">Cadence</text><spacer /><text size="sm" tabular>{cadence} rpm</text></row>
+        <SliderControl><SliderTrack><SliderIndicator /><SliderThumb aria-label="Pedal cadence" /></SliderTrack></SliderControl>
+      </Slider>
+      <divider />
+      <row gap={6}>
+        <Stat label="Gear ratio" value={ratio} digits={2} caption="wheel turns per pedal turn" />
+        <Stat label="Speed" value={speed} digits={1} unit="km/h" caption={speed > 35 ? "racing pace" : speed > 22 ? "brisk" : "easy spin"} />
+      </row>
+    </box>
+  </grid>
+</card>
+
+<row gap={2} wrap>
+  <text size="sm" color="muted">Try a setup:</text>
+  <Button size="sm" variant="soft" on:click={front = 50; rear = 11}>Sprint · 50/11</Button>
+  <Button size="sm" variant="soft" on:click={front = 34; rear = 32}>Steep climb · 34/32</Button>
+  <Button size="sm" variant="soft" on:click={front = 40; rear = 20}>Cruising · 40/20</Button>
+</row>

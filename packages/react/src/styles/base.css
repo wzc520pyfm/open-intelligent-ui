@@ -1,0 +1,470 @@
+/*
+ * The surface root, the bridge from DESIGN.md tokens to UI SDK tokens, and
+ * the look of Markdown and plain HTML.
+ *
+ * Every color, size and duration here is a `--iui-*` variable written by
+ * `designToCss`, so a DESIGN.md restyles all of it.
+ */
+@layer iui {
+  .iui-root {
+    --iui-shadow-color: color-mix(in oklab, var(--iui-color-foreground) 100%, black);
+    --iui-shadow-sm: 0 1px 2px color-mix(in oklab, var(--iui-shadow-color) 8%, transparent);
+    --iui-shadow-md:
+      0 1px 2px color-mix(in oklab, var(--iui-shadow-color) 6%, transparent),
+      0 4px 12px -2px color-mix(in oklab, var(--iui-shadow-color) 10%, transparent);
+    --iui-shadow-lg:
+      0 1px 2px color-mix(in oklab, var(--iui-shadow-color) 6%, transparent),
+      0 12px 32px -8px color-mix(in oklab, var(--iui-shadow-color) 18%, transparent);
+    --iui-shadow-xl:
+      0 2px 4px color-mix(in oklab, var(--iui-shadow-color) 6%, transparent),
+      0 24px 56px -12px color-mix(in oklab, var(--iui-shadow-color) 26%, transparent);
+
+    --iui-sans: var(
+      --iui-font-sans,
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      sans-serif
+    );
+    --iui-heading: var(--iui-font-heading, var(--iui-sans));
+    --iui-mono: var(--iui-font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+
+    /* UI SDK reads its own tokens; point them at the design's. */
+    --ui-background: var(--iui-color-surface);
+    --ui-foreground: var(--iui-color-foreground);
+    --ui-muted: var(--iui-color-muted);
+    --ui-muted-foreground: var(--iui-color-muted-foreground);
+    --ui-border: var(--iui-color-border);
+    --ui-input: color-mix(in oklab, var(--iui-color-foreground) 22%, var(--iui-color-surface));
+    --ui-primary: var(--iui-c-button-primary-background, var(--iui-color-primary));
+    --ui-primary-foreground: var(
+      --iui-c-button-primary-color,
+      var(--iui-color-primary-foreground)
+    );
+    --ui-destructive: var(--iui-color-danger);
+    --ui-ring: color-mix(in oklab, var(--iui-color-ring) 24%, transparent);
+    --ui-ring-border: var(--iui-color-ring);
+    --ui-overlay: color-mix(in oklab, var(--iui-color-background) 72%, transparent);
+    --ui-shadow: var(--iui-shadow-lg);
+    --ui-radius: var(--iui-radius-md);
+    --ui-spacing: var(--iui-space-unit);
+    --ui-font-size: var(--iui-font-label-size, 0.8125rem);
+    --ui-line-height: var(--iui-font-body-line, 1.5);
+    --ui-font-sans: var(--iui-sans);
+    --ui-font-mono: var(--iui-mono);
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--iui-space-md);
+    min-width: 0;
+    container: iui / inline-size;
+    color: var(--iui-color-foreground);
+    font-family: var(--iui-font-body-family, var(--iui-sans));
+    font-size: var(--iui-font-body-size, 0.9375rem);
+    font-weight: var(--iui-font-body-weight, 400);
+    line-height: var(--iui-font-body-line, 1.6);
+    letter-spacing: var(--iui-font-body-tracking, normal);
+    text-align: start;
+    overflow-wrap: anywhere;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .iui-root :where(*, *::before, *::after) {
+    box-sizing: border-box;
+  }
+
+  .iui-root :where(style, .iui-pending) {
+    display: none;
+  }
+
+  .iui-root :where(.iui-presence) {
+    display: contents;
+  }
+
+  /* Flow: blocks carry no margins; containers space their children. */
+  .iui-root :where(p, ul, ol, dl, blockquote, pre, figure, table, hr, h1, h2, h3, h4, h5, h6) {
+    margin: 0;
+  }
+
+  .iui-root
+    :where(:not(.iui-root, .iui-box, .iui-row, .iui-grid, .iui-card, .iui-presence))
+    > :where(
+      p,
+      ul,
+      ol,
+      dl,
+      blockquote,
+      figure,
+      table,
+      hr,
+      .iui-code,
+      .iui-table,
+      .iui-chart,
+      .iui-card,
+      .iui-box,
+      .iui-grid,
+      .iui-row,
+      .iui-list,
+      .iui-stat
+    ):not(:first-child) {
+    margin-block-start: 0.75em;
+  }
+
+  .iui-root
+    :where(:not(.iui-root, .iui-box, .iui-row, .iui-grid, .iui-card, .iui-presence))
+    > :where(h1, h2, h3, h4, h5, h6):not(:first-child) {
+    margin-block-start: 1.25em;
+  }
+
+  .iui-root > :where(h1, h2, h3):not(:first-child) {
+    margin-block-start: var(--iui-space-sm);
+  }
+
+  /* Headings */
+  .iui-root :where(h1, h2, h3, h4, h5, h6) {
+    font-family: var(--iui-heading);
+    color: var(--iui-color-foreground);
+    text-wrap: balance;
+  }
+
+  .iui-root :where(h1:not([data-slot])) {
+    font-family: var(--iui-font-h1-family, var(--iui-heading));
+    font-size: var(--iui-font-h1-size, 1.75rem);
+    font-weight: var(--iui-font-h1-weight, 650);
+    line-height: var(--iui-font-h1-line, 1.2);
+    letter-spacing: var(--iui-font-h1-tracking, -0.02em);
+  }
+
+  .iui-root :where(h2:not([data-slot])) {
+    font-family: var(--iui-font-h2-family, var(--iui-heading));
+    font-size: var(--iui-font-h2-size, 1.3125rem);
+    font-weight: var(--iui-font-h2-weight, 600);
+    line-height: var(--iui-font-h2-line, 1.3);
+    letter-spacing: var(--iui-font-h2-tracking, -0.015em);
+  }
+
+  .iui-root :where(h3:not([data-slot])) {
+    font-family: var(--iui-font-h3-family, var(--iui-heading));
+    font-size: var(--iui-font-h3-size, 1.0625rem);
+    font-weight: var(--iui-font-h3-weight, 600);
+    line-height: var(--iui-font-h3-line, 1.4);
+    letter-spacing: var(--iui-font-h3-tracking, -0.01em);
+  }
+
+  .iui-root :where(h4:not([data-slot]), h5:not([data-slot]), h6:not([data-slot])) {
+    font-family: var(--iui-font-h4-family, var(--iui-heading));
+    font-size: var(--iui-font-h4-size, 0.9375rem);
+    font-weight: var(--iui-font-h4-weight, 600);
+    line-height: var(--iui-font-h4-line, 1.45);
+    letter-spacing: var(--iui-font-h4-tracking, normal);
+  }
+
+  .iui-root :where(h6:not([data-slot])) {
+    color: var(--iui-color-muted-foreground);
+  }
+
+  /* Inline text */
+  .iui-root :where(strong, b) {
+    font-weight: 600;
+  }
+
+  .iui-root :where(small) {
+    font-size: var(--iui-font-small-size, 0.8125rem);
+  }
+
+  .iui-root :where(a) {
+    color: var(--iui-color-accent);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklab, currentColor 35%, transparent);
+    text-underline-offset: 0.18em;
+    transition: text-decoration-color var(--iui-motion-state-change-duration)
+      var(--iui-motion-state-change-easing);
+  }
+
+  .iui-root :where(a:hover) {
+    text-decoration-color: currentColor;
+  }
+
+  .iui-root :where(code, kbd, samp) {
+    font-family: var(--iui-font-code-family, var(--iui-mono));
+    font-size: 0.875em;
+  }
+
+  .iui-root :where(:not(pre) > code) {
+    padding: 0.125em 0.375em;
+    border: 0;
+    border-radius: var(--iui-radius-sm);
+    background: var(--iui-color-muted);
+  }
+
+  .iui-root :where(kbd) {
+    padding: 0.125em 0.4em;
+    border: 1px solid var(--iui-color-border);
+    border-bottom-width: 2px;
+    border-radius: var(--iui-radius-sm);
+    background: var(--iui-color-surface);
+  }
+
+  .iui-root :where(mark) {
+    padding: 0 0.2em;
+    border-radius: 0.2em;
+    background: color-mix(in oklab, var(--iui-color-warning) 28%, transparent);
+    color: inherit;
+  }
+
+  .iui-root :where(del, s) {
+    color: var(--iui-color-muted-foreground);
+  }
+
+  /* Blocks */
+  .iui-root :where(ul, ol):not(.iui-list) {
+    padding-inline-start: 1.4em;
+  }
+
+  .iui-root :where(li):not(.iui-list-item) + :where(li) {
+    margin-block-start: 0.3em;
+  }
+
+  .iui-root :where(li)::marker {
+    color: var(--iui-color-muted-foreground);
+  }
+
+  .iui-root :where(li:has(> input[type="checkbox"]:first-child)) {
+    list-style: none;
+    margin-inline-start: -1.4em;
+  }
+
+  .iui-root :where(li > input[type="checkbox"]:first-child) {
+    margin: 0 0.5em 0 0;
+    vertical-align: -0.1em;
+    accent-color: var(--iui-color-primary);
+  }
+
+  .iui-root :where(blockquote) {
+    padding-inline-start: var(--iui-space-md);
+    border-inline-start: 3px solid var(--iui-color-border);
+    color: var(--iui-color-muted-foreground);
+  }
+
+  .iui-root :where(hr) {
+    width: 100%;
+    height: 1px;
+    border: 0;
+    background: var(--iui-color-border);
+  }
+
+  .iui-root :where(img, video) {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--iui-radius-md);
+  }
+
+  .iui-root :where(svg) {
+    max-width: 100%;
+  }
+
+  .iui-root :where(svg text) {
+    font-family: inherit;
+  }
+
+  .iui-root :where(figcaption) {
+    margin-block-start: 0.5em;
+    color: var(--iui-color-muted-foreground);
+    font-size: var(--iui-font-small-size, 0.8125rem);
+  }
+
+  .iui-root :where(table:not([data-slot])) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--iui-font-small-size, 0.8125rem);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .iui-root :where(th:not([data-slot]), td:not([data-slot])) {
+    padding: 0.625em 0.875em;
+    border-bottom: 1px solid var(--iui-color-border);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  .iui-root :where(th:not([data-slot])) {
+    color: var(--iui-color-muted-foreground);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .iui-root :where(tbody tr:last-child > td) {
+    border-bottom: 0;
+  }
+
+  .iui-root :where(details) {
+    border: 1px solid var(--iui-color-border);
+    border-radius: var(--iui-radius-md);
+    padding: 0.625em 0.875em;
+  }
+
+  .iui-root :where(summary) {
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  .iui-root :where(details[open] > summary) {
+    margin-block-end: 0.5em;
+  }
+
+  /* Plain HTML controls, for when a model reaches for them directly. */
+  .iui-root
+    :where(
+      button:not([data-slot]),
+      input:not([data-slot]),
+      select:not([data-slot]),
+      textarea:not([data-slot])
+    ) {
+    font: inherit;
+    color: inherit;
+  }
+
+  .iui-root :where(button:not([data-slot], [class])) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em;
+    min-height: 2rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--ui-input);
+    border-radius: var(--iui-radius-md);
+    background: var(--iui-color-surface);
+    font-size: var(--iui-font-label-size, 0.8125rem);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--iui-motion-state-change-duration)
+      var(--iui-motion-state-change-easing);
+  }
+
+  .iui-root :where(button:not([data-slot], [class]):hover:not(:disabled)) {
+    background: var(--iui-color-muted);
+  }
+
+  .iui-root :where(button:not([data-slot]):disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .iui-root
+    :where(
+      input:not([data-slot], [type="checkbox"], [type="radio"], [type="range"], [type="color"]),
+      select:not([data-slot]),
+      textarea:not([data-slot])
+    ) {
+    min-height: 2rem;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid var(--ui-input);
+    border-radius: var(--iui-radius-md);
+    background: var(--iui-color-surface);
+    font-size: var(--iui-font-label-size, 0.8125rem);
+  }
+
+  .iui-root :where(input, select, textarea):not([data-slot]):focus-visible {
+    border-color: var(--ui-ring-border);
+    outline: 4px solid var(--ui-ring);
+  }
+
+  .iui-root :where(input[type="checkbox"], input[type="radio"], input[type="range"]) {
+    accent-color: var(--iui-color-primary);
+  }
+
+  .iui-root :where(label) {
+    font-size: var(--iui-font-label-size, 0.8125rem);
+    font-weight: var(--iui-font-label-weight, 500);
+  }
+
+  .iui-root :where(:focus-visible:not([data-slot])) {
+    outline: 2px solid var(--iui-color-ring);
+    outline-offset: 2px;
+  }
+
+  /* A block that failed to render */
+  .iui-error {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--iui-space-sm) calc(var(--iui-space-unit) * 3);
+    border: 1px dashed color-mix(in oklab, var(--iui-color-danger) 45%, transparent);
+    border-radius: var(--iui-radius-md);
+    background: color-mix(in oklab, var(--iui-color-danger) 6%, transparent);
+    color: var(--iui-color-danger);
+    font-size: var(--iui-font-small-size, 0.8125rem);
+  }
+
+  .iui-error > span {
+    color: var(--iui-color-muted-foreground);
+    font-family: var(--iui-mono);
+    font-size: 0.75rem;
+  }
+
+  /* Toasts */
+  .iui-toasts {
+    position: fixed;
+    inset: auto;
+    inset-block-end: var(--iui-space-lg);
+    inset-inline-end: var(--iui-space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--iui-space-sm);
+    align-items: flex-end;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .iui-toasts:not(:popover-open) {
+    display: none;
+  }
+
+  .iui-toast {
+    --iui-tone: var(--iui-color-foreground);
+    max-width: min(360px, 80vw);
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--iui-color-border);
+    border-inline-start: 3px solid var(--iui-tone);
+    border-radius: var(--iui-radius-md);
+    background: var(--iui-color-surface);
+    box-shadow: var(--iui-shadow-lg);
+    color: var(--iui-color-foreground);
+    font-size: var(--iui-font-small-size, 0.8125rem);
+    pointer-events: auto;
+    animation: iui-toast-in var(--iui-motion-surface-enter-duration)
+      var(--iui-motion-surface-enter-easing) both;
+  }
+
+  .iui-toast[data-tone="success"] {
+    --iui-tone: var(--iui-color-success);
+  }
+
+  .iui-toast[data-tone="warning"] {
+    --iui-tone: var(--iui-color-warning);
+  }
+
+  .iui-toast[data-tone="danger"],
+  .iui-toast[data-tone="error"] {
+    --iui-tone: var(--iui-color-danger);
+  }
+
+  .iui-toast[data-tone="info"] {
+    --iui-tone: var(--iui-color-info);
+  }
+
+  @keyframes iui-toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+  }
+}

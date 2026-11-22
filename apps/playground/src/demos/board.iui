@@ -1,0 +1,65 @@
+<state lanes={["Backlog", "Doing", "Review", "Done"]} draft="" />
+<state cards={[
+  { id: 1, title: "Streaming parser recovers from half-written tags", lane: 0, who: "Mina Park", size: 3 },
+  { id: 2, title: "Scope model CSS to the surface", lane: 1, who: "Jonas Weber", size: 2 },
+  { id: 3, title: "Chart: stacked bars", lane: 1, who: "Priya Nair", size: 5 },
+  { id: 4, title: "Dark mode tokens", lane: 2, who: "Mina Park", size: 2 },
+  { id: 5, title: "Keyboard support for the date picker", lane: 0, who: "Priya Nair", size: 3 },
+  { id: 6, title: "Publish 0.1", lane: 3, who: "Jonas Weber", size: 1 }
+]} />
+<derive done={sumBy(cards.filter(c => c.lane == 3), "size")} total={sumBy(cards, "size")} />
+
+<define name="Ticket" props="card">
+  <card class="ticket" padding={3} gap={2} morph="card-{card.id}" shadow="sm">
+    <text size="sm" weight="medium">{card.title}</text>
+    <row gap={1}>
+      <Avatar class="who"><AvatarFallback>{initials(card.who)}</AvatarFallback></Avatar>
+      <text size="xs" color="muted" class="points">{card.size} pt</text>
+      <spacer />
+      <Button size="sm" variant="ghost" aria-label="Move back" disabled={card.lane == 0} on:click={card.lane -= 1}><icon name="arrow-left" size="sm" /></Button>
+      <Button size="sm" variant="ghost" aria-label="Move forward" disabled={card.lane == 3} on:click={card.lane += 1}><icon name="arrow-right" size="sm" /></Button>
+    </row>
+  </card>
+</define>
+
+<style>
+  .lane { background: var(--iui-color-muted); border-radius: var(--iui-radius-lg); min-height: 180px; }
+  .who { width: 22px; height: 22px; font-size: 10px; }
+  .points { white-space: nowrap; }
+  .ticket [data-slot="button"] { padding-inline: 6px; }
+  .lane-count { min-width: 20px; text-align: center; }
+</style>
+
+<row gap={3}>
+  <title level={2}>Sprint 14</title>
+  <spacer />
+  <text size="sm" color="muted" tabular>{done} of {total} points done</text>
+</row>
+
+<Progress value={done} max={total} aria-label="Sprint progress">
+  <ProgressTrack><ProgressIndicator /></ProgressTrack>
+</Progress>
+
+<grid columns={4} gap={3} align="start">
+  {#each lanes as lane, i (lane)}
+    <box class="lane" padding={2} gap={2}>
+      <row paddingX={1}>
+        <text size="sm" weight="semibold">{lane}</text>
+        <spacer />
+        <badge class="lane-count">{cards.filter(c => c.lane == i).length}</badge>
+      </row>
+      {#each cards.filter(c => c.lane == i) as card (card.id)}
+        <Ticket {card} />
+      {/each}
+      {#if i == 0}
+        <row gap={1}>
+          <Input aria-label="New card" placeholder="Add a card" bind:value={draft} on:keydown={if ($event.key == "Enter" && draft != "") { cards.push({ id: uid(), title: draft, lane: 0, who: "You", size: 1 }); draft = "" }} />
+        </row>
+      {/if}
+    </box>
+  {/each}
+</grid>
+
+{#if done == total}
+  <card variant="soft" padding={3} motion="pop"><row gap={2}><icon name="party-popper" color="success" /><text>Sprint complete. <link on:click={send("Write the sprint 14 summary", { cards })}>Write the summary</link></text></row></card>
+{/if}

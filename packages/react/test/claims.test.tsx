@@ -76,6 +76,19 @@ describe("what the prompt promises", () => {
     expect(screen.getByAltText("Photo of Ada")).not.toBeNull()
   })
 
+  test("a query written after the interface is on screen still loads", async () => {
+    const listOrders = vi.fn(async () => [{ id: "A-1" }])
+    const first = "**Orders**\n\n"
+    const rest = `<query id="orders" tool="listOrders" />\n{#each orders.data ?? [] as order (order.id)}<text>{order.id}</text>{/each}`
+    const view = render(<IntelligentUI source={first} streaming tools={{ listOrders }} />)
+    expect(listOrders).not.toHaveBeenCalled()
+    view.rerender(<IntelligentUI source={first + rest.slice(0, 20)} streaming tools={{ listOrders }} />)
+    view.rerender(<IntelligentUI source={first + rest} streaming tools={{ listOrders }} />)
+    await waitFor(() => expect(text(view.container)).toBe("OrdersA-1"))
+    view.rerender(<IntelligentUI source={first + rest} tools={{ listOrders }} />)
+    expect(listOrders).toHaveBeenCalledTimes(1)
+  })
+
   test("a query reloads every few seconds while enabled", async () => {
     vi.useFakeTimers()
     try {

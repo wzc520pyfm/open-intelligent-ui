@@ -292,10 +292,11 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
   )
   useSyncExternalStore(subscribeUiSdk, getUiSdkVersion, getUiSdkVersion)
 
+  useEffect(() => () => surface.stop(), [surface])
+  // Queries written later in the stream exist only after a re-parse.
   useEffect(() => {
     surface.start()
-    return () => surface.stop()
-  }, [surface])
+  }, [surface, doc])
 
   const stateVersion = useRef(-1)
   useEffect(() => {

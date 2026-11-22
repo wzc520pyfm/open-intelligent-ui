@@ -3,6 +3,7 @@ import { createAgent } from "@ui-sdk/react/agent"
 import { describe, expect, test, vi } from "vitest"
 import { UI_SDK_CATALOG } from "../../core/src/prompt/ui-sdk-catalog.generated"
 import { IntelligentUI, isUiSdkComponent, preloadUiSdk, uiSdkComponentNames } from "../src"
+import { PRESET_NAMES } from "../src/presets/presets"
 
 const agent = createAgent()
 
@@ -23,6 +24,11 @@ describe("UI SDK coverage", () => {
     for (const entry of UI_SDK_CATALOG) {
       for (const part of entry.parts) expect(isUiSdkComponent(part)).toBe(true)
     }
+  })
+
+  test("no preset takes the name of a UI SDK component", () => {
+    expect(PRESET_NAMES.length).toBeGreaterThan(0)
+    expect(PRESET_NAMES.filter(isUiSdkComponent)).toEqual([])
   })
 
   test("the documented example of every entry point mounts from markup", async () => {

@@ -99,7 +99,7 @@ function styleText(css: string): string {
   return css.replace(/<\//g, "<\\/")
 }
 
-type StartViewTransition = (update: () => void) => unknown
+type StartViewTransition = (update: () => void) => { finished?: Promise<unknown> } | undefined
 
 /** `document.startViewTransition`, when the browser has it and motion is welcome. */
 function viewTransition(): StartViewTransition | null {
@@ -108,6 +108,69 @@ function viewTransition(): StartViewTransition | null {
   if (typeof start !== "function") return null
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return null
   return start.bind(document)
+}
+
+/** True when nothing clips the element: it is whole inside the viewport and every scrolling ancestor. */
+function inView(element: HTMLElement): boolean {
+  const rect = element.getBoundingClientRect()
+  if (rect.width === 0 || rect.height === 0) return false
+  let top = 0
+  let left = 0
+  let bottom = window.innerHeight
+  let right = window.innerWidth
+  for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+    const { overflowX, overflowY } = getComputedStyle(parent)
+    if (overflowX === "visible" && overflowY === "visible") continue
+    const box = parent.getBoundingClientRect()
+    top = Math.max(top, box.top)
+    left = Math.max(left, box.left)
+    bottom = Math.min(bottom, box.bottom)
+    right = Math.min(right, box.right)
+  }
+  return (
+    rect.top >= top - 1 && rect.left >= left - 1 && rect.bottom <= bottom + 1 && rect.right <= right + 1
+  )
+}
+
+/**
+ * Gives `morph` elements their view-transition names for one snapshot.
+ *
+ * A named element is drawn above the whole page while the transition runs,
+ * so one that a scroll container is hiding would show through for that
+ * moment. Only elements in full view take part; the rest change in place.
+ * A name can be on screen once, so the first element with it wins.
+ */
+function nameMorphs(root: HTMLElement | null): void {
+  if (!root) return
+  const taken = new Set<string>()
+  for (const element of root.querySelectorAll<HTMLElement>("[data-iui-morph]")) {
+    const name = element.dataset.iuiMorph as string
+    const named = !taken.has(name) && inView(element)
+    if (named) taken.add(name)
+    element.style.viewTransitionName = named ? name : ""
+  }
+}
+
+/**
+ * Keeps the element the reader acted on above the others while it travels.
+ * Returns a function that undoes it.
+ */
+function raiseActiveMorph(root: HTMLElement | null): () => void {
+  const active = document.activeElement
+  const source = active && root?.contains(active) ? active.closest<HTMLElement>("[data-iui-morph]") : null
+  const name = source?.dataset.iuiMorph
+  if (!name) return () => {}
+  const style = document.createElement("style")
+  style.textContent = `::view-transition-group(${name}) { z-index: 1; }`
+  document.head.append(style)
+  return () => style.remove()
+}
+
+function clearMorphs(root: HTMLElement | null): void {
+  if (!root) return
+  for (const element of root.querySelectorAll<HTMLElement>("[data-iui-morph]")) {
+    element.style.viewTransitionName = ""
+  }
 }
 
 function useLatest<T>(value: T): { current: T } {
@@ -280,6 +343,8 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
     [latest, showToast]
   )
 
+  const rootElement = useRef<HTMLDivElement>(null)
+  const morphRun = useRef(0)
   const morphing = /\bmorph\s*=/.test(source)
   const invoke = useCallback(
     (work: () => unknown): unknown => {
@@ -287,11 +352,21 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
       if (!transition) return write(work)
       // Elements that share a `morph` name glide to where the new state puts
       // them. The browser runs the update on its next frame.
-      transition(() => {
+      const run = ++morphRun.current
+      nameMorphs(rootElement.current)
+      const lower = raiseActiveMorph(rootElement.current)
+      const started = transition(() => {
         flushSync(() => {
           write(work)
         })
+        nameMorphs(rootElement.current)
       })
+      const done = () => {
+        lower()
+        if (morphRun.current === run) clearMorphs(rootElement.current)
+      }
+      if (started?.finished) started.finished.then(done, done)
+      else done()
       return undefined
     },
     [write, morphing]
@@ -347,6 +422,7 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
 
   return (
     <div
+      ref={rootElement}
       className={className ? `iui-root ${className}` : "iui-root"}
       style={style}
       data-iui-id={id}

@@ -393,7 +393,7 @@ export function buildProps(
     }
     if (name === "morph") {
       if (typeof value === "string" && /^[A-Za-z][\w-]*$/.test(value)) {
-        style.viewTransitionName = value
+        props["data-iui-morph"] = value
       }
       return
     }

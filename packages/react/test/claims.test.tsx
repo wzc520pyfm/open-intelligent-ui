@@ -142,25 +142,45 @@ describe("what the prompt promises", () => {
     await waitFor(() => expect(text(container)).toMatch(/Revenue.*\$1,200.*8%.*vs last month/))
   })
 
-  test("morph runs handlers inside a view transition", () => {
+  test("morph runs handlers inside a view transition", async () => {
+    const names: string[][] = []
     const start = vi.fn((update: () => void) => {
+      const named = () =>
+        [...document.querySelectorAll<HTMLElement>("[data-iui-morph]")].map(
+          (element) => element.style.viewTransitionName
+        )
+      names.push(named())
       update()
-      return {}
+      names.push(named())
+      return { finished: Promise.resolve() }
     })
     Object.defineProperty(document, "startViewTransition", { value: start, configurable: true })
-    const ref = { current: null as IntelligentUIHandle | null }
+    const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: HTMLElement
+    ) {
+      const hidden = this.textContent === "Below the fold"
+      const top = hidden ? 5000 : 10
+      return { top, left: 10, bottom: top + 40, right: 210, width: 200, height: 40, x: 10, y: top, toJSON() {} }
+    })
     const { container } = render(
       <IntelligentUI
-        ref={ref}
         source={`<state big={false} />
-<card morph="hero" on:click={big = !big}>{big ? "Large" : "Small"}</card>`}
+<card morph="hero" on:click={big = !big}>{big ? "Large" : "Small"}</card>
+<card morph="hero">Same name again</card>
+<card morph="far">Below the fold</card>`}
       />
     )
-    const card = container.querySelector<HTMLElement>(".iui-card")
-    expect(card?.style.viewTransitionName).toBe("hero")
-    fireEvent.click(card as HTMLElement)
+    const card = container.querySelector<HTMLElement>(".iui-card") as HTMLElement
+    expect(card.style.viewTransitionName).toBe("")
+    fireEvent.click(card)
     expect(start).toHaveBeenCalledTimes(1)
-    expect(text(container)).toBe("Large")
+    expect(card.textContent).toBe("Large")
+    expect(names).toEqual([
+      ["hero", "", ""],
+      ["hero", "", ""],
+    ])
+    await waitFor(() => expect(card.style.viewTransitionName).toBe(""))
+    rect.mockRestore()
   })
 
   test("without morph, handlers run directly", () => {

@@ -19,6 +19,8 @@ export interface PropsContext {
   scope: Scope
   /** Runs an event handler, reporting errors instead of throwing. */
   invoke: (work: () => unknown) => unknown
+  /** Runs a `bind:` write. Like `invoke`, without view transitions. */
+  write: (work: () => unknown) => unknown
   report: (message: string) => void
   allowUrl?: ((url: string, kind: "link" | "media") => boolean) | undefined
 }
@@ -119,6 +121,46 @@ const BLOCKED_PROPS = new Set([
   "action",
   "is",
 ])
+
+/** DOM event names whose React prop isn't just the capitalized name. */
+const EVENT_NAMES: Record<string, string> = {
+  dblclick: "onDoubleClick",
+  doubleclick: "onDoubleClick",
+  keydown: "onKeyDown",
+  keyup: "onKeyUp",
+  keypress: "onKeyPress",
+  mousedown: "onMouseDown",
+  mouseup: "onMouseUp",
+  mouseenter: "onMouseEnter",
+  mouseleave: "onMouseLeave",
+  mousemove: "onMouseMove",
+  mouseover: "onMouseOver",
+  mouseout: "onMouseOut",
+  pointerdown: "onPointerDown",
+  pointerup: "onPointerUp",
+  pointerenter: "onPointerEnter",
+  pointerleave: "onPointerLeave",
+  pointermove: "onPointerMove",
+  pointercancel: "onPointerCancel",
+  touchstart: "onTouchStart",
+  touchend: "onTouchEnd",
+  touchmove: "onTouchMove",
+  contextmenu: "onContextMenu",
+  dragstart: "onDragStart",
+  dragend: "onDragEnd",
+  dragover: "onDragOver",
+  dragenter: "onDragEnter",
+  dragleave: "onDragLeave",
+  animationend: "onAnimationEnd",
+  transitionend: "onTransitionEnd",
+}
+
+function eventProp(name: string, native: boolean): string {
+  if (native && Object.hasOwn(EVENT_NAMES, name.toLowerCase())) {
+    return EVENT_NAMES[name.toLowerCase()] as string
+  }
+  return `on${capitalize(camel(name))}`
+}
 
 const DATA_PROPS = new Set(["variant", "size", "tone"])
 const MOTION_ATTRIBUTE = /^[a-z]+(?:-[a-z]+)*$/
@@ -239,7 +281,7 @@ function setter(expr: Expr, ctx: PropsContext): ((value: unknown) => void) | nul
     value: { type: "Ident", name: "$next" },
   }
   return (value) => {
-    ctx.invoke(() => {
+    ctx.write(() => {
       const local = ctx.scope.child()
       local.declare("$next", value)
       return run(assign, local, ctx.surface.host)
@@ -452,7 +494,7 @@ export function buildProps(
 
     if (directive === "on" || (/^on[A-Z]/.test(name) && value.kind === "expr")) {
       if (value.kind !== "expr") continue
-      const event = directive === "on" ? `on${capitalize(camel(argument))}` : name
+      const event = directive === "on" ? eventProp(argument, native) : name
       handlers[event] = chain(handlers[event], handler(value.expr, ctx))
       continue
     }

@@ -3,103 +3,116 @@
  * sizes, and motion for every part that opens, closes or changes state.
  */
 @layer iui {
-  /* Buttons */
-  .iui-root [data-slot="button"] {
+  /* Buttons, and the triggers that look like them */
+  .iui-root
+    :is(
+      [data-slot="button"],
+      [data-slot="dialog-trigger"],
+      [data-slot="dialog-close"],
+      [data-slot="alert-dialog-trigger"],
+      [data-slot="alert-dialog-close"],
+      [data-slot="drawer-trigger"],
+      [data-slot="drawer-close"],
+      [data-slot="popover-trigger"],
+      [data-slot="popover-close"],
+      [data-slot="menu-trigger"],
+      [data-slot="tooltip-trigger"]
+    ) {
     border-radius: var(--iui-c-button-radius, var(--ui-radius));
     transition:
       background var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
       border-color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
       color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
       scale var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
-  }
 
-  .iui-root [data-slot="button"]:active:not([data-disabled]) {
-    scale: 0.98;
-  }
+    &:active:not([data-disabled]) {
+      scale: 0.98;
+    }
 
-  .iui-root [data-slot="button"]:is([data-variant="solid"], [data-variant="primary"]) {
-    border-color: var(--ui-primary);
-    border-radius: var(--iui-c-button-primary-radius, var(--iui-c-button-radius, var(--ui-radius)));
-    background: var(--ui-primary);
-    color: var(--ui-primary-foreground);
-  }
+    &:is([data-variant="solid"], [data-variant="primary"]) {
+      border-color: var(--ui-primary);
+      border-radius: var(
+        --iui-c-button-primary-radius,
+        var(--iui-c-button-radius, var(--ui-radius))
+      );
+      background: var(--ui-primary);
+      color: var(--ui-primary-foreground);
 
-  .iui-root
-    [data-slot="button"]:is([data-variant="solid"], [data-variant="primary"]):hover:not(
-      [data-disabled]
-    ) {
-    background: var(
-      --iui-c-button-primary-hover-background,
-      color-mix(in oklab, var(--ui-primary) 86%, var(--iui-color-surface))
-    );
-  }
+      &:hover:not([data-disabled]) {
+        background: var(
+          --iui-c-button-primary-hover-background,
+          color-mix(in oklab, var(--ui-primary) 86%, var(--iui-color-surface))
+        );
+      }
+    }
 
-  .iui-root [data-slot="button"][data-variant="accent"] {
-    border-color: var(--iui-color-accent);
-    background: var(--iui-color-accent);
-    color: var(--iui-color-accent-foreground);
-  }
+    &[data-variant="accent"] {
+      border-color: var(--iui-color-accent);
+      background: var(--iui-color-accent);
+      color: var(--iui-color-accent-foreground);
 
-  .iui-root [data-slot="button"][data-variant="accent"]:hover:not([data-disabled]) {
-    background: color-mix(in oklab, var(--iui-color-accent) 88%, var(--iui-color-foreground));
-  }
+      &:hover:not([data-disabled]) {
+        background: color-mix(in oklab, var(--iui-color-accent) 88%, var(--iui-color-foreground));
+      }
+    }
 
-  .iui-root [data-slot="button"][data-variant="soft"] {
-    border-color: transparent;
-    background: var(--iui-color-muted);
-  }
+    &[data-variant="soft"] {
+      border-color: transparent;
+      background: var(--iui-color-muted);
 
-  .iui-root [data-slot="button"][data-variant="soft"]:hover:not([data-disabled]) {
-    background: color-mix(in oklab, var(--iui-color-foreground) 12%, var(--iui-color-surface));
-  }
+      &:hover:not([data-disabled]) {
+        background: color-mix(in oklab, var(--iui-color-foreground) 12%, var(--iui-color-surface));
+      }
+    }
 
-  .iui-root [data-slot="button"][data-variant="ghost"] {
-    border-color: transparent;
-    background: transparent;
-  }
+    &[data-variant="ghost"] {
+      border-color: transparent;
+      background: transparent;
 
-  .iui-root [data-slot="button"][data-variant="ghost"]:hover:not([data-disabled]) {
-    background: var(--iui-color-muted);
-  }
+      &:hover:not([data-disabled]) {
+        background: var(--iui-color-muted);
+      }
+    }
 
-  .iui-root [data-slot="button"][data-variant="link"] {
-    height: auto;
-    padding: 0;
-    border-color: transparent;
-    background: none;
-    color: var(--iui-color-accent);
-  }
+    &[data-variant="link"] {
+      height: auto;
+      padding: 0;
+      border-color: transparent;
+      background: none;
+      color: var(--iui-color-accent);
 
-  .iui-root [data-slot="button"][data-variant="link"]:hover:not([data-disabled]) {
-    background: none;
-    text-decoration: underline;
-    text-underline-offset: 0.18em;
-  }
+      &:hover:not([data-disabled]) {
+        background: none;
+        text-decoration: underline;
+        text-underline-offset: 0.18em;
+      }
+    }
 
-  .iui-root [data-slot="button"][data-size="sm"] {
-    height: calc(var(--ui-spacing) * 7);
-    padding-inline: calc(var(--ui-spacing) * 2.5);
-    font-size: 0.75rem;
-  }
+    &[data-size="sm"] {
+      height: calc(var(--ui-spacing) * 7);
+      padding-inline: calc(var(--ui-spacing) * 2.5);
+      font-size: 0.75rem;
+    }
 
-  .iui-root [data-slot="button"][data-size="lg"] {
-    height: calc(var(--ui-spacing) * 10);
-    padding-inline: calc(var(--ui-spacing) * 4.5);
-    font-size: var(--iui-font-body-size, 0.9375rem);
-  }
+    &[data-size="lg"] {
+      height: calc(var(--ui-spacing) * 10);
+      padding-inline: calc(var(--ui-spacing) * 4.5);
+      font-size: var(--iui-font-body-size, 0.9375rem);
+    }
 
-  .iui-root [data-slot="button"][data-pending] {
-    cursor: progress;
-  }
+    &[data-pending] {
+      cursor: progress;
+    }
 
-  .iui-root [data-slot="button"][data-pending]::before {
-    width: 0.85em;
-    height: 0.85em;
-    border: 2px solid currentColor;
-    border-inline-end-color: transparent;
-    border-radius: 50%;
-    content: "";
-    animation: iui-spin 0.7s linear infinite;
+    &[data-pending]::before {
+      width: 0.85em;
+      height: 0.85em;
+      border: 2px solid currentColor;
+      border-inline-end-color: transparent;
+      border-radius: 50%;
+      content: "";
+      animation: iui-spin 0.7s linear infinite;
+    }
   }
 
   @keyframes iui-spin {

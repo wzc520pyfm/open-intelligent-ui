@@ -37,6 +37,7 @@ export interface RenderOptions {
   streaming: boolean
   report: (message: string) => void
   invoke: (work: () => unknown) => unknown
+  write: (work: () => unknown) => unknown
   allowUrl?: ((url: string, kind: "link" | "media") => boolean) | undefined
 }
 
@@ -64,6 +65,7 @@ function propsContext(ctx: RenderContext): PropsContext {
     surface: ctx.surface,
     scope: ctx.scope,
     invoke: ctx.options.invoke,
+    write: ctx.options.write,
     report: ctx.options.report,
     allowUrl: ctx.options.allowUrl,
   }

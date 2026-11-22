@@ -27,6 +27,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react"
+import { flushSync } from "react-dom"
 import { getUiSdkVersion, subscribeUiSdk } from "./registry/ui-sdk"
 import { Boundary } from "./render/Boundary"
 import { type RenderContext, renderNodes } from "./render/render"
@@ -96,6 +97,17 @@ const TOAST_LIFETIME = 4000
 
 function styleText(css: string): string {
   return css.replace(/<\//g, "<\\/")
+}
+
+type StartViewTransition = (update: () => void) => unknown
+
+/** `document.startViewTransition`, when the browser has it and motion is welcome. */
+function viewTransition(): StartViewTransition | null {
+  const start = (document as Document & { startViewTransition?: StartViewTransition })
+    .startViewTransition
+  if (typeof start !== "function") return null
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return null
+  return start.bind(document)
 }
 
 function useLatest<T>(value: T): { current: T } {
@@ -245,7 +257,7 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
     [surface]
   )
 
-  const invoke = useCallback(
+  const write = useCallback(
     (work: () => unknown): unknown => {
       const fail = (error: unknown) => {
         const message = error instanceof Error ? error.message : String(error)
@@ -266,6 +278,23 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
       }
     },
     [latest, showToast]
+  )
+
+  const morphing = /\bmorph\s*=/.test(source)
+  const invoke = useCallback(
+    (work: () => unknown): unknown => {
+      const transition = morphing ? viewTransition() : null
+      if (!transition) return write(work)
+      // Elements that share a `morph` name glide to where the new state puts
+      // them. The browser runs the update on its next frame.
+      transition(() => {
+        flushSync(() => {
+          write(work)
+        })
+      })
+      return undefined
+    },
+    [write, morphing]
   )
 
   const designCss = useMemo(() => {
@@ -295,6 +324,7 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
       streaming,
       report,
       invoke,
+      write,
       allowUrl,
     },
   }

@@ -320,6 +320,40 @@ function plainChildren(items: RawChild[]): Node[] {
   return out
 }
 
+const INLINE_TAGS = new Set([
+  "a", "abbr", "b", "badge", "cite", "code", "del", "em", "i", "icon", "ins", "kbd",
+  "link", "mark", "q", "s", "small", "span", "strong", "sub", "sup", "text", "time",
+  "u", "var", "Number",
+])
+
+function isInline(node: RawChild | undefined): boolean {
+  if (!node || typeof node === "string") return false
+  if (node.type === "expr") return true
+  return node.type === "element" && INLINE_TAGS.has(node.name)
+}
+
+/**
+ * Children with no words between them. A space on one line between two
+ * inline things is a word space, as in `{count} {unit}`; everything else is
+ * indentation.
+ */
+function keepInlineSpaces(items: RawChild[]): Node[] {
+  const out: Node[] = []
+  items.forEach((item, index) => {
+    if (typeof item !== "string") {
+      out.push(item)
+    } else if (
+      item &&
+      !item.includes("\n") &&
+      isInline(items[index - 1]) &&
+      isInline(items[index + 1])
+    ) {
+      out.push({ type: "text", value: " " })
+    }
+  })
+  return out
+}
+
 /**
  * Turns the text between nodes into Markdown elements, keeping the nodes in
  * place. Nodes on a line of their own sit between blocks; nodes inside a line
@@ -344,7 +378,7 @@ export function finishChildren(
       nodes.push(item)
     }
   }
-  if (!hasText) return nodes
+  if (!hasText) return keepInlineSpaces(items)
 
   const converter = new Converter(nodes)
   const body = source.replace(/^(?:[ \t]*\n)+/, "").replace(/(?:\n[ \t]*)+$/, "")

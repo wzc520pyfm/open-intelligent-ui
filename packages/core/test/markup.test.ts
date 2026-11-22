@@ -465,3 +465,22 @@ Total: **{num(total)} g** — <Button on:click={send(\`Shop for \${guests}\`)}>S
     expect(done.complete).toBe(true)
   })
 })
+
+describe("spaces between inline things", () => {
+  const shape = (source: string) =>
+    (parse(source).children[0] as ElementNode).children.map((child) =>
+      child.type === "text" ? child.value : child.type
+    )
+
+  test("a space between two values on a line is kept", () => {
+    expect(shape("<div>{n} {unit}</div>")).toEqual(["expr", " ", "expr"])
+    expect(shape("<p><b>a</b> <i>b</i></p>")).toEqual(["element", " ", "element"])
+  })
+
+  test("indentation between blocks is not", () => {
+    expect(shape("<div>\n  {n}\n  {unit}\n</div>")).toEqual(["expr", "expr"])
+    expect(shape("<tr><td>a</td> <td>b</td></tr>")).toEqual(["element", "element"])
+    expect(shape("<div> {n} </div>")).toEqual(["expr"])
+  })
+})
+

@@ -68,6 +68,28 @@ export function isSafeCssValue(value: string): boolean {
   return value.length <= 300 && !UNSAFE_VALUE.test(value)
 }
 
+const VARIABLE_GROUPS: Record<string, string> = {
+  colors: "color",
+  rounded: "radius",
+  spacing: "space",
+}
+
+function tokenVariable(value: unknown): string | null {
+  if (typeof value !== "string") return null
+  const reference = REFERENCE.exec(value.trim())
+  if (!reference) return null
+  const [group, ...rest] = (reference[1] as string).split(".")
+  const prefix = VARIABLE_GROUPS[group as string]
+  if (!prefix || rest.length === 0) return null
+  if (group === "colors" && (rest[0] === "light" || rest[0] === "dark")) rest.shift()
+  const name = rest
+    .join("-")
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/[^A-Za-z0-9-]+/g, "-")
+    .toLowerCase()
+  return name ? `var(--iui-${prefix}-${name})` : null
+}
+
 export function parseDesign(source: string): Design {
   const design: Design = {
     colors: {},
@@ -215,6 +237,13 @@ export function parseDesign(source: string): Design {
       const component: Record<string, string | TypographyToken> = {}
       for (const [key, raw] of Object.entries(value)) {
         const resolved = resolve(raw)
+        // A reference to a color, radius or spacing token stays a reference,
+        // so a component follows its token into dark mode.
+        const variable = tokenVariable(raw)
+        if (variable && !isTree(resolved) && resolved !== undefined) {
+          component[key] = variable
+          continue
+        }
         if (isTree(resolved)) {
           component[key] = typography(resolved, `components.${name}.${key}`)
         } else {

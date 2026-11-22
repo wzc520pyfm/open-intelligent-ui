@@ -106,11 +106,11 @@ describe("DESIGN.md", () => {
     expect(design.prose.startsWith("## Overview")).toBe(true)
   })
 
-  test("resolves references and reports broken ones", () => {
+  test("keeps token references as variables and reports broken ones", () => {
     expect(design.components["button-primary"]).toEqual({
-      backgroundColor: "#B8422E",
-      textColor: "#FFFFFF",
-      rounded: "4px",
+      backgroundColor: "var(--iui-color-tertiary)",
+      textColor: "var(--iui-color-surface)",
+      rounded: "var(--iui-radius-md)",
       padding: "12px",
       typography: {
         fontFamily: "Space Grotesk",
@@ -144,8 +144,8 @@ describe("DESIGN.md", () => {
     has("--iui-motion-state-change-easing: ease-out;")
     has("--iui-motion-surface-enter-duration: 260ms;")
     has("--iui-motion-page-transition-delay: 50ms;")
-    has("--iui-c-button-primary-background: #B8422E;")
-    has("--iui-c-button-primary-radius: 4px;")
+    has("--iui-c-button-primary-background: var(--iui-color-tertiary);")
+    has("--iui-c-button-primary-radius: var(--iui-radius-md);")
     has("--iui-c-button-primary-font-size: 12px;")
     has("--iui-c-button-primary-letter-spacing: 0.1em;")
     has('.x[data-iui-scheme="dark"] {\n  --iui-color-surface: #14161A;')

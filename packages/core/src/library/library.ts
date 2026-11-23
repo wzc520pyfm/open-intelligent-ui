@@ -1,4 +1,4 @@
-import type { Design } from "../design/design"
+import { type Design, parseDesign } from "../design/design"
 import { isComponentName } from "../markup/elements"
 import { parse } from "../markup/scan"
 import type { ElementNode, Node } from "../markup/ast"
@@ -253,8 +253,8 @@ export interface Library<C = unknown> {
 /** A library as plain data: what `librarySpec` writes and `buildSystemPrompt` reads. */
 export interface LibrarySpec {
   name?: string
-  /** The DESIGN.md source. */
-  design?: string
+  /** The DESIGN.md source, or the design read from it with options, which is plain data too. */
+  design?: string | Design
   components: ComponentSpec[]
   charts?: ChartEngineSpec
   motion?: MotionSpec
@@ -344,7 +344,7 @@ function componentSpec(definition: ComponentSpec): ComponentSpec {
 export function librarySpec(library: Library | LibrarySpec): LibrarySpec {
   const spec: LibrarySpec = { components: library.components.map(componentSpec) }
   if (library.name) spec.name = library.name
-  if (typeof library.design === "string") spec.design = library.design
+  if (library.design) spec.design = library.design
   if (library.charts) spec.charts = chartSpec(library.charts)
   if (library.motion) spec.motion = motionSpec(library.motion)
   if (library.instructions) spec.instructions = library.instructions
@@ -417,7 +417,8 @@ export function acceptsAttribute(spec: ComponentSpec, name: string): boolean {
 /**
  * What is wrong with a library, as sentences: a name that isn't a component
  * name, a missing description, an example that doesn't parse or passes a
- * prop its component doesn't declare. Run it in a test.
+ * prop its component doesn't declare, a design whose tokens couldn't be
+ * read. Run it in a test.
  */
 export function validateLibrary(library: Library | LibrarySpec): string[] {
   const issues = [...(problems.get(library) ?? [])]
@@ -459,6 +460,13 @@ export function validateLibrary(library: Library | LibrarySpec): string[] {
         }
       }
     })
+  }
+  if (library.design) {
+    const design = typeof library.design === "string" ? parseDesign(library.design) : library.design
+    for (const issue of design.issues) issues.push(`design: ${issue}`)
+    if (Object.keys(design.colors).length === 0) {
+      issues.push("design: no color tokens were found, so the built-in colors are used")
+    }
   }
   return [...new Set(issues)]
 }

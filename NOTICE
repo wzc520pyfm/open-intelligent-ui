@@ -18,3 +18,10 @@ Version 2.0:
 
 Icons are drawn with Lucide (https://lucide.dev), licensed under the
 ISC License.
+
+design/third-party/heroui.DESIGN.md is the DESIGN.md of HeroUI's default
+theme, copied unchanged from apps/docs/public/react/DESIGN.md in
+https://github.com/heroui-inc/heroui (commit b58fb7a). HeroUI is
+Copyright 2025 NextUI Inc. and licensed under the Apache License,
+Version 2.0. The file is an example of a design written for another
+component library; the playground and the tests read it.

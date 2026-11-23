@@ -363,7 +363,20 @@ function designSection(input: string | Design | undefined): string {
     "",
     describeDesignTokens(design),
   ]
-  if (design.prose) lines.push("", "Guidance from the design:", "", design.prose)
+  if (design.prose) {
+    lines.push("", "Guidance from the design:", "")
+    if (design.source === "css-variables") {
+      // Its prose names another library's classes and components; none of them exist here.
+      lines.push(
+        "This guidance was written for another component library. Take its direction",
+        "on hierarchy, color, shape and tone. Its class names, utilities, component",
+        "names, imports and setup steps don't apply: write the markup this prompt",
+        "describes, with the tokens listed above.",
+        ""
+      )
+    }
+    lines.push(design.prose)
+  }
   return lines.join("\n").trimEnd()
 }
 

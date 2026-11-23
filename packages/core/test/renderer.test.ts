@@ -1,8 +1,9 @@
-import { describe, expect, test } from "vitest"
+import { describe, expect, test, vi } from "vitest"
 import { type EvalHost, evaluate, parseExpression, parseProgram, run, Scope } from "../src/expr"
 import {
   chartValues,
   chartView,
+  claimId,
   exitAnimations,
   lazyRecord,
   numberView,
@@ -170,5 +171,40 @@ describe("waiting for an element to leave", () => {
     expect(exitAnimations(element(animation(Infinity, new Promise(() => {}))))).toBeNull()
     expect(exitAnimations(element())).toBeNull()
     expect(exitAnimations(null)).toBeNull()
+  })
+})
+
+describe("ids that hold across a page", () => {
+  test("gives the wanted id when it is free, and another one when it is not", () => {
+    const first = claimId("page-id")
+    const second = claimId("page-id")
+    const third = claimId("page-id")
+    expect(first.id).toBe("page-id")
+    expect(new Set([first.id, second.id, third.id]).size).toBe(3)
+    for (const claim of [second, third]) expect(claim.id).toMatch(/^page-id[a-z0-9]+$/)
+    for (const claim of [first, second, third]) claim.release()
+  })
+
+  test("an id given back can be claimed again, and giving it back twice frees nothing else", () => {
+    const first = claimId("page-id")
+    first.release()
+    const again = claimId("page-id")
+    expect(again.id).toBe("page-id")
+    first.release()
+    const other = claimId("page-id")
+    expect(other.id).not.toBe("page-id")
+    again.release()
+    other.release()
+  })
+
+  test("is shared by every copy of the module on the page", async () => {
+    const held = claimId("shared-id")
+    vi.resetModules()
+    const copy = await import("../src/renderer/ids")
+    expect(copy.claimId).not.toBe(claimId)
+    const elsewhere = copy.claimId("shared-id")
+    expect(elsewhere.id).not.toBe("shared-id")
+    held.release()
+    elsewhere.release()
   })
 })

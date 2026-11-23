@@ -10,13 +10,15 @@ import {
   type CSSProperties,
   type ReactNode,
   useEffect,
-  useId,
   useMemo,
   useRef,
   useState,
 } from "react"
+import { usePageId } from "../render/usePageId"
 import { toReact } from "../render/view"
 import { useTween } from "./tween"
+
+const chartId = (raw: string) => `iui-chart-${raw.replace(/[^A-Za-z0-9_-]/g, "")}`
 
 export interface ChartProps {
   type?: unknown
@@ -80,7 +82,7 @@ export function Chart(input: ChartProps) {
   )
   const [ref, width] = useWidth(CHART_WIDTH)
   const [active, setActive] = useState<number | null>(null)
-  const id = `iui-chart-${useId().replace(/[^A-Za-z0-9_-]/g, "")}`
+  const id = usePageId(chartId)
   const values = useTween(chartValues(data))
   return toReact(chartView(props, { data, values, width, active, setActive, id, root: { ref } }), {})
 }

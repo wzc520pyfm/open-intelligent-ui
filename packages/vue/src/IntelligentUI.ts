@@ -33,12 +33,12 @@ import {
   type PropType,
   ref,
   shallowRef,
-  useId,
   watch,
 } from "vue"
 import { getUiSdkVersion, subscribeUiSdk } from "./registry/ui-sdk"
 import { Boundary } from "./render/Boundary"
 import { type RenderContext, renderNodes } from "./render/render"
+import { usePageId } from "./render/usePageId"
 
 /** What a template ref to `<IntelligentUI>` gives you. */
 export interface IntelligentUIHandle {
@@ -122,7 +122,7 @@ export const IntelligentUI = defineComponent({
     },
   },
   setup(props, { expose }) {
-    const id = useId().replace(/[^A-Za-z0-9]/g, "")
+    const id = usePageId((raw) => raw.replace(/[^A-Za-z0-9]/g, ""))
     const toasts = shallowRef<Toast[]>([])
     const timers = new Set<ReturnType<typeof setTimeout>>()
     const reported = new Set<string>()

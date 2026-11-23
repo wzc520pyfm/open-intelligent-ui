@@ -1,4 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { claimId } from "@open-intelligent-ui/core/renderer"
+import { hydrateRoot, type Root } from "react-dom/client"
+import { renderToString } from "react-dom/server"
 import { describe, expect, test, vi } from "vitest"
 import { IntelligentUI, type IntelligentUIHandle, preloadUiSdk } from "../src"
 
@@ -653,5 +656,62 @@ describe("children as a function of component state", () => {
 
     expect(container.querySelectorAll('[data-slot="pagination-link"]').length).toBeGreaterThan(3)
     expect(text(container)).toContain("40 of 100")
+  })
+})
+
+describe("several React roots on one page", () => {
+  const reply = (color: string) =>
+    `<style>.note { color: ${color} }</style>\n\n<div class="note">Hello</div>\n\n<Chart type="area" data={[{ x: "a", y: 1 }, { x: "b", y: 3 }]} x="x" y="y" />`
+  const idOf = (host: Element) => host.querySelector(".iui-root")?.getAttribute("data-iui-id")
+
+  test("roots drawn on a server get ids of their own once they are hydrated", async () => {
+    // On a server React numbers ids by position in the tree, so two roots agree.
+    const colors = ["red", "blue"]
+    const hosts = colors.map((color) => {
+      const host = document.createElement("div")
+      host.innerHTML = renderToString(<IntelligentUI source={reply(color)} />)
+      document.body.append(host)
+      return host
+    })
+    const served = hosts.map(idOf)
+    expect(served[0]).toBeTruthy()
+    expect(served[1]).toBe(served[0])
+
+    const roots: Root[] = []
+    await act(async () => {
+      for (const [index, host] of hosts.entries()) {
+        roots.push(hydrateRoot(host, <IntelligentUI source={reply(colors[index] as string)} />))
+      }
+    })
+    const ids = hosts.map(idOf) as string[]
+    expect(ids[1]).not.toBe(ids[0])
+    for (const [index, host] of hosts.entries()) {
+      const css = [...host.querySelectorAll("style")].map((style) => style.textContent).join("\n")
+      expect(css).toContain(`[data-iui-id="${ids[index]}"]`)
+      expect(css).not.toContain(`[data-iui-id="${ids[1 - index]}"]`)
+    }
+    await waitFor(() => expect(document.querySelectorAll("linearGradient").length).toBeGreaterThan(1))
+    const gradients = [...document.querySelectorAll("linearGradient")].map((gradient) => gradient.id)
+    expect(new Set(gradients).size).toBe(gradients.length)
+
+    await act(async () => {
+      for (const root of roots) root.unmount()
+    })
+    for (const host of hosts) host.remove()
+    // Both ids are free again.
+    for (const id of ids) {
+      const claim = claimId(id)
+      expect(claim.id).toBe(id)
+      claim.release()
+    }
+  })
+
+  test("roots drawn in the browser keep the ids React gave them", () => {
+    const first = render(<IntelligentUI source={reply("red")} />)
+    const second = render(<IntelligentUI source={reply("blue")} />)
+    const ids = [idOf(first.container), idOf(second.container)]
+    expect(ids[0]).toMatch(/^r[0-9a-z]+$/)
+    expect(ids[1]).toMatch(/^r[0-9a-z]+$/)
+    expect(ids[1]).not.toBe(ids[0])
   })
 })

@@ -240,6 +240,7 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 | 卡死页面 | 求值有步数上限；自定义组件嵌套最多 24 层；图表刻度按个数生成，数值再大再密也不会循环不止 |
 | 加载外部资源 | CSS 里的 `@import` 和外站 `url()` 被移除；链接和媒体地址按协议过滤，宿主可用 `allowUrl` 收紧 |
 | 遮盖宿主页面 | 样式限定在界面内；`position: fixed` 改为 `absolute` |
+| 一条回复的样式漏到另一条 | 样式按界面的 id 限定。框架给的 id 只在一个应用或一个根里不重复（Vue 按应用计数，React 在服务端渲染的根之间会重复），所以渲染器在页面范围内再登记一次：id 被别的界面占用时换一个，界面卸载时归还 |
 | 经组件改写 DOM | 组件没有声明的属性，Vue 会透传到它的根元素上，并在元素有同名属性（property）时直接赋值；`outerHTML` 能把部件换成任意 HTML，`hostname` 能改掉已经检查过的链接。Vue 渲染器对这类名字只按 HTML 属性（attribute）设置，和 React 对未知属性的处理一致；`innerHTML`、`outerHTML` 在两边都丢弃。`defineAsyncComponent` 的组件按它加载到的组件所声明的属性处理 |
 | 绕过 `allowUrl` 加载资源 | UI SDK 组件会把不认识的属性放到自己的元素上。`srcset`、`imagesrcset`、`ping`、`attributionsrc` 一律丢弃；组件上的 `href`、`src`、`poster` 先问 `allowUrl` |
 | 换个写法绕过检查 | 被禁的名字和带地址的名字不论大小写都按同一条规则处理（HTML 元素的属性名不分大小写）；`bind:` 绑定的值和直接写的值走同一套检查，样式、地址、事件名都一样。字符串不会落到 `on` 开头的属性上，否则在 Vue 里会成为内联事件处理器 |

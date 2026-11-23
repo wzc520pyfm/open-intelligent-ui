@@ -29,7 +29,6 @@ import {
   type Ref,
   useCallback,
   useEffect,
-  useId,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -40,6 +39,7 @@ import { flushSync } from "react-dom"
 import { getUiSdkVersion, subscribeUiSdk } from "./registry/ui-sdk"
 import { Boundary } from "./render/Boundary"
 import { type AnyComponent, type RenderContext, renderNodes } from "./render/render"
+import { alphanumeric, usePageId } from "./render/usePageId"
 
 export interface IntelligentUIHandle {
   /** The surface's current state, as plain data. */
@@ -119,7 +119,7 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
     ref,
   } = props
   const latest = useLatest(props)
-  const id = useId().replace(/[^A-Za-z0-9]/g, "")
+  const id = usePageId(alphanumeric)
   const [toasts, setToasts] = useState<Toast[]>([])
   const toastId = useRef(0)
   const timers = useRef(new Set<ReturnType<typeof setTimeout>>())

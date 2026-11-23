@@ -171,7 +171,7 @@ export const IntelligentUI = defineComponent({
         if (props.onAction?.(action) === true) return
         if (action.type === "toast") showToast(action.message, action.tone)
         else if (action.type === "copy") copyText(action.text)
-        else if (action.type === "open") openUrl(action.url)
+        else if (action.type === "open") openUrl(action.url, props.allowUrl)
       },
       onTool: (event) => props.onTool?.(event),
       onWarning: (message) => report(message),

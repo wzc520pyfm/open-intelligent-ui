@@ -703,6 +703,19 @@ describe("safety", () => {
     expect(container.querySelector("img")).toBeNull()
   })
 
+  test("a link the host refuses is not opened by an action either", async () => {
+    const opened = vi.spyOn(window, "open").mockImplementation(() => null)
+    const { container } = await draw({
+      source: `<button on:click={open("https://example.com/a")}>Kept</button>
+<button on:click={open("https://evil.test/a")}>Refused</button>`,
+      allowUrl: (url) => url.startsWith("https://example.com/"),
+    })
+    await click(byText(container, "Refused"))
+    await click(byText(container, "Kept"))
+    expect(opened.mock.calls.map((call) => call[0])).toEqual(["https://example.com/a"])
+    opened.mockRestore()
+  })
+
   test("expressions can't reach globals or prototypes", async () => {
     const { container } = await draw({
       source: `<text>[{typeof window}] [{constructor}] [{"a".constructor}] [{[].__proto__}]</text>`,

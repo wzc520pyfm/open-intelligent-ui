@@ -186,7 +186,7 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
           if (latest.current.onAction?.(action) === true) return
           if (action.type === "toast") showToast(action.message, action.tone)
           else if (action.type === "copy") copyText(action.text)
-          else if (action.type === "open") openUrl(action.url)
+          else if (action.type === "open") openUrl(action.url, latest.current.allowUrl)
         },
         onTool: (event) => latest.current.onTool?.(event),
         onWarning: (message) => report(message),

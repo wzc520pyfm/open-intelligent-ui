@@ -164,7 +164,7 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
       if (latest("onAction")?.(action) === true) return
       if (action.type === "toast") showToast(action.message, action.tone)
       else if (action.type === "copy") copyText(action.text)
-      else if (action.type === "open") openUrl(action.url)
+      else if (action.type === "open") openUrl(action.url, latest("allowUrl"))
     },
     onTool: (event) => latest("onTool")?.(event),
     onWarning: (message) => report(message),

@@ -9,7 +9,7 @@ import {
   type Listener,
 } from "../dom/node"
 import { reassert } from "../dom/patch"
-import { isHandlerName } from "../render/attributes"
+import { attributeName, isHandlerName } from "../render/attributes"
 import { listenerName } from "../render/dialect"
 import { type ElementParts, emptyParts, nativeProp } from "../render/native"
 import type { UiSdkElement } from "../registry/ui-sdk.generated"
@@ -132,7 +132,9 @@ export function drawElement(
       if (event) bound.on[event] = value as Listener
       continue
     }
-    if (REFUSED.has(name)) continue
+    // An HTML attribute is found in any casing, so a name is judged as the attribute it would be.
+    const attribute = attributeName(name)
+    if (REFUSED.has(attribute)) continue
     if (shape.live.has(name)) {
       if (value !== undefined) (outer.live ??= {})[name] = value
       continue
@@ -142,7 +144,7 @@ export function drawElement(
       continue
     }
     // A part finds its root by `for` anywhere in the page, the host's own included.
-    if (!spec.root && (name === "for" || name === "htmlFor")) continue
+    if (!spec.root && attribute === "for") continue
     if (isHandlerName(name)) continue
     // The custom element is not a control, so none of its properties are live.
     nativeProp(inner ? boundTag : "", bound, name, value)

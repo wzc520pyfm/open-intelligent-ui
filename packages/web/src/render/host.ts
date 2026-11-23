@@ -43,6 +43,9 @@ function payload(event: Event): unknown {
   return detail
 }
 
+/** Properties that replace an element's content. A reply never sets them, listed or not. */
+const REWRITES = new Set(["innerHTML", "outerHTML", "textContent", "innerText", "outerText"])
+
 const VALID_TAG = /^[a-z][a-z0-9._]*-[-a-z0-9._]*$/
 
 /** Whether `tag` can name a custom element. Anything else is not drawn. */
@@ -73,7 +76,7 @@ export function hostElement(
       parts.on[named ?? name.slice(2).toLowerCase()] = listener
       continue
     }
-    if (properties.has(name)) {
+    if (properties.has(name) && !REWRITES.has(name)) {
       ;(parts.props ??= {})[name] = value
       continue
     }

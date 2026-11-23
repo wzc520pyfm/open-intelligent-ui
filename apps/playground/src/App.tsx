@@ -1,38 +1,40 @@
-import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
-import { IntelligentUI, type IntelligentUIHandle } from "@open-intelligent-ui/react"
+import { Button, Chip, Drawer, InputGroup, Link, Spinner, Tooltip } from "@heroui/react"
 import type { SurfaceAction, ToolEvent } from "@open-intelligent-ui/core"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
+import {
+  ArrowUp,
+  Check,
+  Menu,
+  MessageSquare,
+  Monitor,
+  Moon,
+  PanelRight,
+  RotateCcw,
+  Smartphone,
+  Square,
+  Sun,
+} from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { DEMOS, type Demo } from "./demos"
 import { LOCALES, readLocale, t, writeLocale, type Locale } from "./i18n"
-import {
-  type ChatMessage,
-  type LiveSettings,
-  type ProviderId,
-  PROVIDERS,
-  providerById,
-  streamChat,
-  unwrapFence,
-} from "./live"
+import { type ChatMessage, type LiveSettings, providerById, streamChat, unwrapFence } from "./live"
+import { Surface } from "./surface/Surface"
+import { RENDERERS, type RendererId, type SurfaceHandle } from "./surface/types"
 import { THEMES } from "./themes"
 import { createTicketTools, TICKET_TOOLS } from "./tools"
+import { GitHubMark, Logo, Picker, Segmented } from "./ui/controls"
+import { Inspector, type LogEntry, type Panel } from "./ui/Inspector"
+import { LiveSettingsButton } from "./ui/LiveSettings"
+import { LIVE, Sidebar } from "./ui/Sidebar"
 
 type Scheme = "light" | "dark"
 type Mode = "demos" | "live"
-type Panel = "source" | "state" | "events" | "prompt"
 type Width = "phone" | "chat" | "wide"
 
 interface Turn {
   id: number
   role: "user" | "assistant" | "note"
   text: string
-}
-
-interface LogEntry {
-  id: number
-  time: string
-  kind: "send" | "tool" | "toast" | "copy" | "open" | "warning"
-  title: string
-  detail?: string
 }
 
 const SPEEDS = [
@@ -42,8 +44,12 @@ const SPEEDS = [
   { id: "instant", charsPerSecond: Number.POSITIVE_INFINITY },
 ] as const
 
-const WIDTHS: Width[] = ["phone", "chat", "wide"]
+type Speed = (typeof SPEEDS)[number]["id"]
 
+const WIDTHS: Width[] = ["phone", "chat", "wide"]
+const PANELS: Panel[] = ["source", "state", "events", "prompt"]
+
+const REPOSITORY = "https://github.com/wzc520pyfm/open-intelligent-ui"
 const LIVE_KEY = "oiui.live"
 let nextId = 1
 
@@ -70,6 +76,51 @@ function readLiveSettings(): LiveSettings {
   }
 }
 
+/**
+ * What the address asks for, so a view can be linked to:
+ * `?demo=dashboard&renderer=vue&design=…&scheme=dark&speed=instant&width=wide&inspect=state&lang=zh`.
+ */
+function readQuery() {
+  const query = new URLSearchParams(window.location.search)
+  const pick = <T extends string>(name: string, allowed: readonly T[]): T | undefined => {
+    const value = query.get(name)
+    return allowed.includes(value as T) ? (value as T) : undefined
+  }
+  const inspect = query.get("inspect")
+  return {
+    live: query.get("demo") === LIVE,
+    demo: DEMOS.find((item) => item.id === query.get("demo")),
+    design: THEMES.find((item) => item.id === query.get("design"))?.id,
+    renderer: pick(
+      "renderer",
+      RENDERERS.map((item) => item.id)
+    ),
+    scheme: pick("scheme", ["light", "dark"] as const),
+    speed: pick(
+      "speed",
+      SPEEDS.map((item) => item.id)
+    ),
+    width: pick("width", WIDTHS),
+    locale: pick(
+      "lang",
+      LOCALES.map((item) => item.id)
+    ),
+    panel: pick("inspect", PANELS),
+    inspect: inspect === null ? undefined : inspect !== "0",
+  }
+}
+
+function useMedia(query: string): boolean {
+  return useSyncExternalStore(
+    (notify) => {
+      const media = window.matchMedia(query)
+      media.addEventListener("change", notify)
+      return () => media.removeEventListener("change", notify)
+    },
+    () => window.matchMedia(query).matches
+  )
+}
+
 function preview(value: unknown): string {
   if (value === undefined) return ""
   try {
@@ -80,26 +131,24 @@ function preview(value: unknown): string {
   }
 }
 
-function providerLabel(locale: Locale, id: ProviderId): string {
-  const copy = t(locale)
-  if (id === "openai") return copy.providerOpenAI
-  if (id === "anthropic") return copy.providerAnthropic
-  if (id === "deepseek") return copy.providerDeepSeek
-  return copy.providerCustom
-}
-
 export function App() {
-  const [locale, setLocale] = useState<Locale>(readLocale)
+  const query = useMemo(readQuery, [])
+  const [locale, setLocale] = useState<Locale>(() => query.locale ?? readLocale())
   const copy = t(locale)
-  const [mode, setMode] = useState<Mode>("demos")
-  const [demo, setDemo] = useState<Demo>(DEMOS[0] as Demo)
-  const [themeId, setThemeId] = useState(demo.theme ?? "paper")
-  const [scheme, setScheme] = useState<Scheme>(() =>
-    window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+  const [mode, setMode] = useState<Mode>(query.live ? "live" : "demos")
+  const [demo, setDemo] = useState<Demo>(query.demo ?? (DEMOS[0] as Demo))
+  const [themeId, setThemeId] = useState(query.design ?? demo.theme ?? "paper")
+  const [scheme, setScheme] = useState<Scheme>(
+    () => query.scheme ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
   )
-  const [speed, setSpeed] = useState<(typeof SPEEDS)[number]["id"]>("normal")
-  const [width, setWidth] = useState<Width>("chat")
-  const [panel, setPanel] = useState<Panel | null>("source")
+  const [renderer, setRenderer] = useState<RendererId>(query.renderer ?? "react")
+  const [speed, setSpeed] = useState<Speed>(query.speed ?? "normal")
+  const [width, setWidth] = useState<Width>(query.width ?? "chat")
+  const [panel, setPanel] = useState<Panel>(query.panel ?? "source")
+  const roomy = useMedia("(min-width: 1280px)")
+  const desktop = useMedia("(min-width: 1024px)")
+  const [inspecting, setInspecting] = useState(() => query.inspect ?? roomy)
+  const [menu, setMenu] = useState(false)
   const [turns, setTurns] = useState<Turn[]>([])
   const [streamingId, setStreamingId] = useState<number | null>(null)
   const [thinking, setThinking] = useState(false)
@@ -114,13 +163,14 @@ export function App() {
   const abort = useRef<AbortController | null>(null)
   const timer = useRef<number | null>(null)
   const thread = useRef<HTMLDivElement>(null)
-  const handle = useRef<IntelligentUIHandle>(null)
+  const handle = useRef<SurfaceHandle>(null)
   const turnsRef = useRef(turns)
   turnsRef.current = turns
   const copyRef = useRef(copy)
   copyRef.current = copy
 
-  const demoCopy = (item: Demo) => copy.demos[item.id] ?? { title: item.title, caption: item.caption, prompt: item.prompt }
+  const demoCopy = (item: Demo) =>
+    copy.demos[item.id] ?? { title: item.title, caption: item.caption, prompt: item.prompt }
 
   const systemPrompt = useMemo(
     () =>
@@ -267,7 +317,9 @@ export function App() {
   }, [mode, demo, locale, playDemo])
 
   useEffect(() => {
-    document.documentElement.dataset.scheme = scheme
+    const root = document.documentElement
+    root.classList.toggle("dark", scheme === "dark")
+    root.dataset.theme = scheme
   }, [scheme])
 
   useEffect(() => {
@@ -324,19 +376,29 @@ export function App() {
     [record]
   )
 
-  const selectDemo = (next: Demo) => {
+  const select = (id: string) => {
+    setMenu(false)
+    if (id === LIVE) {
+      if (mode === "live") return
+      stop()
+      setMode("live")
+      setTurns([])
+      setLog([])
+      setSurfaceState({})
+      return
+    }
+    const next = DEMOS.find((item) => item.id === id)
+    if (!next) return
     setMode("demos")
     setDemo(next)
     if (next.theme) setThemeId(next.theme)
     else if (demo.theme) setThemeId("paper")
   }
 
-  const startLive = () => {
-    stop()
-    setMode("live")
-    setTurns([])
-    setLog([])
+  const chooseRenderer = (next: RendererId) => {
+    // Another renderer starts the surface over, so what the old one held is gone.
     setSurfaceState({})
+    setRenderer(next)
   }
 
   const submit = () => {
@@ -346,261 +408,215 @@ export function App() {
     say(text)
   }
 
-  const chooseProvider = (id: ProviderId) => {
-    const preset = providerById(id)
-    setLive((current) => ({
-      provider: preset.id,
-      // Custom keeps whatever URL the reader already typed.
-      baseUrl: preset.id === "custom" ? current.baseUrl : preset.baseUrl,
-      model: preset.model || current.model,
-      apiKey: current.apiKey,
-    }))
-  }
+  const streaming = streamingId !== null
+  const status = streaming ? (thinking ? copy.thinking : copy.writing) : copy.done
 
-  const widthLabel = (id: Width) =>
-    id === "phone" ? copy.phone : id === "chat" ? copy.chat : copy.wide
+  const sidebar = (
+    <Sidebar
+      copy={copy}
+      demos={DEMOS}
+      demoCopy={demoCopy}
+      selected={mode === "live" ? LIVE : demo.id}
+      onSelect={select}
+    />
+  )
 
-  const speedLabel = (id: (typeof SPEEDS)[number]["id"]) =>
-    id === "slow"
-      ? copy.slow
-      : id === "normal"
-        ? copy.normal
-        : id === "fast"
-          ? copy.fast
-          : copy.instant
-
-  const customEndpoint = live.provider === "custom"
+  const inspector = (
+    <Inspector
+      copy={copy}
+      panel={panel}
+      onPanel={setPanel}
+      source={latestSurface?.text ?? ""}
+      onSource={(text) => {
+        if (!latestSurface) return
+        stop()
+        patchTurn(latestSurface.id, text)
+      }}
+      state={surfaceState}
+      onReset={() => handle.current?.reset()}
+      log={log}
+      prompt={systemPrompt}
+      promptHint={copy.promptHint(theme.name, Math.round(systemPrompt.length / 4 / 100) / 10)}
+    />
+  )
 
   return (
-    <div className="pg">
-      <header className="pg-top">
-        <div className="pg-brand">
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-            <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-            <path
-              d="M7 15.5 L11 8.5 L13.5 13 L17 9"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <span>Open Intelligent UI</span>
-        </div>
-        <div className="pg-controls">
-          <div className="pg-seg pg-lang" role="group" aria-label="Language">
-            {LOCALES.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-pressed={locale === item.id}
-                onClick={() => setLocale(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <label className="pg-field">
-            <span>{copy.design}</span>
-            <select value={themeId} onChange={(event) => setThemeId(event.target.value)}>
-              {THEMES.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="pg-seg pg-widths" role="group" aria-label={copy.width}>
-            {WIDTHS.map((id) => (
-              <button key={id} type="button" aria-pressed={width === id} onClick={() => setWidth(id)}>
-                {widthLabel(id)}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="pg-icon"
+    <div className="flex h-full flex-col bg-background-secondary text-foreground">
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-separator bg-background px-3 sm:px-4">
+        {desktop ? null : (
+          <Button isIconOnly size="sm" variant="ghost" aria-label={copy.examples} onPress={() => setMenu(true)}>
+            <Menu className="size-4" aria-hidden="true" />
+          </Button>
+        )}
+        <a href={REPOSITORY} target="_blank" rel="noreferrer" className="flex items-center gap-2.5">
+          <Logo className="size-6 text-accent" />
+          <span className="text-[15px] font-semibold tracking-tight">Open Intelligent UI</span>
+        </a>
+        <Chip size="sm" variant="soft" className="hidden sm:inline-flex">
+          v{__VERSION__}
+        </Chip>
+        <span className="flex-1" />
+        <Segmented
+          label="Language"
+          className="hidden sm:inline-flex"
+          value={locale}
+          options={LOCALES}
+          onChange={setLocale}
+        />
+        <Link
+          href={REPOSITORY}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="GitHub"
+          className="grid size-8 place-items-center rounded-full text-muted no-underline hover:bg-default hover:text-foreground"
+        >
+          <GitHubMark className="size-[18px]" />
+        </Link>
+        <Tooltip delay={300}>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="ghost"
+            data-pg="scheme"
             aria-label={scheme === "dark" ? copy.switchToLight : copy.switchToDark}
-            onClick={() => setScheme(scheme === "dark" ? "light" : "dark")}
+            onPress={() => setScheme(scheme === "dark" ? "light" : "dark")}
           >
             {scheme === "dark" ? (
-              <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
-                <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                <path
-                  d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
+              <Sun className="size-4" aria-hidden="true" />
             ) : (
-              <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
-                <path
-                  d="M20 14.2A8.2 8.2 0 0 1 9.8 4 8.2 8.2 0 1 0 20 14.2Z"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <Moon className="size-4" aria-hidden="true" />
             )}
-          </button>
-          <button
-            type="button"
-            className="pg-button"
-            aria-pressed={panel !== null}
-            onClick={() => setPanel(panel === null ? "source" : null)}
-          >
-            {copy.inspect}
-          </button>
-        </div>
+          </Button>
+          <Tooltip.Content>{scheme === "dark" ? copy.switchToLight : copy.switchToDark}</Tooltip.Content>
+        </Tooltip>
+        <Button
+          size="sm"
+          variant={inspecting && roomy ? "secondary" : "ghost"}
+          data-pg="inspect"
+          aria-pressed={inspecting}
+          onPress={() => setInspecting(!inspecting)}
+        >
+          <PanelRight className="size-4" aria-hidden="true" />
+          <span className="hidden sm:inline">{copy.inspect}</span>
+        </Button>
       </header>
 
-      <div className="pg-body">
-        <nav className="pg-side" aria-label={copy.examples}>
-          <p className="pg-side-title">{copy.agentAsked}</p>
-          {DEMOS.map((item) => {
-            const text = demoCopy(item)
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className="pg-demo"
-                aria-current={mode === "demos" && demo.id === item.id}
-                onClick={() => selectDemo(item)}
-              >
-                <span className="pg-demo-kind">{text.title}</span>
-                <span className="pg-demo-prompt">{text.prompt}</span>
-                <span className="pg-demo-caption">{text.caption}</span>
-              </button>
-            )
-          })}
-          <p className="pg-side-title">{copy.askYourself}</p>
-          <button type="button" className="pg-demo" aria-current={mode === "live"} onClick={startLive}>
-            <span className="pg-demo-kind">{copy.live}</span>
-            <span className="pg-demo-prompt">{copy.connectModel}</span>
-            <span className="pg-demo-caption">{copy.liveCaption}</span>
-          </button>
-        </nav>
+      <div className="flex min-h-0 flex-1">
+        {desktop ? (
+          <nav aria-label={copy.examples} className="w-72 shrink-0 border-r border-separator bg-background">
+            {sidebar}
+          </nav>
+        ) : null}
 
-        <main className="pg-main">
-          {mode === "demos" ? (
-            <div className="pg-bar">
-              <span className="pg-status" data-live={streamingId !== null}>
-                {streamingId !== null ? (thinking ? copy.thinking : copy.writing) : copy.done}
-              </span>
-              <span className="pg-spacer" />
-              <label className="pg-field">
-                <span>{copy.speed}</span>
-                <select value={speed} onChange={(event) => setSpeed(event.target.value as typeof speed)}>
-                  {SPEEDS.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {speedLabel(item.id)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="button"
-                className="pg-button"
-                onClick={() => playDemo(demo, speed, demoCopy(demo).prompt)}
-              >
-                {copy.replay}
-              </button>
-            </div>
-          ) : (
-            <div className="pg-bar pg-live">
-              <label className="pg-field">
-                <span>{copy.provider}</span>
-                <select
-                  value={live.provider}
-                  onChange={(event) => chooseProvider(event.target.value as ProviderId)}
+        <main className="flex min-w-0 flex-1 flex-col">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-separator bg-background px-3 py-2 sm:px-4">
+            <Chip size="sm" variant="soft" color={streaming ? "accent" : "success"} data-pg="status" data-live={streaming}>
+              {streaming ? <Spinner size="sm" color="current" className="size-3" /> : <Check className="size-3" aria-hidden="true" />}
+              {status}
+            </Chip>
+            <span className="flex-1" />
+            <span className="hidden text-xs text-muted xl:inline" title={copy.rendererHint}>
+              {copy.renderer}
+            </span>
+            <Segmented label={copy.renderer} value={renderer} options={RENDERERS} onChange={chooseRenderer} />
+            <Picker
+              label={copy.design}
+              value={themeId}
+              onChange={setThemeId}
+              options={THEMES.map((item) => ({ id: item.id, label: item.name }))}
+            />
+            <Segmented
+              label={copy.width}
+              className="hidden md:inline-flex"
+              iconOnly
+              value={width}
+              onChange={setWidth}
+              options={[
+                { id: "phone", label: copy.phone, icon: <Smartphone className="size-4" aria-hidden="true" /> },
+                { id: "chat", label: copy.chat, icon: <MessageSquare className="size-4" aria-hidden="true" /> },
+                { id: "wide", label: copy.wide, icon: <Monitor className="size-4" aria-hidden="true" /> },
+              ]}
+            />
+            {mode === "demos" ? (
+              <>
+                <Picker
+                  label={copy.speed}
+                  className="hidden sm:flex"
+                  value={speed}
+                  onChange={setSpeed}
+                  options={[
+                    { id: "slow", label: copy.slow },
+                    { id: "normal", label: copy.normal },
+                    { id: "fast", label: copy.fast },
+                    { id: "instant", label: copy.instant },
+                  ]}
+                />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  data-pg="replay"
+                  aria-label={copy.replay}
+                  onPress={() => playDemo(demo, speed, demoCopy(demo).prompt)}
                 >
-                  {PROVIDERS.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {providerLabel(locale, item.id)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="pg-field pg-endpoint">
-                <span>{copy.endpoint}</span>
-                <input
-                  value={live.baseUrl}
-                  onChange={(event) => setLive({ ...live, baseUrl: event.target.value })}
-                  placeholder={
-                    customEndpoint
-                      ? "https://your-gateway.example/v1"
-                      : providerById(live.provider).baseUrl
-                  }
-                  spellCheck={false}
-                  readOnly={!customEndpoint}
-                />
-              </label>
-              <label className="pg-field">
-                <span>{copy.model}</span>
-                <input
-                  value={live.model}
-                  onChange={(event) => setLive({ ...live, model: event.target.value })}
-                  placeholder={providerById(live.provider).model || "model name"}
-                  spellCheck={false}
-                />
-              </label>
-              <label className="pg-field">
-                <span>{copy.key}</span>
-                <input
-                  type="password"
-                  value={live.apiKey}
-                  onChange={(event) => setLive({ ...live, apiKey: event.target.value })}
-                  placeholder={copy.keyPlaceholder}
-                  autoComplete="off"
-                />
-              </label>
-              <label className="pg-check">
-                <input
-                  type="checkbox"
-                  checked={useTools}
-                  onChange={(event) => setUseTools(event.target.checked)}
-                />
-                {copy.ticketTools}
-              </label>
-            </div>
-          )}
+                  <RotateCcw className="size-3.5" aria-hidden="true" />
+                  <span className="hidden sm:inline">{copy.replay}</span>
+                </Button>
+              </>
+            ) : (
+              <LiveSettingsButton
+                copy={copy}
+                locale={locale}
+                live={live}
+                onLive={setLive}
+                useTools={useTools}
+                onUseTools={setUseTools}
+              />
+            )}
+          </div>
 
-          <div className="pg-thread" ref={thread} data-width={width}>
-            <div className="pg-column">
+          <div ref={thread} className="pg-stage min-h-0 flex-1 overflow-y-auto px-3 py-6 sm:px-6">
+            <div className="pg-column" data-width={width}>
               {turns.length === 0 ? (
-                <div className="pg-empty">
-                  <h1>{copy.emptyTitle}</h1>
-                  <p>{copy.emptyBody(theme.name)}</p>
-                  <div className="pg-suggest">
+                <div className="mx-auto flex max-w-xl flex-col items-center gap-3 py-16 text-center">
+                  <Logo className="size-10 text-accent" />
+                  <h2 className="text-2xl font-semibold tracking-tight text-balance">{copy.emptyTitle}</h2>
+                  <p className="text-sm leading-relaxed text-muted">{copy.emptyBody(theme.name)}</p>
+                  <div className="mt-3 flex flex-wrap justify-center gap-2">
                     {copy.suggest.map((text) => (
-                      <button key={text} type="button" onClick={() => say(text)}>
+                      <Button key={text} size="sm" variant="outline" className="bg-background" onPress={() => say(text)}>
                         {text}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
               ) : null}
               {turns.map((turn) =>
                 turn.role === "user" ? (
-                  <div key={turn.id} className="pg-user">
+                  <div
+                    key={turn.id}
+                    data-pg="user"
+                    className="max-w-[85%] self-end rounded-3xl rounded-br-lg bg-accent px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-accent-foreground"
+                  >
                     {turn.text.replace(/\n\n<interface-data>[\s\S]*$/, "")}
                   </div>
                 ) : turn.role === "note" ? (
-                  <div key={turn.id} className="pg-note">
+                  <div
+                    key={turn.id}
+                    data-pg="note"
+                    className="max-w-[85%] self-center rounded-2xl bg-default px-3.5 py-1.5 text-center text-xs leading-relaxed text-muted"
+                  >
                     {turn.text}
                   </div>
                 ) : thinking && turn.id === streamingId && !turn.text ? (
-                  <div key={turn.id} className="pg-note">
+                  <div key={turn.id} data-pg="note" className="flex items-center gap-2 self-start text-sm text-muted">
+                    <Spinner size="sm" />
                     {copy.thinking}
                   </div>
                 ) : (
-                  <IntelligentUI
-                    key={turn.id}
-                    ref={turn.id === latestSurface?.id ? handle : undefined}
-                    className="pg-surface"
+                  <Surface
+                    key={`${renderer}:${turn.id}`}
+                    renderer={renderer}
+                    handle={turn.id === latestSurface?.id ? handle : undefined}
                     source={turn.text}
                     streaming={turn.id === streamingId}
                     design={theme.source}
@@ -617,106 +633,66 @@ export function App() {
           </div>
 
           <form
-            className="pg-composer"
+            className="shrink-0 border-t border-separator bg-background px-3 py-3 sm:px-6"
             onSubmit={(event) => {
               event.preventDefault()
               submit()
             }}
           >
-            <input
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder={mode === "live" ? copy.askInterface : copy.replyAgent}
-              aria-label={copy.message}
-            />
-            {streamingId !== null && mode === "live" ? (
-              <button type="button" className="pg-button" onClick={stop}>
-                {copy.stop}
-              </button>
-            ) : (
-              <button type="submit" className="pg-button pg-primary" disabled={!draft.trim()}>
-                {copy.send}
-              </button>
-            )}
+            <InputGroup className="mx-auto w-full max-w-[780px] rounded-full pr-1">
+              <InputGroup.Input
+                className="pl-4"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                placeholder={mode === "live" ? copy.askInterface : copy.replyAgent}
+                aria-label={copy.message}
+              />
+              <InputGroup.Suffix className="pr-0">
+                {streaming && mode === "live" ? (
+                  <Button isIconOnly size="sm" variant="secondary" aria-label={copy.stop} onPress={stop}>
+                    <Square className="size-3.5" aria-hidden="true" />
+                  </Button>
+                ) : (
+                  <Button isIconOnly size="sm" type="submit" aria-label={copy.send} isDisabled={!draft.trim()}>
+                    <ArrowUp className="size-4" aria-hidden="true" />
+                  </Button>
+                )}
+              </InputGroup.Suffix>
+            </InputGroup>
           </form>
         </main>
 
-        {panel !== null ? (
-          <aside className="pg-inspect" aria-label={copy.inspect}>
-            <div className="pg-tabs" role="tablist">
-              {(
-                [
-                  ["source", copy.markup],
-                  ["state", copy.state],
-                  ["events", `${copy.events}${log.length ? ` ${log.length}` : ""}`],
-                  ["prompt", copy.prompt],
-                ] as [Panel, string][]
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={panel === id}
-                  onClick={() => setPanel(id)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {panel === "source" ? (
-              <>
-                <p className="pg-hint">{copy.markupHint}</p>
-                <textarea
-                  className="pg-code"
-                  spellCheck={false}
-                  aria-label={copy.markup}
-                  value={latestSurface?.text ?? ""}
-                  onChange={(event) => {
-                    if (!latestSurface) return
-                    stop()
-                    patchTurn(latestSurface.id, event.target.value)
-                  }}
-                />
-              </>
-            ) : null}
-            {panel === "state" ? (
-              <>
-                <p className="pg-hint">{copy.stateHint}</p>
-                <pre className="pg-code">{JSON.stringify(surfaceState, null, 2)}</pre>
-                <div className="pg-row">
-                  <button type="button" className="pg-button" onClick={() => handle.current?.reset()}>
-                    {copy.resetState}
-                  </button>
-                </div>
-              </>
-            ) : null}
-            {panel === "events" ? (
-              <>
-                <p className="pg-hint">{copy.eventsHint}</p>
-                <ol className="pg-log">
-                  {log.length === 0 ? <li className="pg-log-empty">{copy.eventsEmpty}</li> : null}
-                  {log.map((entry) => (
-                    <li key={entry.id} data-kind={entry.kind}>
-                      <span className="pg-log-kind">{entry.kind}</span>
-                      <span className="pg-log-time">{entry.time}</span>
-                      <span className="pg-log-title">{entry.title}</span>
-                      {entry.detail ? <span className="pg-log-detail">{entry.detail}</span> : null}
-                    </li>
-                  ))}
-                </ol>
-              </>
-            ) : null}
-            {panel === "prompt" ? (
-              <>
-                <p className="pg-hint">
-                  {copy.promptHint(theme.name, Math.round(systemPrompt.length / 4 / 100) / 10)}
-                </p>
-                <pre className="pg-code">{systemPrompt}</pre>
-              </>
-            ) : null}
+        {inspecting && roomy ? (
+          <aside aria-label={copy.inspect} className="w-[24rem] shrink-0 border-l border-separator bg-background pt-2">
+            {inspector}
           </aside>
         ) : null}
       </div>
+
+      {desktop ? null : (
+        <Drawer.Backdrop isOpen={menu} onOpenChange={setMenu}>
+          <Drawer.Content placement="left">
+            <Drawer.Dialog aria-label={copy.examples} className="w-[20rem] max-w-[88vw] p-0">
+              <Drawer.Body className="p-0">
+                {sidebar}
+                <div className="border-t border-separator p-4 sm:hidden">
+                  <Segmented label="Language" value={locale} options={LOCALES} onChange={setLocale} />
+                </div>
+              </Drawer.Body>
+            </Drawer.Dialog>
+          </Drawer.Content>
+        </Drawer.Backdrop>
+      )}
+
+      {roomy ? null : (
+        <Drawer.Backdrop isOpen={inspecting} onOpenChange={setInspecting}>
+          <Drawer.Content placement="right">
+            <Drawer.Dialog aria-label={copy.inspect} className="w-[24rem] max-w-[92vw] p-0 pt-2">
+              <Drawer.Body className="h-full p-0">{inspector}</Drawer.Body>
+            </Drawer.Dialog>
+          </Drawer.Content>
+        </Drawer.Backdrop>
+      )}
     </div>
   )
 }

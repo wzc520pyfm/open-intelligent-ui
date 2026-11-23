@@ -493,6 +493,7 @@ export function App() {
           size="sm"
           variant={inspecting && roomy ? "secondary" : "ghost"}
           data-pg="inspect"
+          aria-label={copy.inspect}
           aria-pressed={inspecting}
           onPress={() => setInspecting(!inspecting)}
         >
@@ -625,6 +626,8 @@ export function App() {
                     onTool={onTool}
                     onWarning={onWarning}
                     onStateChange={turn.id === latestSurface?.id ? setSurfaceState : undefined}
+                    failed={copy.rendererFailed}
+                    retry={copy.retry}
                   />
                 )
               )}

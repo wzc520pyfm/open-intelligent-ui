@@ -14,7 +14,8 @@
       // Before the first paint, so a dark page never flashes light.
       ;(() => {
         const asked = new URLSearchParams(location.search).get("scheme")
-        const dark = asked ? asked === "dark" : matchMedia("(prefers-color-scheme: dark)").matches
+        const dark =
+          asked === "dark" || (asked !== "light" && matchMedia("(prefers-color-scheme: dark)").matches)
         document.documentElement.classList.toggle("dark", dark)
         document.documentElement.dataset.theme = dark ? "dark" : "light"
       })()

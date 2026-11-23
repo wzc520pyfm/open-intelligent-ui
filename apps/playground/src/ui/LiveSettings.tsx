@@ -22,6 +22,7 @@ export function LiveSettingsButton(props: {
   const { copy, live } = props
   const custom = live.provider === "custom"
   const connected = Boolean(live.model && live.apiKey)
+  const label = connected ? `${providerLabel(copy, live.provider)} · ${live.model}` : copy.connectModel
 
   const choose = (id: ProviderId) => {
     const preset = providerById(id)
@@ -36,9 +37,15 @@ export function LiveSettingsButton(props: {
 
   return (
     <Popover>
-      <Button size="sm" variant={connected ? "secondary" : "primary"} data-pg="model">
-        <Settings2 className="size-3.5" aria-hidden="true" />
-        {connected ? `${providerLabel(copy, live.provider)} · ${live.model}` : copy.connectModel}
+      <Button
+        size="sm"
+        variant={connected ? "secondary" : "primary"}
+        className="max-w-full min-w-0"
+        data-pg="model"
+        aria-label={label}
+      >
+        <Settings2 className="size-3.5 shrink-0" aria-hidden="true" />
+        <span className="truncate">{label}</span>
       </Button>
       <Popover.Content className="w-80" placement="bottom end">
         <Popover.Dialog className="flex flex-col gap-3">

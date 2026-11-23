@@ -7,6 +7,7 @@ import { camel, capitalize, type PropsDialect } from "@open-intelligent-ui/core/
 const DOM_EVENTS = new Set([
   "click",
   "dblclick",
+  "doubleclick",
   "input",
   "change",
   "submit",

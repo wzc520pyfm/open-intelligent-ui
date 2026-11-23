@@ -31,6 +31,7 @@ function stop() {
 }
 
 function pick(next: (typeof DEMOS)[number]) {
+  if (next.id === demo.value.id) return
   stop()
   demo.value = next
   themeId.value = next.theme ?? "paper"

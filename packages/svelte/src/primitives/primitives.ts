@@ -1,6 +1,6 @@
 import { PRIMITIVE_VIEWS } from "@open-intelligent-ui/core/renderer"
-import type { AnyComponent, Draw } from "../render/node"
-import { PARTS } from "../render/view"
+import type { AnyComponent, Draw } from "../render/node.js"
+import { PARTS } from "../render/view.js"
 import View from "../render/View.svelte"
 import Icon from "./Icon.svelte"
 import Image from "./Image.svelte"
@@ -36,4 +36,4 @@ export const PRIMITIVES: Record<string, AnyComponent> = {
 }
 
 export { Icon }
-export { preloadIcons } from "./icons.svelte"
+export { preloadIcons } from "./icons.svelte.js"

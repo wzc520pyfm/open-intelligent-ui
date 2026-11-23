@@ -4,13 +4,13 @@ import {
   lazyRecord,
   type Lookup,
 } from "@open-intelligent-ui/core/renderer"
-import { PRESETS } from "../presets/presets"
-import { PRIMITIVES, VIEWS } from "../primitives/primitives"
-import { lookupUiSdk } from "../registry/ui-sdk"
-import { UI_SDK_PROPS } from "../registry/ui-sdk.generated"
-import { svelteDialect } from "./dialect"
-import type { AnyComponent, RenderNode } from "./node"
-import { componentProps, nativeProps, type SelectOption, selectProps } from "./props"
+import { PRESETS } from "../presets/presets.js"
+import { PRIMITIVES, VIEWS } from "../primitives/primitives.js"
+import { lookupUiSdk } from "../registry/ui-sdk.js"
+import { UI_SDK_PROPS } from "../registry/ui-sdk.generated.js"
+import { svelteDialect } from "./dialect.js"
+import type { AnyComponent, RenderNode } from "./node.js"
+import { componentProps, nativeProps, type SelectOption, selectProps } from "./props.js"
 
 export type RenderContext = CoreRenderContext<AnyComponent>
 

@@ -1,9 +1,9 @@
 // Packs every publishable package the way `pnpm publish` would and checks the tarball a user
 // would install: its files, its exports, and that everything the built code imports is declared.
 import { execFileSync } from "node:child_process"
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs"
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { parseSync } from "vite"
 
@@ -21,6 +21,11 @@ function packageOf(specifier) {
 
 /** Module specifiers a file really imports. Parsed, because the prompt's text holds code samples. */
 function importsOf(file, text) {
+  // A Svelte package ships its components as written. What they import is in their scripts.
+  if (file.endsWith(".svelte")) {
+    const scripts = [...text.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map((match) => match[1])
+    return new Set(scripts.flatMap((script) => [...importsOf(`${file}.ts`, script)]))
+  }
   const { module, errors } = parseSync(file, text)
   if (errors.length > 0) throw new Error(`${file} does not parse: ${errors[0].message}`)
   return new Set([
@@ -66,7 +71,8 @@ for (const name of packages) {
     ...Object.keys(manifest.peerDependencies ?? {}),
   ])
   const dist = join(unpacked, "dist")
-  for (const file of readdirSync(dist)) {
+  for (const file of readdirSync(dist, { recursive: true })) {
+    if (!statSync(join(dist, file)).isFile()) continue
     const text = readFileSync(join(dist, file), "utf8")
     if (file.endsWith(".css")) {
       if (/@import\b/.test(text)) fail(`${file} still has an @import`)
@@ -77,7 +83,7 @@ for (const name of packages) {
       if (specifier.startsWith(".")) {
         // A declaration file names its sibling by the JavaScript file's name.
         const target = file.endsWith(".d.ts") ? specifier.replace(/\.js$/, ".d.ts") : specifier
-        if (!existsSync(join(dist, target))) fail(`${file} imports ${specifier}, which is not in the tarball`)
+        if (!existsSync(join(dist, dirname(file), target))) fail(`${file} imports ${specifier}, which is not in the tarball`)
       } else if (!specifier.startsWith("node:") && !declared.has(packageOf(specifier))) {
         fail(`${file} imports ${specifier}, which is not a dependency`)
       }

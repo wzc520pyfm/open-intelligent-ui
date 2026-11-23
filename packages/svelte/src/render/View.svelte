@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte"
-  import type { Draw, RenderNode } from "./node"
+  import type { Draw, RenderNode } from "./node.js"
   import Nodes from "./Nodes.svelte"
 
   /**

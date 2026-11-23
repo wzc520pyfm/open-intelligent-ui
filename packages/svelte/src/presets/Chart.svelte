@@ -10,7 +10,7 @@
   } from "@open-intelligent-ui/core/renderer"
   import { createAttachmentKey } from "svelte/attachments"
   import Nodes from "../render/Nodes.svelte"
-  import { useTween } from "./tween.svelte"
+  import { useTween } from "./tween.svelte.js"
 
   /**
    * Bar, line, area, donut and sparkline charts drawn with SVG and colored from

@@ -1,4 +1,4 @@
-import type { ICON_ALIASES, ICON_LOADERS, IconNode } from "./icons.generated"
+import type { ICON_ALIASES, ICON_LOADERS, IconNode } from "./icons.generated.js"
 
 interface Tables {
   loaders: typeof ICON_LOADERS
@@ -24,7 +24,7 @@ let tablesComing: Promise<Tables> | undefined
 
 /** The list of icons is long, so it stays out of the way until an icon is drawn. */
 function iconTables(): Promise<Tables> {
-  tablesComing ??= import("./icons.generated").then((module) => {
+  tablesComing ??= import("./icons.generated.js").then((module) => {
     const files = new Map<string, string>()
     for (const [file, aliases] of Object.entries(module.ICON_ALIASES)) {
       for (const alias of aliases) files.set(alias, file)

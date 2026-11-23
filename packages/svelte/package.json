@@ -24,7 +24,10 @@
     "**/*.css"
   ],
   "exports": {
-    ".": "./src/index.ts",
+    ".": {
+      "svelte": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
     "./ui-sdk": "./src/registry/ui-sdk.ts",
     "./styles.css": "./src/styles.css"
   },

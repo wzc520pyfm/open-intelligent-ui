@@ -1,7 +1,7 @@
 <script lang="ts">
   import { numberTarget, numberView, type ViewProps } from "@open-intelligent-ui/core/renderer"
   import Nodes from "../render/Nodes.svelte"
-  import { useTween } from "./tween.svelte"
+  import { useTween } from "./tween.svelte.js"
 
   /** A number that counts up or down to its new value. */
   let props: ViewProps = $props()

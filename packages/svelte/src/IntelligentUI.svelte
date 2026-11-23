@@ -8,7 +8,7 @@
     Tool,
     ToolEvent,
   } from "@open-intelligent-ui/core"
-  import type { AnyComponent } from "./render/node"
+  import type { AnyComponent } from "./render/node.js"
 
   /** What `bind:this` on `<IntelligentUI>` gives you. */
   export interface IntelligentUIHandle {
@@ -83,10 +83,10 @@
     usesMorph,
   } from "@open-intelligent-ui/core/renderer"
   import { flushSync, onMount, untrack } from "svelte"
-  import { getUiSdkVersion, subscribeUiSdk } from "./registry/ui-sdk"
+  import { getUiSdkVersion, subscribeUiSdk } from "./registry/ui-sdk.js"
   import Boundary from "./render/Boundary.svelte"
   import Nodes from "./render/Nodes.svelte"
-  import { type RenderContext, renderNodes } from "./render/render"
+  import { type RenderContext, renderNodes } from "./render/render.js"
 
   /**
    * Renders IUI markup: Markdown, layout primitives, UI SDK components and

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { iconPlaceholder, iconSpec, type ViewProps } from "@open-intelligent-ui/core/renderer"
-  import type { ElementNode } from "../render/node"
+  import type { ElementNode } from "../render/node.js"
   import Nodes from "../render/Nodes.svelte"
-  import { nativeProps } from "../render/props"
-  import { drawing } from "./icons.svelte"
+  import { nativeProps } from "../render/props.js"
+  import { drawing } from "./icons.svelte.js"
 
   /** Draws a lucide icon by name, at the sizes and colors of the design. */
   let props: ViewProps = $props()

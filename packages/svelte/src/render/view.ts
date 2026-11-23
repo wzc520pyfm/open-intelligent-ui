@@ -1,6 +1,6 @@
 import { isView, type View } from "@open-intelligent-ui/core/renderer"
-import type { AnyComponent, ElementNode, Item, RenderNode } from "./node"
-import { nativeProps } from "./props"
+import type { AnyComponent, ElementNode, Item, RenderNode } from "./node.js"
+import { nativeProps } from "./props.js"
 
 /** The renderer's own components a view can ask for by name: `icon`, `number`. */
 export const PARTS: Record<string, AnyComponent> = {}

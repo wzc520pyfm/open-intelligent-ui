@@ -1,5 +1,5 @@
 import { isHtmlAttribute } from "@open-intelligent-ui/core/renderer"
-import { DOM_EVENTS } from "./dialect"
+import { DOM_EVENTS } from "./dialect.js"
 
 type Props = Record<string, unknown>
 type Handler = (...args: unknown[]) => unknown

@@ -3,7 +3,7 @@ import {
   UI_SDK_COMPONENTS,
   UI_SDK_LOADERS,
   type UiSdkComponent,
-} from "./ui-sdk.generated"
+} from "./ui-sdk.generated.js"
 
 const registry = createRegistry<UiSdkComponent>(UI_SDK_LOADERS, UI_SDK_COMPONENTS)
 

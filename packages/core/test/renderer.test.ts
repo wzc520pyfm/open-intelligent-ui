@@ -283,3 +283,86 @@ describe("ids that hold across a page", () => {
     elsewhere.release()
   })
 })
+
+describe("what a host is told about a component", () => {
+  const capital = (name: string) => `on${name.charAt(0).toUpperCase()}${name.slice(1)}`
+  const noted: Record<string, boolean[]> = {}
+  const note = (type: string, open: boolean) => {
+    ;(noted[type] ??= []).push(open)
+    return type
+  }
+  const renderNodes = createRenderer<string, string>({
+    dialect: {
+      className: "class",
+      html: (lower) => lower,
+      svg: (_, written) => written,
+      prop: (name) => name,
+      event: capital,
+      handler: (name) => name,
+      bindEvent: () => "onChange",
+      bindProps: (argument) => [`${capital(argument)}Change`],
+    },
+    primitives: {},
+    presets: {},
+    lookup: (name) => ({ status: "ready", component: name }),
+    fragment: () => "",
+    element: (tag) => tag,
+    component: (type, _props, _key, _children, open) => note(type, open),
+    scoped: (type, _props, _key, _lets, render, open) => {
+      render([])
+      return note(type, open)
+    },
+    presence: (child) => child,
+    pending: () => "",
+  })
+
+  function openness(source: string, streaming: boolean): Record<string, boolean[]> {
+    for (const name of Object.keys(noted)) delete noted[name]
+    const surface = new Surface()
+    const doc = parse(source, { streaming })
+    surface.update(doc)
+    renderNodes(doc.children, {
+      surface,
+      scope: surface.scope,
+      slot: null,
+      templateDepth: 0,
+      options: {
+        components: {},
+        streaming,
+        report: () => {},
+        invoke: (work) => work(),
+        write: (work) => work(),
+      },
+    })
+    return { ...noted }
+  }
+
+  test("is that it is open while its closing tag hasn't arrived", () => {
+    const source = `<Tabs><TabsList><TabsTab value="a">A</TabsTab><TabsTab value="b">B`
+    expect(openness(source, true)).toEqual({ Tabs: [true], TabsList: [true], TabsTab: [false, true] })
+    expect(openness(`${source}</TabsTab></TabsList>`, true)).toEqual({
+      Tabs: [true],
+      TabsList: [false],
+      TabsTab: [false, false],
+    })
+    expect(openness(`<Slider let:state><SliderThumb /></Slider><Slider let:state><SliderThumb />`, true)).toEqual({
+      Slider: [false, true],
+      SliderThumb: [false, false],
+    })
+  })
+
+  test("is never that it is open once the source is whole", () => {
+    expect(openness(`<Tabs><TabsList><TabsTab value="a">A`, false)).toEqual({
+      Tabs: [false],
+      TabsList: [false],
+      TabsTab: [false],
+    })
+  })
+
+  test("is that it is open inside a template whose use is still being written", () => {
+    const source = `<define name="Panel"><Tabs><TabsList /><slot /></Tabs></define>
+<Panel><TabsPanel value="a">A</TabsPanel>`
+    expect(openness(source, true)).toEqual({ Tabs: [true], TabsList: [true], TabsPanel: [false] })
+    expect(openness(`${source}</Panel>`, true)).toEqual({ Tabs: [false], TabsList: [false], TabsPanel: [false] })
+  })
+})

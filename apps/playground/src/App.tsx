@@ -3,7 +3,16 @@ import { IntelligentUI, type IntelligentUIHandle } from "@open-intelligent-ui/re
 import type { SurfaceAction, ToolEvent } from "@open-intelligent-ui/core"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { DEMOS, type Demo } from "./demos"
-import { type ChatMessage, type LiveSettings, streamChat, unwrapFence } from "./live"
+import { LOCALES, readLocale, t, writeLocale, type Locale } from "./i18n"
+import {
+  type ChatMessage,
+  type LiveSettings,
+  type ProviderId,
+  PROVIDERS,
+  providerById,
+  streamChat,
+  unwrapFence,
+} from "./live"
 import { THEMES } from "./themes"
 import { createTicketTools, TICKET_TOOLS } from "./tools"
 
@@ -27,26 +36,35 @@ interface LogEntry {
 }
 
 const SPEEDS = [
-  { id: "slow", label: "Slow", charsPerSecond: 350 },
-  { id: "normal", label: "Normal", charsPerSecond: 1400 },
-  { id: "fast", label: "Fast", charsPerSecond: 6000 },
-  { id: "instant", label: "Instant", charsPerSecond: Number.POSITIVE_INFINITY },
+  { id: "slow", charsPerSecond: 350 },
+  { id: "normal", charsPerSecond: 1400 },
+  { id: "fast", charsPerSecond: 6000 },
+  { id: "instant", charsPerSecond: Number.POSITIVE_INFINITY },
 ] as const
 
-const WIDTHS: { id: Width; label: string }[] = [
-  { id: "phone", label: "Phone" },
-  { id: "chat", label: "Chat" },
-  { id: "wide", label: "Wide" },
-]
+const WIDTHS: Width[] = ["phone", "chat", "wide"]
 
 const LIVE_KEY = "oiui.live"
 let nextId = 1
 
 function readLiveSettings(): LiveSettings {
-  const fallback = { baseUrl: "https://api.openai.com/v1", model: "", apiKey: "" }
+  const openai = providerById("openai")
+  const fallback: LiveSettings = {
+    provider: "openai",
+    baseUrl: openai.baseUrl,
+    model: openai.model,
+    apiKey: "",
+  }
   try {
     const stored = JSON.parse(sessionStorage.getItem(LIVE_KEY) ?? "null") as Partial<LiveSettings> | null
-    return { ...fallback, ...stored }
+    if (!stored) return fallback
+    const provider = providerById(stored.provider)
+    return {
+      provider: provider.id,
+      baseUrl: stored.baseUrl ?? provider.baseUrl,
+      model: stored.model ?? provider.model,
+      apiKey: stored.apiKey ?? "",
+    }
   } catch {
     return fallback
   }
@@ -62,7 +80,17 @@ function preview(value: unknown): string {
   }
 }
 
+function providerLabel(locale: Locale, id: ProviderId): string {
+  const copy = t(locale)
+  if (id === "openai") return copy.providerOpenAI
+  if (id === "anthropic") return copy.providerAnthropic
+  if (id === "deepseek") return copy.providerDeepSeek
+  return copy.providerCustom
+}
+
 export function App() {
+  const [locale, setLocale] = useState<Locale>(readLocale)
+  const copy = t(locale)
   const [mode, setMode] = useState<Mode>("demos")
   const [demo, setDemo] = useState<Demo>(DEMOS[0] as Demo)
   const [themeId, setThemeId] = useState(demo.theme ?? "paper")
@@ -88,6 +116,10 @@ export function App() {
   const handle = useRef<IntelligentUIHandle>(null)
   const turnsRef = useRef(turns)
   turnsRef.current = turns
+  const copyRef = useRef(copy)
+  copyRef.current = copy
+
+  const demoCopy = (item: Demo) => copy.demos[item.id] ?? { title: item.title, caption: item.caption, prompt: item.prompt }
 
   const systemPrompt = useMemo(
     () =>
@@ -142,9 +174,9 @@ export function App() {
   )
 
   const playDemo = useCallback(
-    (next: Demo, speedId: string) => {
+    (next: Demo, speedId: string, prompt: string) => {
       stop()
-      const user: Turn = { id: nextId++, role: "user", text: next.prompt }
+      const user: Turn = { id: nextId++, role: "user", text: prompt }
       const reply: Turn = { id: nextId++, role: "assistant", text: "" }
       setTurns([user, reply])
       setLog([])
@@ -205,10 +237,7 @@ export function App() {
         {
           id: nextId++,
           role: "note",
-          text:
-            mode === "live"
-              ? "Connect a model above to get a reply."
-              : "In a live session this message goes back to the agent, together with the interface's state, and the agent answers with the next interface.",
+          text: mode === "live" ? copyRef.current.connectNote : copyRef.current.demoNote,
         },
       ])
     },
@@ -219,12 +248,20 @@ export function App() {
   const speedRef = useRef(speed)
   speedRef.current = speed
   useEffect(() => {
-    if (mode === "demos") playDemo(demo, speedRef.current)
-  }, [mode, demo, playDemo])
+    if (mode === "demos") {
+      const prompt = t(locale).demos[demo.id]?.prompt ?? demo.prompt
+      playDemo(demo, speedRef.current, prompt)
+    }
+  }, [mode, demo, locale, playDemo])
 
   useEffect(() => {
     document.documentElement.dataset.scheme = scheme
   }, [scheme])
+
+  useEffect(() => {
+    document.documentElement.lang = locale === "zh" ? "zh-CN" : "en"
+    writeLocale(locale)
+  }, [locale])
 
   useEffect(() => {
     sessionStorage.setItem(LIVE_KEY, JSON.stringify(live))
@@ -297,19 +334,63 @@ export function App() {
     say(text)
   }
 
+  const chooseProvider = (id: ProviderId) => {
+    const preset = providerById(id)
+    setLive((current) => ({
+      provider: preset.id,
+      // Custom keeps whatever URL the reader already typed.
+      baseUrl: preset.id === "custom" ? current.baseUrl : preset.baseUrl,
+      model: preset.model || current.model,
+      apiKey: current.apiKey,
+    }))
+  }
+
+  const widthLabel = (id: Width) =>
+    id === "phone" ? copy.phone : id === "chat" ? copy.chat : copy.wide
+
+  const speedLabel = (id: (typeof SPEEDS)[number]["id"]) =>
+    id === "slow"
+      ? copy.slow
+      : id === "normal"
+        ? copy.normal
+        : id === "fast"
+          ? copy.fast
+          : copy.instant
+
+  const customEndpoint = live.provider === "custom"
+
   return (
     <div className="pg">
       <header className="pg-top">
         <div className="pg-brand">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
             <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-            <path d="M7 15.5 L11 8.5 L13.5 13 L17 9" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M7 15.5 L11 8.5 L13.5 13 L17 9"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
           <span>Open Intelligent UI</span>
         </div>
         <div className="pg-controls">
+          <div className="pg-seg pg-lang" role="group" aria-label="Language">
+            {LOCALES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={locale === item.id}
+                onClick={() => setLocale(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
           <label className="pg-field">
-            <span>Design</span>
+            <span>{copy.design}</span>
             <select value={themeId} onChange={(event) => setThemeId(event.target.value)}>
               {THEMES.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -318,27 +399,38 @@ export function App() {
               ))}
             </select>
           </label>
-          <div className="pg-seg" role="group" aria-label="Width">
-            {WIDTHS.map((item) => (
-              <button key={item.id} type="button" aria-pressed={width === item.id} onClick={() => setWidth(item.id)}>
-                {item.label}
+          <div className="pg-seg pg-widths" role="group" aria-label={copy.width}>
+            {WIDTHS.map((id) => (
+              <button key={id} type="button" aria-pressed={width === id} onClick={() => setWidth(id)}>
+                {widthLabel(id)}
               </button>
             ))}
           </div>
           <button
             type="button"
             className="pg-icon"
-            aria-label={scheme === "dark" ? "Switch to light" : "Switch to dark"}
+            aria-label={scheme === "dark" ? copy.switchToLight : copy.switchToDark}
             onClick={() => setScheme(scheme === "dark" ? "light" : "dark")}
           >
             {scheme === "dark" ? (
               <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
                 <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                <path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                <path
+                  d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
               </svg>
             ) : (
               <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
-                <path d="M20 14.2A8.2 8.2 0 0 1 9.8 4 8.2 8.2 0 1 0 20 14.2Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                <path
+                  d="M20 14.2A8.2 8.2 0 0 1 9.8 4 8.2 8.2 0 1 0 20 14.2Z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
               </svg>
             )}
           </button>
@@ -348,32 +440,35 @@ export function App() {
             aria-pressed={panel !== null}
             onClick={() => setPanel(panel === null ? "source" : null)}
           >
-            Inspect
+            {copy.inspect}
           </button>
         </div>
       </header>
 
       <div className="pg-body">
-        <nav className="pg-side" aria-label="Examples">
-          <p className="pg-side-title">An agent was asked</p>
-          {DEMOS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className="pg-demo"
-              aria-current={mode === "demos" && demo.id === item.id}
-              onClick={() => selectDemo(item)}
-            >
-              <span className="pg-demo-kind">{item.title}</span>
-              <span className="pg-demo-prompt">{item.prompt}</span>
-              <span className="pg-demo-caption">{item.caption}</span>
-            </button>
-          ))}
-          <p className="pg-side-title">Or ask one yourself</p>
+        <nav className="pg-side" aria-label={copy.examples}>
+          <p className="pg-side-title">{copy.agentAsked}</p>
+          {DEMOS.map((item) => {
+            const text = demoCopy(item)
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className="pg-demo"
+                aria-current={mode === "demos" && demo.id === item.id}
+                onClick={() => selectDemo(item)}
+              >
+                <span className="pg-demo-kind">{text.title}</span>
+                <span className="pg-demo-prompt">{text.prompt}</span>
+                <span className="pg-demo-caption">{text.caption}</span>
+              </button>
+            )
+          })}
+          <p className="pg-side-title">{copy.askYourself}</p>
           <button type="button" className="pg-demo" aria-current={mode === "live"} onClick={startLive}>
-            <span className="pg-demo-kind">Live</span>
-            <span className="pg-demo-prompt">Connect a model</span>
-            <span className="pg-demo-caption">Any OpenAI-compatible endpoint. Your key stays in this tab.</span>
+            <span className="pg-demo-kind">{copy.live}</span>
+            <span className="pg-demo-prompt">{copy.connectModel}</span>
+            <span className="pg-demo-caption">{copy.liveCaption}</span>
           </button>
         </nav>
 
@@ -381,56 +476,82 @@ export function App() {
           {mode === "demos" ? (
             <div className="pg-bar">
               <span className="pg-status" data-live={streamingId !== null}>
-                {streamingId !== null ? "Writing…" : "Done"}
+                {streamingId !== null ? copy.writing : copy.done}
               </span>
               <span className="pg-spacer" />
               <label className="pg-field">
-                <span>Speed</span>
+                <span>{copy.speed}</span>
                 <select value={speed} onChange={(event) => setSpeed(event.target.value as typeof speed)}>
                   {SPEEDS.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.label}
+                      {speedLabel(item.id)}
                     </option>
                   ))}
                 </select>
               </label>
-              <button type="button" className="pg-button" onClick={() => playDemo(demo, speed)}>
-                Replay
+              <button
+                type="button"
+                className="pg-button"
+                onClick={() => playDemo(demo, speed, demoCopy(demo).prompt)}
+              >
+                {copy.replay}
               </button>
             </div>
           ) : (
             <div className="pg-bar pg-live">
               <label className="pg-field">
-                <span>Endpoint</span>
+                <span>{copy.provider}</span>
+                <select
+                  value={live.provider}
+                  onChange={(event) => chooseProvider(event.target.value as ProviderId)}
+                >
+                  {PROVIDERS.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {providerLabel(locale, item.id)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="pg-field pg-endpoint">
+                <span>{copy.endpoint}</span>
                 <input
                   value={live.baseUrl}
                   onChange={(event) => setLive({ ...live, baseUrl: event.target.value })}
-                  placeholder="https://api.openai.com/v1"
+                  placeholder={
+                    customEndpoint
+                      ? "https://your-gateway.example/v1"
+                      : providerById(live.provider).baseUrl
+                  }
                   spellCheck={false}
+                  readOnly={!customEndpoint}
                 />
               </label>
               <label className="pg-field">
-                <span>Model</span>
+                <span>{copy.model}</span>
                 <input
                   value={live.model}
                   onChange={(event) => setLive({ ...live, model: event.target.value })}
-                  placeholder="model name"
+                  placeholder={providerById(live.provider).model || "model name"}
                   spellCheck={false}
                 />
               </label>
               <label className="pg-field">
-                <span>Key</span>
+                <span>{copy.key}</span>
                 <input
                   type="password"
                   value={live.apiKey}
                   onChange={(event) => setLive({ ...live, apiKey: event.target.value })}
-                  placeholder="kept in this tab only"
+                  placeholder={copy.keyPlaceholder}
                   autoComplete="off"
                 />
               </label>
               <label className="pg-check">
-                <input type="checkbox" checked={useTools} onChange={(event) => setUseTools(event.target.checked)} />
-                Ticket tools
+                <input
+                  type="checkbox"
+                  checked={useTools}
+                  onChange={(event) => setUseTools(event.target.checked)}
+                />
+                {copy.ticketTools}
               </label>
             </div>
           )}
@@ -439,17 +560,10 @@ export function App() {
             <div className="pg-column">
               {turns.length === 0 ? (
                 <div className="pg-empty">
-                  <h1>Ask for anything you would rather see than read.</h1>
-                  <p>
-                    The model gets the language, the UI SDK behaviors, the {theme.name} design and the motion rules as
-                    its system prompt, and answers in markup that renders as it streams.
-                  </p>
+                  <h1>{copy.emptyTitle}</h1>
+                  <p>{copy.emptyBody(theme.name)}</p>
                   <div className="pg-suggest">
-                    {[
-                      "Compare a 15-year and a 30-year mortgage on a $400k home",
-                      "Help me plan a dinner party for 8",
-                      "Give me a place to work the support queue",
-                    ].map((text) => (
+                    {copy.suggest.map((text) => (
                       <button key={text} type="button" onClick={() => say(text)}>
                         {text}
                       </button>
@@ -496,46 +610,50 @@ export function App() {
             <input
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder={mode === "live" ? "Ask for an interface" : "Reply to the agent"}
-              aria-label="Message"
+              placeholder={mode === "live" ? copy.askInterface : copy.replyAgent}
+              aria-label={copy.message}
             />
             {streamingId !== null && mode === "live" ? (
               <button type="button" className="pg-button" onClick={stop}>
-                Stop
+                {copy.stop}
               </button>
             ) : (
               <button type="submit" className="pg-button pg-primary" disabled={!draft.trim()}>
-                Send
+                {copy.send}
               </button>
             )}
           </form>
         </main>
 
         {panel !== null ? (
-          <aside className="pg-inspect" aria-label="Inspector">
+          <aside className="pg-inspect" aria-label={copy.inspect}>
             <div className="pg-tabs" role="tablist">
               {(
                 [
-                  ["source", "Markup"],
-                  ["state", "State"],
-                  ["events", `Events${log.length ? ` ${log.length}` : ""}`],
-                  ["prompt", "Prompt"],
+                  ["source", copy.markup],
+                  ["state", copy.state],
+                  ["events", `${copy.events}${log.length ? ` ${log.length}` : ""}`],
+                  ["prompt", copy.prompt],
                 ] as [Panel, string][]
               ).map(([id, label]) => (
-                <button key={id} type="button" role="tab" aria-selected={panel === id} onClick={() => setPanel(id)}>
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={panel === id}
+                  onClick={() => setPanel(id)}
+                >
                   {label}
                 </button>
               ))}
             </div>
             {panel === "source" ? (
               <>
-                <p className="pg-hint">
-                  What the agent wrote. Edit it and the interface follows; its state is kept.
-                </p>
+                <p className="pg-hint">{copy.markupHint}</p>
                 <textarea
                   className="pg-code"
                   spellCheck={false}
-                  aria-label="Markup"
+                  aria-label={copy.markup}
                   value={latestSurface?.text ?? ""}
                   onChange={(event) => {
                     if (!latestSurface) return
@@ -547,22 +665,20 @@ export function App() {
             ) : null}
             {panel === "state" ? (
               <>
-                <p className="pg-hint">
-                  What the interface remembers. It travels with every message sent back to the agent.
-                </p>
+                <p className="pg-hint">{copy.stateHint}</p>
                 <pre className="pg-code">{JSON.stringify(surfaceState, null, 2)}</pre>
                 <div className="pg-row">
                   <button type="button" className="pg-button" onClick={() => handle.current?.reset()}>
-                    Reset state
+                    {copy.resetState}
                   </button>
                 </div>
               </>
             ) : null}
             {panel === "events" ? (
               <>
-                <p className="pg-hint">Messages to the agent, tool calls and warnings, newest first.</p>
+                <p className="pg-hint">{copy.eventsHint}</p>
                 <ol className="pg-log">
-                  {log.length === 0 ? <li className="pg-log-empty">Nothing yet. Use the interface.</li> : null}
+                  {log.length === 0 ? <li className="pg-log-empty">{copy.eventsEmpty}</li> : null}
                   {log.map((entry) => (
                     <li key={entry.id} data-kind={entry.kind}>
                       <span className="pg-log-kind">{entry.kind}</span>
@@ -577,8 +693,7 @@ export function App() {
             {panel === "prompt" ? (
               <>
                 <p className="pg-hint">
-                  The system prompt built from the language guide, UI SDK, the {theme.name} DESIGN.md and the motion
-                  rules. About {Math.round(systemPrompt.length / 4 / 100) / 10}k tokens.
+                  {copy.promptHint(theme.name, Math.round(systemPrompt.length / 4 / 100) / 10)}
                 </p>
                 <pre className="pg-code">{systemPrompt}</pre>
               </>

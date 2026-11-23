@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "React renderer for Open Intelligent UI. Renders streaming IUI markup with UI SDK behaviors, DESIGN.md tokens and motion.",
   "type": "module",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "sideEffects": [
     "**/*.css"
   ],

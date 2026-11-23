@@ -18,6 +18,13 @@ function sse(chunks: string[], status = 200): typeof fetch {
 const delta = (text: string) =>
   `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`
 
+const anthropicDelta = (text: string) =>
+  `event: content_block_delta\ndata: ${JSON.stringify({
+    type: "content_block_delta",
+    index: 0,
+    delta: { type: "text_delta", text },
+  })}\n\n`
+
 describe("streaming from an OpenAI-compatible endpoint", () => {
   test("yields text as it arrives, across split network chunks", async () => {
     const wire = delta("<card>") + delta("Hi") + ": keep-alive\n\n" + delta("</card>") + "data: [DONE]\n\n"
@@ -30,6 +37,7 @@ describe("streaming from an OpenAI-compatible endpoint", () => {
       return fake(url, init)
     }) as unknown as typeof fetch
     for await (const part of streamChat({
+      provider: "openai",
       baseUrl: "https://example.test/v1/",
       model: "m",
       apiKey: "k",
@@ -44,6 +52,26 @@ describe("streaming from an OpenAI-compatible endpoint", () => {
     expect(JSON.parse(calls[0]?.init.body as string)).toMatchObject({ model: "m", stream: true })
   })
 
+  test("DeepSeek uses the OpenAI protocol against its own host", async () => {
+    const calls: { url: string }[] = []
+    const fake = sse([delta("ok") + "data: [DONE]\n\n"])
+    const spy = ((url: string, init: RequestInit) => {
+      calls.push({ url })
+      return fake(url, init)
+    }) as unknown as typeof fetch
+    for await (const _ of streamChat({
+      provider: "deepseek",
+      baseUrl: "https://api.deepseek.com",
+      model: "deepseek-chat",
+      apiKey: "k",
+      messages: [{ role: "user", content: "hi" }],
+      fetch: spy,
+    })) {
+      /* drain */
+    }
+    expect(calls[0]?.url).toBe("https://api.deepseek.com/chat/completions")
+  })
+
   test("reports what the endpoint said when it refuses", async () => {
     const fake = (async () =>
       new Response(JSON.stringify({ error: { message: "Incorrect API key" } }), {
@@ -51,7 +79,14 @@ describe("streaming from an OpenAI-compatible endpoint", () => {
       })) as unknown as typeof fetch
     const run = async () => {
       const parts: string[] = []
-      for await (const part of streamChat({ baseUrl: "x", model: "m", apiKey: "", messages: [], fetch: fake })) {
+      for await (const part of streamChat({
+        provider: "openai",
+        baseUrl: "x",
+        model: "m",
+        apiKey: "",
+        messages: [],
+        fetch: fake,
+      })) {
         parts.push(part)
       }
     }
@@ -62,5 +97,42 @@ describe("streaming from an OpenAI-compatible endpoint", () => {
     expect(unwrapFence("```html\n<card>Hi</card>\n```")).toBe("<card>Hi</card>")
     expect(unwrapFence("```\n<card>Hi")).toBe("<card>Hi")
     expect(unwrapFence("Text\n```\ncode\n```")).toBe("Text\n```\ncode\n```")
+  })
+})
+
+describe("streaming from Anthropic Messages", () => {
+  test("sends the Messages body and yields text deltas", async () => {
+    const wire = anthropicDelta("<card>") + anthropicDelta("Hi") + anthropicDelta("</card>") + "data: [DONE]\n\n"
+    const parts: string[] = []
+    const calls: { url: string; init: RequestInit }[] = []
+    const fake = sse([wire])
+    const spy = ((url: string, init: RequestInit) => {
+      calls.push({ url, init })
+      return fake(url, init)
+    }) as unknown as typeof fetch
+    for await (const part of streamChat({
+      provider: "anthropic",
+      baseUrl: "https://api.anthropic.com",
+      model: "claude-sonnet-4-5",
+      apiKey: "sk-ant",
+      messages: [
+        { role: "system", content: "Be brief." },
+        { role: "user", content: "hi" },
+      ],
+      fetch: spy,
+    })) {
+      parts.push(part)
+    }
+    expect(parts.join("")).toBe("<card>Hi</card>")
+    expect(calls[0]?.url).toBe("https://api.anthropic.com/v1/messages")
+    const headers = calls[0]?.init.headers as Record<string, string>
+    expect(headers["x-api-key"]).toBe("sk-ant")
+    expect(headers["anthropic-version"]).toBe("2023-06-01")
+    expect(JSON.parse(calls[0]?.init.body as string)).toMatchObject({
+      model: "claude-sonnet-4-5",
+      stream: true,
+      system: "Be brief.",
+      messages: [{ role: "user", content: "hi" }],
+    })
   })
 })

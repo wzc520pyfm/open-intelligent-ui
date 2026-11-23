@@ -10,6 +10,10 @@
 //   packages/solid/src/primitives/icons.generated.ts
 //   packages/svelte/src/primitives/icons.generated.ts
 //     which file of lucide each icon is loaded from, and its other names
+//   packages/web/src/registry/ui-sdk.generated.ts
+//     the custom element of @ui-sdk/web each component name stands for
+//   packages/web/src/primitives/icons.generated.ts
+//     which file of lucide each icon name is loaded from
 //   packages/core/src/prompt/ui-sdk-catalog.generated.ts
 //     what a model needs to know to use each component
 //
@@ -22,7 +26,7 @@
 // Run it after upgrading UI SDK or editing the default design: `pnpm generate`.
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
-import { createRequire } from "node:module"
+import { createRequire, registerHooks } from "node:module"
 import { dirname, join } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 
@@ -34,6 +38,46 @@ const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"))
 const docsDir = join(packageDir, "docs/components")
 
 const SKIPPED_PROPS = new Set(["controller", "debug", "api"])
+
+// @ui-sdk/web keeps what each custom element binds and declares inside the
+// call that defines it, and @ui-sdk/react keeps the element each part draws
+// the same way. Both are noted as their modules load.
+const webElements = new Map()
+const reactTags = new Map()
+const taps = [
+  {
+    file: /@ui-sdk\/web\/dist\/define-element\.js$/,
+    find: "function defineElement(primitive, element) {",
+    add: "globalThis.__iuiWebElement?.(primitive, element);",
+  },
+  {
+    file: /@ui-sdk\/react\/dist\/use-primitive\.js$/,
+    find: "function createParts(primitive, tags) {",
+    add: "globalThis.__iuiReactParts?.(primitive, tags);",
+  },
+]
+const tapped = new Set()
+globalThis.__iuiWebElement = (primitive, element) => {
+  if (!webElements.has(element.tagName)) webElements.set(element.tagName, { primitive, ...element })
+}
+globalThis.__iuiReactParts = (primitive, tags) => {
+  for (const [slot, tag] of Object.entries(tags)) {
+    if (typeof tag === "string") reactTags.set(`${primitive.name}:${slot}`, tag)
+  }
+}
+registerHooks({
+  load(url, context, nextLoad) {
+    const result = nextLoad(url, context)
+    const tap = taps.find((item) => item.file.test(url))
+    if (!tap) return result
+    const source = String(result.source)
+    if (!source.includes(tap.find)) {
+      throw new Error(`${url} no longer reads as expected; update the generator`)
+    }
+    tapped.add(tap)
+    return { ...result, source: source.replace(tap.find, `${tap.find}\n  ${tap.add}`) }
+  },
+})
 
 function firstSentence(text) {
   const clean = text.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").trim()
@@ -483,6 +527,226 @@ ${Object.entries(svelteIconAliases)
 `
 )
 
+// The web package has no components to import: each name stands for a custom
+// element, and what differs from React (the native element a part wraps, which
+// props are the element's own, which callbacks are its events) is read from
+// how @ui-sdk/web defines that element.
+const webRequire = createRequire(join(root, "packages/web/package.json"))
+const webDir = dirname(webRequire.resolve("@ui-sdk/web/package.json"))
+const webPackage = JSON.parse(readFileSync(join(webDir, "package.json"), "utf8"))
+if (webPackage.version !== packageJson.version) {
+  throw new Error(
+    `@ui-sdk/web is ${webPackage.version} but @ui-sdk/react is ${packageJson.version}; upgrade them together`
+  )
+}
+for (const slug of entries) {
+  await import(pathToFileURL(webRequire.resolve(`@ui-sdk/web/${slug}`)).href)
+}
+if (tapped.size !== taps.length || webElements.size < 300) {
+  throw new Error("@ui-sdk/web's element definitions were not seen; update the generator")
+}
+const { schemaOf } = await import(
+  pathToFileURL(webRequire.resolve("@ui-sdk/core/renderer")).href
+)
+
+/** Which entry point defines each custom element, from the package's own manifest. */
+const definedBy = new Map()
+const manifest = JSON.parse(readFileSync(join(webDir, "custom-elements.json"), "utf8"))
+for (const module of manifest.modules) {
+  const slug = /entries\/(.+)\.js$/.exec(module.path)?.[1]
+  if (!slug) continue
+  definedBy.set(
+    slug,
+    new Set(
+      (module.exports ?? [])
+        .filter((item) => item.kind === "custom-element-definition")
+        .map((item) => item.name)
+    )
+  )
+}
+
+const elementTag = (name) =>
+  `ui-${name
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .toLowerCase()}`
+
+/** The selectors a part looks for its own element with, read by letting it look. */
+function soughtBy(find) {
+  const selectors = []
+  const found = {}
+  const probe = {
+    querySelector(selector) {
+      selectors.push(selector)
+      return found
+    },
+    hasAttribute: () => false,
+    firstElementChild: found,
+  }
+  try {
+    find(probe)
+  } catch {
+    return []
+  }
+  return selectors
+}
+
+/** The native elements a selector names, in the order it prefers them. */
+function nativeTags(selectors) {
+  if (selectors.some((selector) => selector.includes(":not("))) return []
+  return selectors
+    .flatMap((selector) => selector.split(","))
+    .map((part) => /(?:^|[\s>(])([a-z][a-z0-9]*)(?:\[[^\]]*\])?\)?$/.exec(part.trim())?.[1])
+    .filter((tag) => tag && !tag.includes("-"))
+}
+
+const kindOf = (spec) => (spec && typeof spec === "object" ? spec.kind : spec)
+const callbacks = (props) =>
+  Object.entries(props ?? {})
+    .filter(([name, spec]) => /^on[A-Z]/.test(name) && ["callback", "action"].includes(kindOf(spec)))
+    .map(([name]) => name)
+
+// Assigning one of these would let markup rewrite the page.
+const REWRITES = new Set(["innerHTML", "outerHTML", "textContent", "innerText", "outerText"])
+
+const webParts = {}
+const withoutElement = []
+for (const [name, slug] of Object.entries(components)) {
+  const tag = elementTag(name)
+  const element = webElements.get(tag)
+  if (!element) {
+    withoutElement.push(name)
+    continue
+  }
+  if (!definedBy.get(slug)?.has(tag)) {
+    throw new Error(`@ui-sdk/web/${slug} does not define <${tag}>, which ${name} needs`)
+  }
+  const { config, kind, primitive } = element
+  const schema = schemaOf(primitive)
+  const root = kind === "owner"
+  const slot = root ? "root" : config.slot
+  const options = root
+    ? [...Object.keys(config.attributes ?? {}), ...(config.properties ?? [])]
+    : [...Object.keys(config.props ?? {}), ...(config.properties ?? [])]
+  const live = Object.keys(config.state ?? {})
+  for (const option of [...options, ...live]) {
+    if (REWRITES.has(option)) throw new Error(`<${tag}> declares ${option}, which rewrites the DOM`)
+  }
+  const events = root
+    ? callbacks(schema.options)
+    : callbacks(schema.slots[slot] ?? config.feature?.slots?.[slot]?.props)
+  const sought = config.target
+    ? soughtBy(config.target)
+    : root && config.children?.root
+      ? soughtBy(config.children.root)
+      : []
+  const natives = nativeTags(sought)
+  const drawn = reactTags.get(`${primitive.name}:${element.key}`)
+  const inner = natives.includes(drawn) ? drawn : natives[0]
+  const part = { tag }
+  if (root) part.root = true
+  if (inner) part.inner = inner
+  if (options.length) part.options = [...new Set(options)].join(" ")
+  if (live.length) part.live = live.join(" ")
+  if (events.length) part.events = events.join(" ")
+  if (root && config.events && Object.keys(config.events).length) part.eventNames = config.events
+  webParts[name] = part
+}
+if (Object.keys(webParts).length < 300) {
+  throw new Error("Too few components found their custom element; update the generator")
+}
+
+writeFileSync(
+  join(root, "packages/web/src/registry/ui-sdk.generated.ts"),
+  `${header.replace("@ui-sdk/react", "@ui-sdk/web")}
+/** UI SDK version these tables were generated from. */
+export const UI_SDK_VERSION = ${JSON.stringify(packageJson.version)}
+
+/** Loads one UI SDK entry point, which defines its custom elements. Each becomes its own chunk. */
+export const UI_SDK_LOADERS: Record<string, () => Promise<unknown>> = {
+${entries.map((slug) => `  ${JSON.stringify(slug)}: () => import("@ui-sdk/web/${slug}"),`).join("\n")}
+}
+
+/** Which entry point each component comes from. */
+export const UI_SDK_COMPONENTS: Record<string, string> = {
+${Object.entries(components)
+  .map(([name, slug]) => `  ${name}: ${JSON.stringify(slug)},`)
+  .join("\n")}
+}
+
+/** How a component name is drawn with @ui-sdk/web. Lists are separated by spaces. */
+export interface UiSdkElement {
+  /** The custom element that stands for the component. */
+  tag: string
+  /** Whether the element holds the component's state, rather than being one of its parts. */
+  root?: true
+  /** The native element the part binds, which is written inside it. */
+  inner?: string
+  /** Props the element declares as its own properties. Anything else belongs to the bound element. */
+  options?: string
+  /** State the element keeps live, like \`value\` or \`open\`. */
+  live?: string
+  /** Callbacks the element reports as DOM events: \`onValueChange\` is \`valuechange\`. */
+  events?: string
+  /** Events named otherwise than by their callback. */
+  eventNames?: Record<string, string>
+}
+
+export const UI_SDK_ELEMENTS: Record<string, UiSdkElement> = {
+${Object.entries(webParts)
+  .map(([name, part]) => `  ${name}: ${JSON.stringify(part)},`)
+  .join("\n")}
+}
+
+/** Components @ui-sdk/web has no custom element for. The renderer draws these itself. */
+export const UI_SDK_WITHOUT_ELEMENT: string[] = ${JSON.stringify(withoutElement)}
+`
+)
+
+// lucide ships each icon's drawing without its names, so the names and
+// aliases lucide-react gives an icon are written next to where it loads from.
+const webLucideDir = dirname(webRequire.resolve("lucide/package.json"))
+const lucideWebVersion = JSON.parse(readFileSync(join(webLucideDir, "package.json"), "utf8")).version
+if (lucideVersion !== lucideWebVersion) {
+  throw new Error(
+    `lucide is ${lucideWebVersion} but lucide-react is ${lucideVersion}; icon names are only the same at the same version`
+  )
+}
+const iconNames = {}
+for (const [, file] of icons) {
+  if (iconNames[file]) continue
+  if (!existsSync(join(webLucideDir, "dist/esm/icons", `${file}.mjs`))) {
+    throw new Error(`lucide has no icon file ${file}.mjs`)
+  }
+  const source = readFileSync(join(lucideReactDir, "dist/esm/icons", `${file}.mjs`), "utf8")
+  const data = /const __iconData = \{\s*name: "([a-z0-9-]+)"/.exec(source)
+  if (!data) throw new Error(`lucide-react's ${file}.mjs no longer reads as expected`)
+  const aliases = /\n {2}aliases: \[([^\]]*)\]/.exec(source)?.[1] ?? ""
+  iconNames[file] = [data[1], ...[...aliases.matchAll(/"([a-z0-9-]+)"/g)].map((match) => match[1])]
+}
+writeFileSync(
+  join(root, "packages/web/src/primitives/icons.generated.ts"),
+  `// Generated by scripts/generate-ui-sdk.mjs from lucide-react ${lucideVersion} and lucide ${lucideWebVersion}.
+// Do not edit by hand; run \`pnpm generate\`.
+
+/** What an icon is made of: the elements inside its \`<svg>\`. */
+export type IconNode = [string, Record<string, string | number>][]
+
+/** Loads one icon's drawing. Names and aliases are the ones lucide-react accepts. */
+export const ICON_LOADERS: Record<string, () => Promise<{ default: IconNode }>> = {
+${icons.map(([name, file]) => `  ${JSON.stringify(name)}: () => import("lucide/dist/esm/icons/${file}.mjs"),`).join("\n")}
+}
+
+/** The names lucide-react puts in an icon's class when they aren't just the name asked for. */
+export const ICON_NAMES: Record<string, string[]> = {
+${icons
+  .filter(([name, file]) => iconNames[file].length > 1 || iconNames[file][0] !== name)
+  .map(([name, file]) => `  ${JSON.stringify(name)}: ${JSON.stringify(iconNames[file])},`)
+  .join("\n")}
+}
+`
+)
+
 writeFileSync(
   join(root, "packages/core/src/prompt/ui-sdk-catalog.generated.ts"),
   `${header}
@@ -555,5 +819,5 @@ export const DEFAULT_DESIGN = ${JSON.stringify(defaultDesign)}
 )
 
 console.log(
-  `UI SDK ${packageJson.version}: ${entries.length} entry points, ${Object.keys(components).length} components, ${icons.length} icons`
+  `UI SDK ${packageJson.version}: ${entries.length} entry points, ${Object.keys(components).length} components (${withoutElement.length} without a custom element), ${icons.length} icons`
 )

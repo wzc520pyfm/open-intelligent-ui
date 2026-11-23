@@ -83,10 +83,17 @@ pnpm dev
 ```bash
 pnpm test
 pnpm typecheck
-pnpm design:lint   # 用 DESIGN.md 官方 CLI 检查 design/ 下的三份设计
+pnpm design:lint      # 用 DESIGN.md 官方 CLI 检查 design/ 下的三份设计
+pnpm check:packages   # 构建两个包，检查将要发到 npm 的 tarball
 ```
 
 ## 接入
+
+```bash
+npm install @open-intelligent-ui/react @open-intelligent-ui/core @ui-sdk/react @ui-sdk/core
+```
+
+> 还没有发布到 npm。两个包已经可以构建和打包（`pnpm check:packages`），首次发布在等 npm 凭据。在那之前，请通过工作区使用，或者在 `packages/core` 和 `packages/react` 里运行 `pnpm pack`，安装生成的 tarball。
 
 ```tsx
 import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
@@ -106,7 +113,7 @@ const system = buildSystemPrompt({ design, tools: toolDescriptions })
 />
 ```
 
-两个包目前只在这个工作区里，导出的是 TypeScript 源码，还没有发布到 npm。工具、主题、宿主组件、状态读写和安全边界的说明在 [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md)。
+两个包都是 ESM，带类型声明；React 包的入口标了 `"use client"`。工具、主题、宿主组件、状态读写和安全边界的说明在 [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md)。
 
 ## 仓库结构
 
@@ -136,8 +143,8 @@ scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设�
 
 - **没有用真实模型验证过。** 示例是手写的标记。系统提示词里的每个示例都经过测试渲染，但模型按这份提示词实际写得怎么样、token 成本如何，没有数据。
 - **UI SDK 是 beta**（0.1.0-beta.13）。升级后运行 `pnpm generate`，测试会指出变化。
-- **只有 React 渲染器**，需要 React 19。
-- **没有发布到 npm**，也没有构建产物。
+- **只有 React 渲染器**，需要 React 19。UI SDK 另有 Vue、Svelte、Solid 和 Web Components 的包，组件名相同；`packages/core` 和样式表不依赖框架，但其他框架的渲染器没有写。见 [`docs/research.md`](docs/research.md#其他框架)。
+- **还没有发布到 npm。** 两个包会构建到 `dist/`，打出的 tarball 在仓库之外的一个 Vite 应用和一个 Next.js 应用里安装并运行过；发布这一步还没有做。
 - **目测只在桌面版 Chrome 里做过。** 位置过渡依赖 View Transitions API，不支持的浏览器会直接切换。
 - **安全模型没有经过外部审计。** 标记不会被当作代码执行，但工具调用的权限检查是宿主的责任。
 - **宿主页面不分层的全局 CSS 会影响界面内部**，接入时需要把 reset 放进层叠层。

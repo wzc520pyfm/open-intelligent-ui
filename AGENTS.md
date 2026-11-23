@@ -16,6 +16,8 @@ fit before changing code.
 | `pnpm generate` | Rebuild the UI SDK registry, catalog and CSS from the installed `@ui-sdk` packages. |
 | `pnpm generate:skills` | Rebuild `skills/**/references/` from the prompt guides. |
 | `pnpm design:lint` | Check `design/*.DESIGN.md` with the DESIGN.md CLI. |
+| `pnpm build:packages` | Build `packages/*` to `dist/` (ESM, type declarations, `styles.css`). |
+| `pnpm check:packages` | Pack both packages as `pnpm publish` would and check the tarballs. |
 
 There is no linter or formatter configured. Match the surrounding code: no
 semicolons, double quotes, two spaces.
@@ -29,6 +31,23 @@ semicolons, double quotes, two spaces.
   presets, styles.
 - `apps/playground`: the demo app. Demos are `.iui` files in `src/demos`.
 - `skills/`: skills for coding agents. `docs/`: research, spec, architecture.
+
+## Releasing
+
+`@open-intelligent-ui/core` and `@open-intelligent-ui/react` are released
+together, at one version.
+
+1. `pnpm version:set 0.2.0`, commit, merge to `main`.
+2. Either push the tag `v0.2.0`, which runs `.github/workflows/release.yml`
+   (it needs the repository secret `NPM_TOKEN`), or run `pnpm release` on
+   `main` after `npm login`. For a prerelease, `pnpm release --tag beta`.
+
+In the workspace the packages export `src/`, so the playground and the
+tests never need a build. `publishConfig.exports` replaces those with
+`dist/` when a package is packed. A new entry point needs both, plus an
+`entry` in the package's `tsdown.config.ts`. Anything the built code
+imports must be in `dependencies` or `peerDependencies`; the build fails
+otherwise.
 
 ## Rules that keep the project honest
 

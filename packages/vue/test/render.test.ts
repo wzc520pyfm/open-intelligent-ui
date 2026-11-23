@@ -1,6 +1,7 @@
 import { flushPromises, mount } from "@vue/test-utils"
 import { describe, expect, test, vi } from "vitest"
-import { defineComponent, h } from "vue"
+import { defineAsyncComponent, defineComponent, h } from "vue"
+import { runMorph } from "@open-intelligent-ui/core/renderer"
 import { IntelligentUI, type IntelligentUIHandle, preloadUiSdk } from "../src"
 import { byLabel, byRole, byText, click, draw, text, type, until } from "./helpers"
 
@@ -135,15 +136,17 @@ Total: {currency(total, "USD")}`,
     const { container } = await draw({
       source: `<state key="" moved={0} />
 <input aria-label="Field" on:keydown={e => key = e.key} onKeyUp={e => key = key + "!"} />
-<box aria-label="Pad" on:pointermove={moved += 1}>pad</box>
+<box aria-label="Pad" on:pointermove={moved += 1} on:pointerout={moved += 10} on:doubleclick={moved += 100}>pad</box>
 <text>{key} {moved}</text>`,
     })
     const field = byLabel(container, "Field")
     field.dispatchEvent(new KeyboardEvent("keydown", { key: "a", bubbles: true }))
     field.dispatchEvent(new KeyboardEvent("keyup", { key: "a", bubbles: true }))
-    byLabel(container, "Pad").dispatchEvent(new Event("pointermove", { bubbles: true }))
+    for (const event of ["pointermove", "pointerout", "dblclick"]) {
+      byLabel(container, "Pad").dispatchEvent(new Event(event, { bubbles: true }))
+    }
     await flushPromises()
-    expect(text(container)).toBe("pada! 1")
+    expect(text(container)).toBe("pada! 111")
   })
 
   test("writes to an item inside each reach the list", async () => {
@@ -614,6 +617,40 @@ describe("safety", () => {
     expect(new Set(asked)).toEqual(new Set(["https://evil.test/d.png"]))
   })
 
+  test("a component's props are checked however they are spelled or bound", async () => {
+    await preloadUiSdk("Button")
+    const Plain = defineComponent({ render: () => h("button", { "aria-label": "Plain" }) })
+    const Bare = Object.assign(() => h("a", { href: "https://example.com/a" }, "bare"), { props: [] })
+    const { container } = await draw({
+      source: `<state u="https://evil.test/x" code="window.pwned = 'evil.test'" css={{ backgroundImage: "url(https://evil.test/bg.png)" }} />
+<Button aria-label="Kept" title="ok" FORMACTION="https://evil.test/f" SRCDOC="<p>evil.test</p>" HREF="https://evil.test/h" SRC="https://evil.test/s" Poster="https://evil.test/p" bind:srcset={u} bind:SRCSET={u} bind:ping={u} bind:href={u} bind:src={u} bind:poster={u} bind:formAction={u} bind:onclick={code} bind:style={css}>Keep</Button>
+<Plain title="ok" FORMACTION="https://evil.test/f" HREF="https://evil.test/h" bind:onclick={code} bind:style={css} bind:href={u} />
+<Bare hostname="other.test" />`,
+      components: { Plain, Bare },
+      allowUrl: () => false,
+    })
+    for (const button of [byLabel(container, "Kept"), byLabel(container, "Plain")]) {
+      expect(button.getAttribute("title")).toBe("ok")
+      expect(button.getAttribute("onclick")).toBeNull()
+    }
+    expect((byText(container, "bare") as HTMLAnchorElement).href).toBe("https://example.com/a")
+    expect(container.innerHTML).not.toContain("evil.test")
+  })
+
+  test("a component that loads later still gets its props, and nothing more", async () => {
+    const Picker = defineComponent({
+      props: { items: { type: Array, default: () => [] } },
+      setup: (props) => () => h("a", { href: "https://example.com/a" }, `items: ${props.items.join(", ")}`),
+    })
+    const Later = defineAsyncComponent(() => Promise.resolve(Picker))
+    const { container } = await draw({
+      source: `<Later items={["A", "B"]} hostname="evil.test" />`,
+      components: { Later },
+    })
+    await until(() => expect(text(container)).toContain("items: A, B"))
+    expect((byText(container, "items: A, B") as HTMLAnchorElement).href).toBe("https://example.com/a")
+  })
+
   test("markup can't hook into Vue's own lifecycle", async () => {
     await preloadUiSdk("Button")
     const Plain = defineComponent({ props: { label: String }, render: () => h("span", "plain") })
@@ -731,6 +768,40 @@ describe("motion hooks", () => {
     await flushPromises()
     expect(started).toHaveBeenCalledTimes(1)
     expect(text(container)).toBe("Large")
+    Reflect.deleteProperty(document, "startViewTransition")
+  })
+
+  test("a morph on one surface leaves another surface's names to its own morph", async () => {
+    const finish: (() => void)[] = []
+    Object.assign(document, {
+      startViewTransition: (update: () => unknown) => {
+        update()
+        return { finished: new Promise<void>((resolve) => finish.push(resolve)) }
+      },
+    })
+    const box = { width: 10, height: 10, top: 0, left: 0, bottom: 10, right: 10 } as DOMRect
+    const boxes = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(box)
+    const surface = (name: string) => {
+      const root = document.createElement("div")
+      root.innerHTML = `<div data-iui-morph="${name}"></div>`
+      document.body.append(root)
+      return root
+    }
+    const first = surface("a")
+    const second = surface("b")
+    const name = (root: HTMLElement) => (root.firstElementChild as HTMLElement).style.viewTransitionName
+    runMorph(() => first, () => {})
+    runMorph(() => second, () => {})
+    expect([name(first), name(second)]).toEqual(["a", "b"])
+    finish[0]?.()
+    await flushPromises()
+    expect([name(first), name(second)]).toEqual(["", "b"])
+    finish[1]?.()
+    await flushPromises()
+    expect([name(first), name(second)]).toEqual(["", ""])
+    boxes.mockRestore()
+    first.remove()
+    second.remove()
     Reflect.deleteProperty(document, "startViewTransition")
   })
 })

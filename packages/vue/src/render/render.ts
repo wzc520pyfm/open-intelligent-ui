@@ -5,7 +5,7 @@ import {
   type LetBinding,
   lazyRecord,
 } from "@open-intelligent-ui/core/renderer"
-import { type Component, camelize, Fragment, h, type VNodeChild } from "vue"
+import { type Component, camelize, Fragment, h, shallowRef, type VNodeChild } from "vue"
 import { PRESETS } from "../presets/presets"
 import { PRIMITIVES } from "../primitives/primitives"
 import { lookupUiSdk } from "../registry/ui-sdk"
@@ -57,6 +57,14 @@ function withoutHooks(props: Record<string, unknown>): Record<string, unknown> {
 
 const declarations = new WeakMap<object, Set<string> | null>()
 
+/**
+ * A component from `defineAsyncComponent` declares nothing itself: its props
+ * are those of what it loads. Until then nothing it is given is known to be one.
+ */
+const NOTHING = new Set<string>()
+const loading = new WeakSet<object>()
+const loaded = shallowRef(0)
+
 /** The renderer's own components read what they are given by name and choose what reaches the DOM. */
 const OWN = new Set<Component>([...Object.values(PRIMITIVES), ...Object.values(PRESETS)])
 
@@ -66,6 +74,20 @@ const OWN = new Set<Component>([...Object.values(PRIMITIVES), ...Object.values(P
  */
 function declared(type: Component): Set<string> | null {
   if (OWN.has(type)) return null
+  const later = type as { __asyncLoader?: () => Promise<unknown>; __asyncResolved?: Component }
+  if (later.__asyncLoader) {
+    if (later.__asyncResolved) return declared(later.__asyncResolved)
+    // Read so the surface is drawn again once the props are known.
+    void loaded.value
+    if (!loading.has(type)) {
+      loading.add(type)
+      const settle = () => {
+        loaded.value += 1
+      }
+      later.__asyncLoader().then(settle, settle)
+    }
+    return NOTHING
+  }
   const known = declarations.get(type)
   if (known !== undefined) return known
   const options = type as { props?: unknown; mixins?: Component[]; extends?: Component }
@@ -79,7 +101,9 @@ function declared(type: Component): Set<string> | null {
     if (from.extends) collect(from.extends as typeof options)
   }
   collect(options)
-  const found = typeof type === "function" && names.size === 0 ? null : names
+  // A function that says nothing about props is given all of them as props.
+  // One that declares some, or none, has the rest fall through like any other.
+  const found = typeof type === "function" && options.props === undefined ? null : names
   declarations.set(type, found)
   return found
 }
@@ -98,6 +122,8 @@ function componentProps(type: Component, props: Record<string, unknown>, key: st
   const out: Record<string, unknown> = { key }
   for (const [name, value] of Object.entries(props)) {
     if (VNODE_HOOK.test(name)) continue
+    // Set as an attribute, text under an `on` name would be an inline handler.
+    if (/^on/i.test(name) && typeof value !== "function" && !own.has(camelize(name))) continue
     const passes =
       name === "class" ||
       name === "style" ||

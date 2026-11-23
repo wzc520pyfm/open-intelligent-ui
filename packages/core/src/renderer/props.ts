@@ -136,10 +136,21 @@ export const BLOCKED_PROPS = new Set([
  * know to its element, so these are dropped however they are spelled.
  */
 const UNCHECKED_URL_PROPS = new Set(["srcset", "imagesrcset", "ping", "attributionsrc"])
+const PROP_NAME = /^[A-Za-z_][\w:-]*$/
+
+const BLOCKED_NAMES = new Set([...BLOCKED_PROPS].map((name) => name.toLowerCase()))
+
+/**
+ * Whether a prop is dropped whatever it holds. The DOM lowercases the
+ * attributes of an HTML element, so a name is refused in any spelling.
+ */
+function refused(name: string): boolean {
+  const lower = name.toLowerCase()
+  return BLOCKED_NAMES.has(lower) || UNCHECKED_URL_PROPS.has(lower) || !PROP_NAME.test(name)
+}
 
 const DATA_PROPS = new Set(["variant", "size", "tone"])
 const MOTION_ATTRIBUTE = /^[a-z]+(?:-[a-z]+)*$/
-const PROP_NAME = /^[A-Za-z_][\w:-]*$/
 
 export function camel(name: string): string {
   return name.replace(/[-:]([a-z])/g, (_match, letter: string) => letter.toUpperCase())
@@ -359,8 +370,7 @@ export function buildProps(
   }
 
   const assign = (name: string, value: unknown, fromStatic: boolean) => {
-    if (BLOCKED_PROPS.has(name) || !PROP_NAME.test(name)) return
-    if (UNCHECKED_URL_PROPS.has(name.toLowerCase())) return
+    if (refused(name)) return
     if (name === "key") {
       if (value !== undefined && value !== null) key = String(value)
       return
@@ -466,15 +476,17 @@ export function buildProps(
       return
     }
 
-    // Components and primitives take their props as written.
-    if (name === "href") {
+    // Components and primitives take their props as written, except the ones
+    // that hold a URL: a component may hand those to an element as they are.
+    const lower = name.toLowerCase()
+    if (lower === "href" || lower === "xlink:href") {
       const url = checkUrl(value, "link", ctx)
       if (url !== undefined) props.href = url
       return
     }
-    if (name === "src" || name === "poster") {
+    if (lower === "src" || lower === "poster") {
       const url = checkUrl(value, "media", ctx)
-      if (url !== undefined) props[name] = url
+      if (url !== undefined) props[lower] = url
       return
     }
     if (kind === "ui-sdk" && DATA_PROPS.has(name)) {
@@ -512,7 +524,7 @@ export function buildProps(
     }
 
     if (directive === "bind") {
-      if (value.kind !== "expr" || BLOCKED_PROPS.has(argument)) continue
+      if (value.kind !== "expr" || refused(argument)) continue
       if (native && argument !== "value" && argument !== "checked" && argument !== "open") {
         continue
       }
@@ -532,7 +544,8 @@ export function buildProps(
           })
         }
       } else {
-        props[argument] = current
+        // A bound value is held to what a written one is.
+        assign(argument, current, false)
         if (set) {
           for (const event of dialect.bindProps(argument, kind)) {
             handlers[event] = chain(handlers[event], (next) => set(plainArg(next)))

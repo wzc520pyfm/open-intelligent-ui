@@ -104,6 +104,26 @@ Total: {currency(total, "USD")}`}
     expect(text(container)).toBe("Add2 / 1,2")
   })
 
+  test("events with two-word names reach the element", () => {
+    const { container } = render(
+      <IntelligentUI
+        source={`<state key="" moved={0} />
+<input aria-label="Field" on:keydown={e => key = e.key} onKeyUp={e => key = key + "!"} on:focusout={key = key + "?"} />
+<box aria-label="Pad" on:pointermove={moved += 1} on:pointerout={moved += 10} on:doubleclick={moved += 100}>pad</box>
+<text>{key} {moved}</text>`}
+      />
+    )
+    const field = screen.getByLabelText("Field")
+    fireEvent.keyDown(field, { key: "a" })
+    fireEvent.keyUp(field, { key: "a" })
+    fireEvent.focusOut(field)
+    const pad = screen.getByLabelText("Pad")
+    fireEvent.pointerMove(pad)
+    fireEvent.pointerOut(pad)
+    fireEvent.doubleClick(pad)
+    expect(text(container)).toBe("pada!? 111")
+  })
+
   test("writes to an item inside each reach the list", () => {
     const { container } = render(
       <IntelligentUI
@@ -438,6 +458,18 @@ describe("safety", () => {
     expect(screen.getByLabelText("Kept").getAttribute("title")).toBe("ok")
     expect(container.innerHTML).not.toContain("evil.test")
     expect(asked).toEqual(["https://evil.test/d.png"])
+  })
+
+  test("a component's props are checked however they are spelled or bound", async () => {
+    await preloadUiSdk("Button")
+    const { container } = render(
+      <IntelligentUI source={`<state u="https://evil.test/x" code="window.pwned = 'evil.test'" css={{ backgroundImage: "url(https://evil.test/bg.png)" }} />
+<Button aria-label="Kept" title="ok" FORMACTION="https://evil.test/f" SRCDOC="<p>evil.test</p>" HREF="https://evil.test/h" SRC="https://evil.test/s" Poster="https://evil.test/p" bind:srcset={u} bind:SRCSET={u} bind:ping={u} bind:href={u} bind:src={u} bind:poster={u} bind:formAction={u} bind:onclick={code} bind:style={css}>Keep</Button>`} allowUrl={() => false} />
+    )
+    const button = screen.getByLabelText("Kept")
+    expect(button.getAttribute("title")).toBe("ok")
+    expect(button.getAttribute("onclick")).toBeNull()
+    expect(container.innerHTML).not.toContain("evil.test")
   })
 
   test("the host can refuse URLs", () => {

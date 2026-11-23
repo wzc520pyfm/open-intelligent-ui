@@ -108,7 +108,8 @@ function setListeners(element: Element, next: Record<string, Listener> | undefin
     // One real listener per event stays for the element's life and calls whichever handler is current.
     if (!(name in current)) {
       const table = current
-      element.addEventListener(name, (event) => table[name]?.(event))
+      const [type, phase] = name.split("@")
+      element.addEventListener(type as string, (event) => table[name]?.(event), phase === "capture")
     }
     current[name] = listener
   }

@@ -1,4 +1,4 @@
-import { type Child, fragment, h } from "../dom/node"
+import { type Child, fragment, h, type Listener } from "../dom/node"
 import { UI_SDK_ELEMENTS, type UiSdkElement } from "../registry/ui-sdk.generated"
 import { nativeElement } from "../render/native"
 import { drawElement, type Special } from "./adapter"
@@ -47,7 +47,39 @@ const withRole = (name: string, role: string): Special => ({
 const elementsOnly = (children: Child[]): Child[] =>
   children.flat(Infinity as 1).filter((child) => typeof child === "object" && child !== null)
 
+/**
+ * React's `Button` takes the press as `onClick` and stays pending while what
+ * it returns is running. The element reports the same press as `action`,
+ * which a disabled or pending button doesn't fire, and waits on `waitUntil`.
+ * The handler still gets the click that caused it.
+ */
+function press(handler: (...args: unknown[]) => unknown): Record<string, Listener> {
+  let click: Event | null = null
+  return {
+    "click@capture": (event) => {
+      click = event
+    },
+    action: (event) => {
+      const detail = (event as CustomEvent).detail as { waitUntil?: (work: Promise<unknown>) => void } | null
+      const result = handler(click ?? event, detail)
+      click = null
+      if (result instanceof Promise) detail?.waitUntil?.(result)
+    },
+  }
+}
+
 export const SPECIALS: Record<string, Special> = {
+  Button: {
+    draw: (props, key, children) => {
+      const { onClick, ...rest } = props
+      const node = drawElement(UI_SDK_ELEMENTS.Button as UiSdkElement, rest, key, children)
+      if (typeof onClick === "function") {
+        node.on = { ...node.on, ...press(onClick as (...args: unknown[]) => unknown) }
+      }
+      return node
+    },
+  },
+
   AvatarImage: native("img"),
   PasswordInputControl: native("input"),
   FieldControl: native("input"),

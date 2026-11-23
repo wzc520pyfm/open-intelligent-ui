@@ -78,7 +78,7 @@ pnpm install
 pnpm dev
 ```
 
-打开 <http://localhost:5173>。左边有六个示例，可以调流式速度、切换三套设计、明暗和宽度；Inspect 面板里能直接改标记、看状态、看发给模型的系统提示词。线上演示站：<https://open-intelligent-ui-one.vercel.app>。要接真实模型，选左边的「实时」，在 OpenAI、Anthropic、DeepSeek 或自定义端点中选一个；密钥只留在当前标签页里。
+打开 <http://localhost:5173>。左边有六个示例，可以切换渲染器、调流式速度、切换三套设计、明暗和宽度；Inspect 面板里能直接改标记、看状态、看发给模型的系统提示词。线上演示站：<https://open-intelligent-ui-one.vercel.app>。要接真实模型，选左边的「实时」，在 OpenAI、Anthropic、DeepSeek 或自定义端点中选一个；密钥只留在当前标签页里。
 
 ```bash
 pnpm test
@@ -113,7 +113,17 @@ const system = buildSystemPrompt({ design, tools: toolDescriptions })
 />
 ```
 
-Vue 里是同一个组件、同一组属性：
+UI SDK 支持的每个框架都有一个渲染器。属性都是同一组，安装时带上它所依赖的那个 UI SDK 包：
+
+| 包 | 面向 | 建在 |
+| --- | --- | --- |
+| [`@open-intelligent-ui/react`](packages/react) | React 19 以上 | `@ui-sdk/react` |
+| [`@open-intelligent-ui/vue`](packages/vue) | Vue 3.5 以上 | `@ui-sdk/vue` |
+| [`@open-intelligent-ui/svelte`](packages/svelte) | Svelte 5.33 以上 | `@ui-sdk/svelte` |
+| [`@open-intelligent-ui/solid`](packages/solid) | Solid 2 | `@ui-sdk/solid` |
+| [`@open-intelligent-ui/web`](packages/web) | 不用框架：`<intelligent-ui>` 元素，或者 `mount()` | `@ui-sdk/web` |
+
+Vue 里：
 
 ```bash
 npm install @open-intelligent-ui/vue @open-intelligent-ui/core @ui-sdk/vue @ui-sdk/core
@@ -136,7 +146,35 @@ import "@open-intelligent-ui/vue/styles.css"
 </template>
 ```
 
-模型给两边写的是同一份标记，两个渲染器画出的 DOM 也相同。`pnpm dev:vue` 在 <http://localhost:5174> 用 Vue 渲染器运行那六个示例。
+不用框架的页面里：
+
+```bash
+npm install @open-intelligent-ui/web @open-intelligent-ui/core @ui-sdk/web @ui-sdk/core
+```
+
+```html
+<intelligent-ui id="reply"></intelligent-ui>
+
+<script type="module">
+  import "@open-intelligent-ui/web/define"
+  import "@open-intelligent-ui/web/styles.css"
+
+  const reply = document.querySelector("#reply")
+  reply.design = design
+  reply.tools = { listTickets, updateTicket }
+  reply.addEventListener("action", (event) => {
+    if (event.detail.type === "send") askModel(event.detail.text, event.detail.data, event.detail.state)
+  })
+  reply.streaming = isStreaming
+  reply.source = replySoFar
+</script>
+```
+
+Svelte 和 Solid 的写法与 React、Vue 相仿，示例和各自框架里的差别写在各包的 README 里。
+
+模型给五个渲染器写的是同一份标记，提示词也是同一份。React、Vue、Solid 画出的 DOM 相同；Svelte 除了 `@ui-sdk/svelte` 自己摆放位置不同的几个元素以外也相同；Web Components 渲染器把 UI SDK 组件画成自定义元素（`<ui-tabs>`），角色、名称、状态和外观相同。
+
+[演示站](https://open-intelligent-ui-one.vercel.app)可以在同一条回复上切换这五个渲染器。`pnpm dev:vue`、`pnpm dev:svelte`、`pnpm dev:solid`、`pnpm dev:web` 各自只用一个渲染器运行那六个示例。
 
 这些包都是 ESM，带类型声明；React 包的入口标了 `"use client"`。工具、主题、宿主组件、状态读写和安全边界的说明在 [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md)。
 
@@ -147,9 +185,12 @@ packages/core     标记解析、表达式解释器、状态仓库、DESIGN.md�
 packages/core/src/renderer   各渲染器共用的部分：指令、原语、预置组件、图表。packages/core/styles 是样式表
 packages/react    React 渲染器，建在 @ui-sdk/react 上
 packages/vue      Vue 渲染器，建在 @ui-sdk/vue 上
+packages/svelte   Svelte 渲染器，建在 @ui-sdk/svelte 上
+packages/solid    Solid 渲染器，建在 @ui-sdk/solid 上
+packages/web      Web Components 渲染器，建在 @ui-sdk/web 上：<intelligent-ui> 和 mount()
 packages/open-intelligent-ui   不带 scope 的 npm 包名，只重导出 packages/core
-apps/playground   演示站（React）
-apps/vue-demo     同一批示例，用 Vue 渲染器
+apps/playground   演示站（React），可以切换用五个渲染器中的任意一个来画回复
+apps/vue-demo、apps/svelte-demo、apps/solid-demo、apps/web-demo   同一批示例，各用一个渲染器
 design/           三份 DESIGN.md：Paper、Heritage、Signal
 skills/           给编码智能体的两个 skill：intelligent-ui 和 motion
 docs/             调研、语言规范、架构
@@ -172,7 +213,7 @@ scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设�
 
 - **没有用真实模型验证过。** 示例是手写的标记。系统提示词里的每个示例都经过测试渲染，但模型按这份提示词实际写得怎么样、token 成本如何，没有数据。
 - **UI SDK 是 beta**（0.1.0-beta.13）。升级后运行 `pnpm generate`，测试会指出变化。
-- **两个渲染器：React 19 以上和 Vue 3.5 以上。** 有一个测试把仓库里的每个示例分别交给两个渲染器，比较画出的 DOM 和报出的警告。Vue 渲染器是新写的：除了这些测试，只在桌面版 Chrome 里用六个演示和 React 对比过，没有在产品里用过。Svelte、Solid 和 Web Components 还没有渲染器。见 [`docs/research.md`](docs/research.md#其他框架)。
+- **五个渲染器：React、Vue、Svelte、Solid 和 Web Components。** 测试把仓库里的每个示例分别交给 React 和另外四个渲染器，比较画出来的内容和报出的警告。这四个都是新写的：除了这些测试，只在桌面版 Chrome 里用六个演示和 React 对比过，都没有在产品里用过。服务端渲染后的水合没有测过。见 [`docs/research.md`](docs/research.md#其他框架)。
 - **目测只在桌面版 Chrome 里做过。** 位置过渡依赖 View Transitions API，不支持的浏览器会直接切换。
 - **安全模型没有经过外部审计。** 标记不会被当作代码执行，但工具调用的权限检查是宿主的责任。
 - **宿主页面不分层的全局 CSS 会影响界面内部**，接入时需要把 reset 放进层叠层。

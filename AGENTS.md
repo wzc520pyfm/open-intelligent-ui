@@ -9,12 +9,12 @@ fit before changing code.
 | Command | What it does |
 | --- | --- |
 | `pnpm install` | Install. Node 22 or later. |
-| `pnpm dev` | Playground at http://localhost:5173. |
-| `pnpm dev:vue` | The same demos on the Vue renderer, at http://localhost:5174. |
+| `pnpm dev` | Playground at http://localhost:5173. Its renderer switch draws a reply with any of the five renderers. |
+| `pnpm dev:vue`, `dev:solid`, `dev:svelte`, `dev:web` | The same demos on one renderer alone, at http://localhost:5174, 5184, 5186 and 5188. |
 | `pnpm test` | All tests (Vitest). `npx vitest run <path>` for one file. |
 | `pnpm typecheck` | TypeScript, every package. |
 | `pnpm build` | Production build of the playground. |
-| `pnpm generate` | Rebuild the UI SDK registries (React and Vue), the catalog, the CSS and the Vue icon list from the installed packages. |
+| `pnpm generate` | Rebuild the UI SDK registry of every renderer, the catalog, the CSS and the icon tables from the installed packages. |
 | `pnpm generate:skills` | Rebuild `skills/**/references/` from the prompt guides. |
 | `pnpm design:lint` | Check `design/*.DESIGN.md` with the DESIGN.md CLI. |
 | `pnpm build:packages` | Build `packages/*` to `dist/` (ESM, type declarations, `styles.css`). |
@@ -33,14 +33,20 @@ semicolons, double quotes, two spaces.
   (`render.ts`), primitives, presets and charts as framework-neutral views
   (`view.ts`). No framework, but it may touch the DOM. `packages/core/styles`
   is the one stylesheet; each renderer ships a copy as its `styles.css`.
-- `packages/react`, `packages/vue`: `<IntelligentUI>` for one framework. Each
-  holds only what the framework decides: how props are named
-  (`src/render/dialect.ts`), how a view becomes an element, state, effects,
-  the error boundary and exit animations.
+- `packages/react`, `packages/vue`, `packages/solid`, `packages/svelte`:
+  `<IntelligentUI>` for one framework. Each holds only what the framework
+  decides: how props are named (`src/render/dialect.ts`), how a view becomes
+  an element, state, effects, the error boundary and exit animations.
+- `packages/web`: the same for a page with no framework, as `mount()` and
+  the `<intelligent-ui>` element. It draws UI SDK components with the custom
+  elements of `@ui-sdk/web` and patches the DOM itself (`src/dom`).
 - `packages/open-intelligent-ui`: the unscoped npm name. It re-exports
   `@open-intelligent-ui/core` and holds no code of its own; keep it that way.
 - `apps/playground`: the demo app. Demos are `.iui` files in `src/demos`.
-- `apps/vue-demo`: the same demos on the Vue renderer.
+- `apps/playground/src/surface`: one small adapter per renderer, which is
+  how the site draws a reply with a renderer that isn't React.
+- `apps/vue-demo`, `apps/solid-demo`, `apps/svelte-demo`, `apps/web-demo`:
+  the same demos on one renderer each.
 - `skills/`: skills for coding agents. `docs/`: research, spec, architecture.
 
 ## Releasing
@@ -71,11 +77,12 @@ otherwise.
   `pnpm generate:skills`. Tests render every example in the guides, the docs
   and the skills, and fail when a generated reference is stale.
 - **Renderers must agree.** One reply has to look and behave the same in
-  React and in Vue. Put a change in `packages/core/src/renderer` when the
-  framework doesn't decide it; when it does, change both packages.
-  `packages/vue/test/conformance.test.ts` draws every sample in the
-  repository with both renderers and fails when the DOM or the warnings
-  differ. A behavior test added to one renderer belongs in the other too.
+  all five. Put a change in `packages/core/src/renderer` when the framework
+  doesn't decide it; when it does, change every renderer package.
+  `test/conformance.test.ts` in each of `packages/vue`, `solid`, `svelte`
+  and `web` draws every sample in the repository with React and with that
+  renderer, and fails when what is drawn or the warnings differ. A behavior
+  test added to one renderer belongs in the others too.
 - **Don't edit generated files.** Anything named `*.generated.*` and
   everything under `skills/**/references/` except `integration.md` comes
   from a script.
@@ -94,8 +101,8 @@ otherwise.
   skip UI SDK parts (`:not([data-slot])`).
 - **Look at it.** jsdom tests don't cover layout, paint or motion. After a
   visual change, open the playground in a browser at phone, chat and wide
-  widths, in light and dark, with each design, and open the Vue demo next
-  to it. For motion, capture frames
+  widths, in light and dark, with each design, and switch the renderer to
+  each of the other four. For motion, capture frames
   with `skills/motion/scripts/capture.mjs`.
 
 ## Writing a demo or an example

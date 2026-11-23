@@ -36,7 +36,7 @@
 2. 模型流式返回 IUI 标记。每来一段，宿主把到目前为止的全文交给 `<IntelligentUI source streaming>`。
 3. `parse` 把全文解析成树。流式期间，末尾半截的标签和表达式先不解析。
 4. `Surface` 读树里的声明：建立状态、派生值、查询、自定义组件和样式。已有的状态不动。
-5. 渲染器把树变成所在框架的元素（React 或 Vue）：原语、预置组件、UI SDK 部件、HTML 和 SVG。
+5. 渲染器把树变成所在框架的元素（React、Vue、Solid、Svelte；不用框架时直接是 DOM 和自定义元素）：原语、预置组件、UI SDK 部件、HTML 和 SVG。
 6. 读者操作界面。事件处理是标记里的动作，在解释器里执行，写状态仓库；读过这些状态的地方重新渲染。这一步没有模型参与。
 7. `<query>` 和 `call()` 直接调用宿主提供的工具，读写真实数据。这一步也没有模型参与。
 8. 动作调用 `send()` 时，宿主收到一句话、附带的数据和当时的全部状态，把它作为用户消息交给模型，开始下一轮。
@@ -56,20 +56,27 @@ packages/core            不依赖任何框架
                          树的遍历、属性与指令、令牌、原语、预置组件、图表
   styles                 样式表，只有这一份
 packages/react           React 渲染器，建在 @ui-sdk/react 上
-packages/vue             Vue 渲染器，建在 @ui-sdk/vue 上；两个包的结构相同
+packages/vue             Vue 渲染器，建在 @ui-sdk/vue 上
+packages/solid           Solid 渲染器，建在 @ui-sdk/solid 上
+packages/svelte          Svelte 渲染器，建在 @ui-sdk/svelte 上；这几个包的结构相同
   src/IntelligentUI      组件本体：状态订阅、流式更新、提示、morph
   src/render             本框架的命名规则、视图到元素、错误边界、离场
   src/primitives         图标和图片；其余原语直接用共用的视图
   src/presets            预置组件里需要本地状态的部分（排序、翻页、数字滚动）
   src/registry           UI SDK 部件的懒加载表（生成）
-apps/playground          演示站：六个示例、流式回放、接真实模型
-apps/vue-demo            同一批示例，用 Vue 渲染器
+packages/web             Web Components 渲染器，建在 @ui-sdk/web 上，不依赖框架
+  src/mount、src/element  mount() 和 <intelligent-ui> 元素
+  src/dom                自带的按 key 修补 DOM 的小型组件模型
+  src/ui-sdk             把 UI SDK 部件画成自定义元素（<ui-tabs>）的适配层
+apps/playground          演示站：六个示例、流式回放、接真实模型；可以切换五个渲染器
+  src/surface            每个渲染器一个小适配器，演示站靠它用非 React 的渲染器画回复
+apps/vue-demo、solid-demo、svelte-demo、web-demo   同一批示例，各用一个渲染器
 design                   三份 DESIGN.md
 skills                   给编码智能体的两个 skill
 scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DESIGN.md
 ```
 
-运行时依赖只有三个：`marked`（Markdown）、`yaml`（DESIGN.md 的令牌）和图标（React 包用 `lucide-react`，Vue 包用同一版本的 `@lucide/vue`）。UI SDK 和框架本身是 peer 依赖。
+运行时依赖只有三个：`marked`（Markdown）、`yaml`（DESIGN.md 的令牌）和图标（React 包用 `lucide-react`，Vue 包用同一版本的 `@lucide/vue`，Solid、Svelte、Web 三个包用同一版本的 `lucide`，只取图标数据，自己画 `<svg>`）。UI SDK 和框架本身是 peer 依赖。
 
 ## 解析器
 
@@ -114,12 +121,12 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 
 ## 渲染
 
-渲染分两层。`packages/core/src/renderer` 是共用的一层，决定“渲染成什么”；`packages/react` 和 `packages/vue` 各自只决定“在这个框架里怎么写出来”。
+渲染分两层。`packages/core/src/renderer` 是共用的一层，决定“渲染成什么”；每个渲染器包各自只决定“在这个框架里怎么写出来”。
 
 共用层向框架要两样东西：
 
 - **命名规则（`PropsDialect`）。** 同一个意思在不同框架里名字不同：类名是 `className` 还是 `class`，`on:keydown` 是 `onKeyDown` 还是 `onKeydown`，`bind:value` 写回时监听哪个事件。标记里的 `on:change` 在两边都表示“每次编辑”，所以在 Vue 里落到 `input` 事件上。
-- **宿主（`RenderHost`）。** 怎么创建元素、片段和组件，怎么把子树交给组件（`let:`），怎么做离场和占位。
+- **宿主（`RenderHost`）。** 怎么创建元素、片段和组件，怎么把子树交给组件（`let:`），怎么做离场和占位。流式期间，共用层还会告诉宿主一个组件的结束标签到了没有（`open`）。
 
 原语、预置组件和图表不直接生成框架元素，而是生成一棵中性的视图树（`view.ts`：标签、类名、样式、事件、子节点），每个框架用一个几十行的转换函数把它变成自己的元素。排序、翻页、悬停这类本地状态留在框架一侧，画什么由共用层决定。
 
@@ -130,20 +137,23 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 - **离场。** `show={false}` 的元素由 `Presence` 多保留一段时间：先加上离场状态，等动画结束再卸载。
 - **提示。** `toast()` 渲染在界面自己的一个 `popover` 区域里，进入浏览器顶层。
 
+**Web Components 渲染器的不同之处。** 它没有框架可以托付，所以自己带一个按 key 修补 DOM 的小型组件模型（`packages/web/src/dom`）：标记里还在的元素，更新之后还是同一个元素，焦点、输入到一半的文字和滚动位置都留着。UI SDK 部件在这里是 `@ui-sdk/web` 的自定义元素，原生标签由自定义元素包着或顶替（`<ui-tabs-tab>` 里再放一个 `<button>`），`data-slot`、角色、名称和状态与 React 相同。有些自定义元素只在接入页面时读一次自己的子节点（`Field`、`Select`、`Slider` 等），流式期间子节点还没到齐，所以这类部件在结束标签到达时重画一次，上面的 `open` 就是为它加的；容器类部件（标签页、对话框、菜单）不重画。React 画成 `<label>`、`<button>`、`<table>` 的部件在这里是自定义元素，得不到样式表和浏览器给这些标签的默认样子，`packages/web/styles/elements.css` 把它们补回来。日历是另一种情况：`<ui-calendar-weeks>` 自己排出每一周，并把模板里的那一天复制给每个日期、写上日期，所以渲染器在它排好之后把每一天接过来，按标记对这个日期的写法画（`dom/patch.ts` 的 `adopt`）：标记在这一天放了内容，就只显示内容；没放，就留着元素写的日期。这样日期格里读 `cell` 的内容才和 React 一样。
+
 ## UI SDK 的接入
 
-`scripts/generate-ui-sdk.mjs` 读取随包发布的文档和样式，生成三个文件：
+`scripts/generate-ui-sdk.mjs` 读取随包发布的文档和样式，生成这些文件：
 
 | 文件 | 内容 | 用途 |
 | --- | --- | --- |
-| `packages/react/src/registry/ui-sdk.generated.ts`、`packages/vue/src/registry/ui-sdk.generated.ts` | 组件名到入口的表，每个入口一个动态 `import()`，分别指向 `@ui-sdk/react` 和 `@ui-sdk/vue` | 渲染器按名字懒加载 |
+| `packages/{react,vue,solid,svelte}/src/registry/ui-sdk.generated.ts` | 组件名到入口的表，每个入口一个动态 `import()`，指向各自的 `@ui-sdk/*` 包 | 渲染器按名字懒加载 |
+| `packages/web/src/registry/ui-sdk.generated.ts` | 组件名到自定义元素的表：标签名、它接受的选项、要加载的入口 | Web Components 渲染器按名字找到 `<ui-…>` 元素 |
 | `packages/core/src/prompt/ui-sdk-catalog.generated.ts` | 每个入口的说明、部件、结构、示例、属性 | 提示词和 `describeComponent` |
 | `packages/core/styles/ui-sdk.generated.css` | UI SDK 的 `web.css`，限定在 `.iui-root` 和 `ui-sdk` 层里 | 默认外观 |
-| `packages/vue/src/primitives/icons.generated.ts` | 图标名到 `@lucide/vue` 单个图标文件的表 | Vue 渲染器按名字懒加载图标 |
+| `packages/{vue,solid,svelte,web}/src/primitives/icons.generated.ts` | 图标名到单个图标文件的表（Vue 指向 `@lucide/vue`，其余指向 `lucide`） | 这四个渲染器按名字懒加载图标 |
 
 渲染器不认识任何一个具体的 UI SDK 组件：标记里出现 `<Tabs>`，就按名字加载、传属性、渲染子节点。所以 UI SDK 新增组件后，重新运行 `pnpm generate` 即可用，不需要改渲染器。
 
-生成脚本会核对两个包：版本必须相同，React 清单里的每个组件名在 `@ui-sdk/vue` 里都要能找到，否则报错。
+生成脚本会核对这几个包：版本必须相同，React 清单里的每个组件名在 `@ui-sdk/vue`、`@ui-sdk/solid`、`@ui-sdk/svelte` 里都要能找到，否则报错。`@ui-sdk/web` 是另一种结构：367 个组件名里有 14 个没有自己的自定义元素，由适配层处理（比如 `AvatarImage` 就是自定义元素要找的那个原生 `<img>`）。
 
 需要特别处理的只有一类：以函数作为子节点的部件（Calendar 的周和日）。带 `let:` 的元素会把自己的子树编译成一个函数再传给组件。React 的部件把一个值传给函数子节点；Vue 的部件把一个对象传给默认插槽（多数是 `{ state }`，也有 `{ cell }`、`{ index }`），而且 `state` 是按字段读取时才取值并建立订阅的代理。所以 Vue 一侧不复制它，而是包成 `lazyRecord`：表达式读到哪个字段，才去取哪个字段，取到的值照常转成纯数据。
 
@@ -242,13 +252,15 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 | 遮盖宿主页面 | 样式限定在界面内；`position` 只接受关键字，`fixed` 和能代表它的 `var()`、`attr()` 改为 `absolute`；`popover` 属性不在允许之列。界面不裁剪溢出的内容（下拉、提示要伸出去），所以绝对定位加偏移仍然能画到界面的边框之外，只是钉不到窗口上。需要硬边界的宿主给容器加 `overflow: clip` 或 `contain: paint` |
 | 模型的选择器伸到界面之外 | 嵌套在界面规则里的选择器通常只匹配界面内部，但写了 `&`（界面自己）就不再是了：`body:has(&) .sidebar`、`:not(&)` 能选中整页；以 `+`、`~` 开头的选择器选中界面后面的兄弟元素。这几类选择器，不论嵌套多深，都在被选中的那个元素上加一个 `:where(界面, 界面 *)` 的条件。规则里嵌套的规则逐条处理，`@scope`、`@layer` 等在任何深度都丢弃 |
 | 净化器和浏览器读法不一致 | 检查只有在两边对文本的读法相同时才成立：浏览器不认的一个 `{` 会让界面的规则提前结束，后面的规则就成了全局规则；浏览器不认的一个字符串可以藏一个 `url()`。`scopeCss` 按浏览器的规则读字符串、反斜杠转义（`\{`、`\"`、`u\72l(`）、`url()` 的两种写法和换行符，没有闭合或带多余内容的 `url()` 整个换成 `none`；删掉注释和标签之后重新检查，输出里不会再拼出 `/*` 或 `</style`。行内样式的值不能含有字符串之外的 `;`。SVG 的 `fill`、`filter`、`mask`、`cursor` 等属性按同一套规则检查。这部分用真实的 Chrome 做过对照：把净化后的 CSS 放进页面，界面之外的元素样式不变、没有 `position: fixed`、没有网络请求 |
-| 一条回复的样式漏到另一条 | 样式按界面的 id 限定。框架给的 id 只在一个应用或一个根里不重复（Vue 按应用计数，React 在服务端渲染的根之间会重复），所以渲染器在页面范围内再登记一次：id 被别的界面占用时换一个，界面卸载时归还 |
+| 一条回复的样式漏到另一条 | 样式按界面的 id 限定。框架给的 id 只在一个应用或一个根里不重复（Vue 按应用计数，React 在服务端渲染的根之间会重复，Solid 和 Svelte 按页面上各自那一份运行时计数），所以渲染器在页面范围内再登记一次：id 被别的界面占用时换一个，界面卸载时归还 |
 | 经组件改写 DOM | 组件没有声明的属性，Vue 会透传到它的根元素上，并在元素有同名属性（property）时直接赋值；`outerHTML` 能把部件换成任意 HTML，`hostname` 能改掉已经检查过的链接。Vue 渲染器对这类名字只按 HTML 属性（attribute）设置，和 React 对未知属性的处理一致；`innerHTML`、`outerHTML` 在两边都丢弃。`defineAsyncComponent` 的组件按它加载到的组件所声明的属性处理 |
 | 绕过 `allowUrl` 加载资源 | UI SDK 组件会把不认识的属性放到自己的元素上。`srcset`、`imagesrcset`、`ping`、`attributionsrc` 一律丢弃；组件上的 `href`、`src`、`poster` 先问 `allowUrl` |
 | 动作绕过 `allowUrl` | `open(url)` 这个动作由渲染器用 `window.open` 打开。它和链接走同一个 `allowUrl`：宿主拒绝的地址，按钮也打不开 |
 | 函数返回的地址 | `Pagination` 的 `getHref` 是标记里写的函数，组件把它的返回值写成链接的 `href`。React 自己会拦 `javascript:` 地址，Vue、Solid、Svelte 不会。所以这个函数每次被调用，返回值都走和 `href` 相同的检查（协议过滤加 `allowUrl`），不通过就没有 `href` |
 | 伸进宿主的表单 | `form` 属性按 id 指向页面上任何一个表单，宿主的也算：控件会把自己的值加进那个表单，`type="submit"` 的按钮会提交它。`form` 在所有元素和组件上都丢弃，不论大小写、是否经 `bind:` 或展开写入。控件要属于某个表单，就写在这个表单里面 |
-| 换个写法绕过检查 | 被禁的名字和带地址的名字不论大小写都按同一条规则处理（HTML 元素的属性名不分大小写）；`bind:` 绑定的值和直接写的值走同一套检查，样式、地址、事件名都一样。字符串不会落到 `on` 开头的属性上，否则在 Vue 里会成为内联事件处理器 |
+| 换个写法绕过检查 | 被禁的名字和带地址的名字不论大小写都按同一条规则处理（HTML 元素的属性名不分大小写）；`bind:` 绑定的值和直接写的值走同一套检查，样式、地址、事件名都一样。字符串不会落到 `on` 开头的属性上，否则在 Vue 里会成为内联事件处理器。组件上的 `style` 只认这一种写法，`STYLE` 之类丢弃：样式只在 `style` 这个名字下检查，而把属性原样展开到元素上的组件会让元素照样把它读成样式 |
+| 接走页面上的文件 | UI SDK 的 `FileInputDropzone` 有两个选项决定它在哪里收文件：`target="document"` 让它接整个窗口的拖放，`pasteTarget` 取 `"document"` 或一个在整页里查找的选择器，让它接别处的粘贴。回复写了它们，读者拖到或粘贴到宿主页面上的文件就会进回复的文件框，宿主自己的粘贴还会被取消。这两个选项在该组件上丢弃，不论大小写、是否经 `bind:` 或展开写入；拖放区只收落在它自己上面的文件。另外，页面上只要有拖放区，UI SDK 就会取消落在拖放区之外的文件拖放（免得浏览器直接打开文件），宿主自己不是 UI SDK 拖放区的投放目标在这样的回复显示期间会受影响，这是 UI SDK 的行为，没有改 |
+| 借自定义元素的属性伸到界面之外 | Web Components 渲染器里，标记只能给元素设置 HTML 属性（attribute），不能赋 property；`on` 开头的属性不会以字符串落到元素上。UI SDK 的自定义元素会读自己的属性，其中 `container` 能把弹层挂到页面上任意位置，部件上的 `for` 能指向界面之外的元素，这两个丢弃。宿主自己的自定义元素只有它列出的名字才按 property 赋值，`innerHTML`、`textContent` 一类即使列了也不赋 |
 | 借框架的钩子读到宿主 | Vue 的 `onVnodeMounted` 一类属性不是事件，调用时会拿到虚拟节点，顺着它能读到应用上下文。Vue 渲染器在标记能写到的每一处都丢弃这类名字；`ref` 在两边都丢弃 |
 | 嵌入其他文档 | `iframe`、`object`、`embed`、SVG `foreignObject` 被丢弃 |
 | 越权读写数据 | 标记只能调用宿主传入的工具。工具在读者的会话里运行，宿主应在服务端校验每一次调用 |
@@ -270,8 +282,10 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 | `packages/react/test/claims.test.tsx` | 提示词里的每条承诺（按钮 pending、查询轮询、morph、离场动画等） |
 | `packages/react/test/ui-sdk.test.tsx` | UI SDK 55 个入口的官方示例；预置组件不重名；智能体桥 |
 | `packages/core/test/renderer.test.ts` | 组件交给标记的值只能是纯数据；按需读取的记录不泄露函数和原型 |
-| `packages/vue/test/conformance.test.ts` | 一致性：仓库里的每个示例（六个演示、提示词和文档里的全部示例）分别用 React 和 Vue 渲染，DOM 和警告必须相同 |
-| `packages/vue/test/render.test.ts`、`claims.test.ts`、`ui-sdk.test.ts` | React 那三组测试在 Vue 上的对应版本，另加 Vue 特有的部分（`v-model` 式的宿主组件、`.prop` 和 `^attr` 写法不能被标记利用） |
+| `packages/vue/test/conformance.test.ts`、`packages/solid/test/conformance.test.ts` | 一致性：仓库里的每个示例（六个演示、提示词和文档里的全部示例）分别用 React 和 Vue、React 和 Solid 渲染，DOM 和警告必须相同 |
+| `packages/svelte/test/conformance.test.ts` | 同上，对 Svelte。`@ui-sdk/svelte` 自己画得不同的两处（部件之间的空格文本节点、几个不占位置的元素放在别处）先还原再比；哪些示例靠这一步才相同是写死在测试里的，多一个就失败 |
+| `packages/web/test/conformance.test.ts` | 同上，对 Web Components。不含 UI SDK 部件的示例 DOM 逐节点相同；含 UI SDK 部件的示例，部件之外的元素逐节点相同，每个部件按它的 slot、角色、名称、状态和文字比 |
+| 各渲染器包里的 `render.test.ts`、`claims.test.ts`、`ui-sdk.test.ts` | React 那三组测试在该渲染器上的对应版本，另加它特有的部分：Vue 的 `v-model` 式宿主组件、`.prop` 和 `^attr` 写法；Svelte 的 `bind:` 和它自己的属性通道；Web 的属性、处理器、`is`、`slot`、`part`、`for`、`container`，以及修补 DOM 时元素、焦点和输入不丢 |
 | `apps/playground/test/demos.test.tsx` | 六个演示能渲染、能交互、在任意截断点都能流式显示 |
 | `apps/playground/test/docs.test.tsx` | 文档和 skill 里的每个 `iui` 示例；skill 参考页没有过期 |
 

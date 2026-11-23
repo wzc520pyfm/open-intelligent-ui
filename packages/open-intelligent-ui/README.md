@@ -23,6 +23,12 @@ To put an interface on screen you need a renderer, which is a separate package:
 npm install @open-intelligent-ui/react @open-intelligent-ui/core @ui-sdk/react @ui-sdk/core
 # Vue
 npm install @open-intelligent-ui/vue @open-intelligent-ui/core @ui-sdk/vue @ui-sdk/core
+# Svelte
+npm install @open-intelligent-ui/svelte @open-intelligent-ui/core @ui-sdk/svelte @ui-sdk/core
+# Solid
+npm install @open-intelligent-ui/solid @open-intelligent-ui/core @ui-sdk/solid @ui-sdk/core solid-js @solidjs/web
+# No framework: the <intelligent-ui> element
+npm install @open-intelligent-ui/web @open-intelligent-ui/core @ui-sdk/web @ui-sdk/core
 ```
 
 Packages published under the `@open-intelligent-ui` scope and this one are the only official ones.

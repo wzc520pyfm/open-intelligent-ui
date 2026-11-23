@@ -4,6 +4,7 @@ import {
   chartDataKey,
   chartValues,
   chartView,
+  claimId,
   readChartData,
 } from "@open-intelligent-ui/core/renderer"
 import { component } from "../render/component"
@@ -15,7 +16,9 @@ let charts = 0
 
 const chart: Widget = (handle) => {
   const { redraw, cleanup } = handle
-  const id = `iui-chart-s${++charts}`
+  // Gradients are found by id across the whole page, other renderers' charts included.
+  const claim = claimId(`iui-chart-s${++charts}`)
+  const id = claim.id
   let target: HTMLElement | undefined
   let width = CHART_WIDTH
   let active: number | null = null
@@ -41,7 +44,10 @@ const chart: Widget = (handle) => {
     observer = new ResizeObserver(measure)
     observer.observe(element)
   }
-  cleanup(() => observer?.disconnect())
+  cleanup(() => {
+    observer?.disconnect()
+    claim.release()
+  })
 
   // Data arrives as fresh objects on every render; compare by content.
   let read: { key: string; data: ChartData } | undefined

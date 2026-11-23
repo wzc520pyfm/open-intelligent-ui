@@ -9,6 +9,7 @@ import {
   type ToolEvent,
 } from "@open-intelligent-ui/core"
 import {
+  claimId,
   copyText,
   designCss,
   guard,
@@ -104,7 +105,11 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
   // The surface is drawn straight into the DOM, which a server doesn't have.
   if (isServer) return undefined
 
-  const id = createUniqueId().replace(/[^A-Za-z0-9]/g, "")
+  // Solid numbers its ids from a counter in the module, so two copies of it
+  // on one page hand out the same ones. A surface scopes its styles by its
+  // id, so the id is claimed across the page.
+  const claim = claimId(createUniqueId().replace(/[^A-Za-z0-9]/g, ""))
+  const id = claim.id
   const timers = new Set<ReturnType<typeof setTimeout>>()
   const reported = new Set<string>()
   let toasts: Toast[] = []
@@ -381,6 +386,7 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
     timers.clear()
     surface.stop()
     mounted.dispose()
+    claim.release()
   })
 
   return mounted.read as unknown as JSX.Element

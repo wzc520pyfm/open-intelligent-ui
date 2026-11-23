@@ -19,6 +19,7 @@ export {
   tween,
   tweenless,
 } from "./format"
+export { type ClaimedId, claimId } from "./ids"
 export {
   COPIED_LIFETIME,
   type CodeState,

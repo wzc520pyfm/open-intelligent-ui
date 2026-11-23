@@ -315,7 +315,8 @@ JavaScript.
   `allowUrl` lets you narrow that, for example to your own domains.
 - `<style>` is scoped to its surface. `@import`, `url()` to other sites and
   unknown at-rules are removed, and `position: fixed` becomes `absolute`,
-  so a surface can't draw over your page.
+  so a surface can't draw over your page. The scope holds across the page,
+  also when each reply is its own React root or Vue app.
 - The only side effects are the actions: `send`, `call`, `refetch`,
   `reset`, `toast`, `copy`, `open`, plus any you add with `actions`.
 

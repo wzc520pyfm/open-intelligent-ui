@@ -7,7 +7,8 @@ import {
   readChartData,
   type ViewProps,
 } from "@open-intelligent-ui/core/renderer"
-import { defineComponent, onBeforeUnmount, onMounted, ref, shallowRef, useId } from "vue"
+import { defineComponent, onBeforeUnmount, onMounted, ref, shallowRef } from "vue"
+import { usePageId } from "../render/usePageId"
 import { toVue } from "../render/view"
 import { useTween } from "./tween"
 
@@ -26,7 +27,7 @@ export const Chart = defineComponent({
     const element = ref<HTMLElement | null>(null)
     const width = ref(CHART_WIDTH)
     const active = shallowRef<number | null>(null)
-    const id = `iui-chart-${useId().replace(/[^A-Za-z0-9_-]/g, "")}`
+    const id = usePageId((raw) => `iui-chart-${raw.replace(/[^A-Za-z0-9_-]/g, "")}`)
     const setActive = (index: number | null) => {
       active.value = index
     }

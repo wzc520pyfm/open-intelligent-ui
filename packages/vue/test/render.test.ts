@@ -916,3 +916,43 @@ describe("children as a function of component state", () => {
     await until(() => expect(text(container)).toContain("75 of 100"))
   })
 })
+
+describe("several Vue apps on one page", () => {
+  const reply = (color: string) =>
+    `<style>.note { color: ${color} }</style>\n\n<div class="note">Hello</div>\n\n<Chart type="area" data={[{ x: "a", y: 1 }, { x: "b", y: 3 }]} x="x" y="y" />`
+
+  test("each surface keeps its own id, so one reply's styles stay out of the other", async () => {
+    // Vue's useId starts over in every app.
+    const first = await draw({ source: reply("red") })
+    const second = await draw({ source: reply("blue") })
+    const ids = [first, second].map((view) => view.container.getAttribute("data-iui-id"))
+    expect(ids[0]).toBeTruthy()
+    expect(ids[1]).not.toBe(ids[0])
+    for (const [index, view] of [first, second].entries()) {
+      const css = [...view.container.querySelectorAll("style")].map((style) => style.textContent).join("\n")
+      expect(css).toContain(`[data-iui-id="${ids[index]}"]`)
+      expect(css).not.toContain(`[data-iui-id="${ids[1 - index]}"]`)
+    }
+  })
+
+  test("two charts never share a gradient id", async () => {
+    const first = await draw({ source: reply("red") })
+    const second = await draw({ source: reply("blue") })
+    await until(() => {
+      expect(first.container.querySelector("linearGradient")).not.toBeNull()
+      expect(second.container.querySelector("linearGradient")).not.toBeNull()
+    })
+    const ids = [first, second].flatMap((view) =>
+      [...view.container.querySelectorAll("linearGradient")].map((gradient) => gradient.id)
+    )
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  test("an id is free again once its surface is gone", async () => {
+    const first = await draw({ source: "One" })
+    const id = first.container.getAttribute("data-iui-id")
+    first.view.unmount()
+    const second = await draw({ source: "Two" })
+    expect(second.container.getAttribute("data-iui-id")).toBe(id)
+  })
+})

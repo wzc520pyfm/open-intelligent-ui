@@ -373,6 +373,8 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
     if (reparse) {
       // Queries written later in the stream exist only after a re-parse.
       surface.start()
+      // State the new piece declared changed the surface without a notice.
+      announce()
       latest("onDiagnostics")?.(doc.diagnostics)
     }
   })

@@ -227,6 +227,17 @@ Total: {currency(total, "USD")}`,
     expect(onStateChange).toHaveBeenLastCalledWith({ city: "Osaka" })
   })
 
+  test("state a later piece of the stream declares is reported to the host", async () => {
+    const onStateChange = vi.fn()
+    const { view } = await draw({ source: "Thinking", streaming: true, onStateChange })
+    expect(onStateChange).toHaveBeenLastCalledWith({})
+    await view.setProps({ source: `Thinking\n<state city="Kyoto" />` })
+    await until(() => expect(onStateChange).toHaveBeenLastCalledWith({ city: "Kyoto" }))
+    const calls = onStateChange.mock.calls.length
+    await view.setProps({ source: `Thinking\n<state city="Kyoto" />\nmore` })
+    expect(onStateChange).toHaveBeenCalledTimes(calls)
+  })
+
   test("parse problems are reported for each source", async () => {
     const onDiagnostics = vi.fn()
     const { view } = await draw({ source: "<card>open", onDiagnostics })

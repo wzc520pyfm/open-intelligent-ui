@@ -194,7 +194,11 @@ export const IntelligentUI = defineComponent({
     const loaded = shallowRef(getUiSdkVersion())
     const unsubscribe: (() => void)[] = []
 
+    let announced = -1
     const announce = () => {
+      const current = surface.getVersion()
+      if (current === announced) return
+      announced = current
       props.onStateChange?.(surface.snapshot())
     }
 
@@ -220,6 +224,8 @@ export const IntelligentUI = defineComponent({
       (next) => {
         // Queries written later in the stream exist only after a re-parse.
         surface.start()
+        // State the new piece declared changed the surface without a notice.
+        announce()
         props.onDiagnostics?.(next.diagnostics)
       },
       { flush: "post" }

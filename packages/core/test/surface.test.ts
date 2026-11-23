@@ -44,12 +44,27 @@ describe("state", () => {
     surface.update(parse("<state a={1} b={2} />"))
     const listener = vi.fn()
     surface.subscribe(listener)
+    const before = surface.getVersion()
     surface.set("a", 1)
     expect(listener).toHaveBeenCalledTimes(0)
     surface.set("a", 2)
     surface.patch({ a: 3, b: 4 })
     expect(listener).toHaveBeenCalledTimes(2)
-    expect(surface.getVersion()).toBe(2)
+    expect(surface.getVersion()).toBe(before + 2)
+  })
+
+  test("state a longer document declares counts as a change, without a notice", () => {
+    const surface = new Surface()
+    surface.update(parse("<state a={1} />"))
+    const listener = vi.fn()
+    surface.subscribe(listener)
+    const before = surface.getVersion()
+    surface.update(parse("<state a={1} />\n<text>more</text>"))
+    expect(surface.getVersion()).toBe(before)
+    surface.update(parse("<state a={1} />\n<text>more</text>\n<state b={2} />"))
+    expect(surface.getVersion()).toBe(before + 1)
+    expect(surface.snapshot()).toEqual({ a: 1, b: 2 })
+    expect(listener).toHaveBeenCalledTimes(0)
   })
 
   test("event handlers write state", () => {

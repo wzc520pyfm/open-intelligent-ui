@@ -200,6 +200,21 @@ Total: {currency(total, "USD")}`}
     expect(text(container)).toBe("Osaka")
     expect(onStateChange).toHaveBeenLastCalledWith({ city: "Osaka" })
   })
+
+  test("state a later piece of the stream declares is reported to the host", async () => {
+    const onStateChange = vi.fn()
+    const view = render(<IntelligentUI source="Thinking" streaming onStateChange={onStateChange} />)
+    expect(onStateChange).toHaveBeenLastCalledWith({})
+    view.rerender(
+      <IntelligentUI source={`Thinking\n<state city="Kyoto" />`} streaming onStateChange={onStateChange} />
+    )
+    expect(onStateChange).toHaveBeenLastCalledWith({ city: "Kyoto" })
+    const calls = onStateChange.mock.calls.length
+    view.rerender(
+      <IntelligentUI source={`Thinking\n<state city="Kyoto" />\nmore`} streaming onStateChange={onStateChange} />
+    )
+    expect(onStateChange).toHaveBeenCalledTimes(calls)
+  })
 })
 
 describe("components", () => {

@@ -43,6 +43,8 @@ interface Journal {
 }
 
 const listeners = new WeakMap<Element, Record<string, Listener>>()
+/** The events an element has a real listener for, which outlives the handler it calls. */
+const wired = new WeakMap<Element, Set<string>>()
 const drawn = new WeakMap<Element, Mounted>()
 /** What `setAttribute` takes as a name. Anything else would throw part-way through a patch. */
 const ATTRIBUTE_NAME = /^[A-Za-z_:][-\w:.]*$/
@@ -104,9 +106,15 @@ function setListeners(element: Element, next: Record<string, Listener> | undefin
   for (const name of Object.keys(current)) {
     if (!next || !(name in next)) delete current[name]
   }
+  let real = wired.get(element)
+  if (!real) {
+    real = new Set()
+    wired.set(element, real)
+  }
   for (const [name, listener] of Object.entries(next ?? {})) {
     // One real listener per event stays for the element's life and calls whichever handler is current.
-    if (!(name in current)) {
+    if (!real.has(name)) {
+      real.add(name)
       const table = current
       const [type, phase] = name.split("@")
       element.addEventListener(type as string, (event) => table[name]?.(event), phase === "capture")
@@ -198,7 +206,7 @@ function create(vnode: VNode, parent: Mounted | null, svg: boolean): Mounted {
       mounted.dom = document.createTextNode(vnode.text)
       break
     case "raw":
-      mounted.dom = vnode.create()
+      hold(mounted, vnode.create())
       break
     case "element": {
       const inside = svg || vnode.tag === "svg"
@@ -230,6 +238,28 @@ function create(vnode: VNode, parent: Mounted | null, svg: boolean): Mounted {
       break
   }
   return mounted
+}
+
+/**
+ * Takes what a raw node built. A fragment empties into the page when it is
+ * put there, so it is its nodes that are kept, each as a node of its own.
+ */
+function hold(mounted: Mounted, built: Node | null) {
+  if (!(built instanceof DocumentFragment)) {
+    mounted.dom = built
+    mounted.children = []
+    return
+  }
+  mounted.dom = null
+  mounted.children = [...built.childNodes].map((node) => ({
+    vnode: { kind: "raw", key: undefined, create: () => node, signature: undefined },
+    parent: mounted,
+    dom: node,
+    children: [],
+    state: null,
+    svg: mounted.svg,
+    end: null,
+  }))
 }
 
 function setup(mounted: Mounted, vnode: ComponentVNode) {
@@ -319,7 +349,8 @@ function namer(): (vnode: VNode, index: number) => string {
     const key = keyOf(vnode, index)
     const count = seen.get(key) ?? 0
     seen.set(key, count + 1)
-    return count ? `${key}~${count}` : key
+    // The turn comes first and ends at the bar, so no key can spell another key's turn.
+    return `${count}|${key}`
   }
 }
 
@@ -379,16 +410,14 @@ function handOver(stale: Mounted, fresh: Mounted) {
   }
   const active = from.ownerDocument.activeElement
   if (!active || active === from || !from.contains(active)) return
-  const path: number[] = []
-  for (let at: Element = active; at !== from; at = at.parentElement as Element) {
-    path.unshift(Array.prototype.indexOf.call((at.parentElement as Element).children, at))
-  }
-  let target: Element | undefined = to
-  for (const index of path) target = target?.children[index]
+  const target = counterpart(stale, fresh, active)
   if (!(target instanceof HTMLElement) || target.localName !== active.localName) return
   const typed = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
   if (typed && (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) {
-    target.value = active.value
+    // A field the tree keeps in step has just been given its value; any other holds only what was typed.
+    const vnode = drawn.get(target)?.vnode
+    const kept = vnode?.kind === "element" && vnode.live !== undefined && "value" in vnode.live
+    if (!kept) target.value = active.value
     target.focus({ preventScroll: true })
     try {
       target.setSelectionRange(active.selectionStart, active.selectionEnd, active.selectionDirection ?? undefined)
@@ -398,6 +427,59 @@ function handOver(stale: Mounted, fresh: Mounted) {
     return
   }
   target.focus({ preventScroll: true })
+}
+
+/** The name each child of a mounted node goes by, in order. */
+function namesOf(children: Mounted[]): string[] {
+  const name = namer()
+  return children.map((child, index) => name(child.vnode, index))
+}
+
+/**
+ * The element of a tree drawn anew that stands for `node` of the tree it
+ * replaces. As far down as the patcher drew, a node is followed by its name,
+ * so a keyed one is found wherever it is now and one that is gone is not
+ * mistaken for its neighbour; below that, where an element built its own
+ * insides, by its place among its siblings.
+ */
+function counterpart(stale: Mounted, fresh: Mounted, node: Element): Element | null {
+  const below: number[] = []
+  let owner: Mounted | undefined
+  let at: Element = node
+  for (;;) {
+    const mounted = drawn.get(at)
+    if (mounted && under(mounted, stale)) {
+      owner = mounted
+      break
+    }
+    const parent = at.parentElement
+    if (!parent) return null
+    below.unshift(Array.prototype.indexOf.call(parent.children, at))
+    at = parent
+  }
+  const names: string[] = []
+  for (let mounted = owner; mounted !== stale; mounted = mounted.parent as Mounted) {
+    const parent = mounted.parent as Mounted
+    names.unshift(namesOf(parent.children)[parent.children.indexOf(mounted)] as string)
+  }
+  let match: Mounted | undefined = fresh
+  for (const name of names) {
+    const children: Mounted[] = match.children
+    const next: Mounted | undefined = children[namesOf(children).indexOf(name)]
+    if (!next) return null
+    match = next
+  }
+  if (!sameType(match.vnode, owner.vnode)) return null
+  let target: Element | undefined = match.dom as Element
+  for (const index of below) target = target?.children[index]
+  return target ?? null
+}
+
+function under(mounted: Mounted, ancestor: Mounted): boolean {
+  for (let at: Mounted | null = mounted; at; at = at.parent) {
+    if (at === ancestor) return true
+  }
+  return false
 }
 
 /** Puts a node's DOM where the one it replaces stands, which may be among nodes that aren't the patcher's. */
@@ -421,9 +503,12 @@ function update(mounted: Mounted, vnode: VNode): Mounted {
       break
     case "raw":
       if (!sameValue((before as typeof vnode).signature, vnode.signature)) {
-        const stale = mounted.dom
-        mounted.dom = vnode.create()
-        stale?.parentNode?.removeChild(stale)
+        const stale = domOf([mounted])
+        hold(mounted, vnode.create())
+        const kept = new Set(domOf([mounted]))
+        for (const node of stale) {
+          if (!kept.has(node)) node.parentNode?.removeChild(node)
+        }
       }
       break
     case "element": {
@@ -698,7 +783,13 @@ function schedule() {
 /** Runs what was put off: surfaces that asked to be drawn again, then components that did. */
 export function flush() {
   for (const root of [...roots]) {
-    if (root.pending) root.run()
+    if (!root.pending) continue
+    // One surface that can't be drawn must not keep the others waiting.
+    try {
+      root.run()
+    } catch (error) {
+      console.error(error)
+    }
   }
   while (queue.size) {
     const batch = [...queue].sort(
@@ -773,6 +864,58 @@ function perform(work: () => void) {
   }
 }
 
+/** An element something else made, kept from then on as a node of the tree says. */
+export interface Adopted {
+  render(vnode: ElementVNode): void
+  unmount(): void
+}
+
+/**
+ * Takes over an element the patcher didn't make, as a custom element makes
+ * the cells of a grid it lays out itself. Attributes the element came with
+ * stay unless the tree names them.
+ */
+export function adopt(element: Element): Adopted {
+  const mounted: Mounted = {
+    vnode: {
+      kind: "element",
+      tag: element.localName,
+      key: undefined,
+      attrs: {},
+      props: undefined,
+      live: undefined,
+      style: undefined,
+      on: undefined,
+      hooks: undefined,
+      children: [],
+    },
+    parent: null,
+    dom: element,
+    children: [],
+    state: null,
+    svg: false,
+    end: null,
+  }
+  drawn.set(element, mounted)
+  return {
+    render(vnode) {
+      perform(() => {
+        const before = mounted.vnode as ElementVNode
+        mounted.vnode = vnode
+        applyElement(element, before, vnode)
+        mounted.children = reconcile(mounted, mounted.children, vnode.children, false)
+        place(element, mounted.children)
+        applyLive(element, vnode)
+      })
+    },
+    unmount() {
+      for (const child of mounted.children) remove(child)
+      mounted.children = []
+      drawn.delete(element)
+    },
+  }
+}
+
 /** A tree kept on the page inside one element. */
 export interface Root {
   /** Draws `children` now. */
@@ -802,15 +945,18 @@ export function createRoot(container: Node, end: Node | null = null, svg = false
     end,
   }
   let waiting: (() => Child) | null = null
+  const paint = (children: Child) => {
+    perform(() => {
+      top.children = reconcile(top, top.children, nodes(children), svg)
+      place(top.dom as Node, top.children, top.end)
+    })
+  }
   const root: Root = {
     pending: false,
     render(children) {
       waiting = null
       root.pending = false
-      perform(() => {
-        top.children = reconcile(top, top.children, nodes(children), svg)
-        place(top.dom as Node, top.children, top.end)
-      })
+      paint(children)
     },
     moveTo(next, before) {
       top.dom = next
@@ -823,8 +969,12 @@ export function createRoot(container: Node, end: Node | null = null, svg = false
       schedule()
     },
     run() {
+      // The request is taken before it is answered: one that fails isn't tried
+      // again, and one made while this is drawn waits its turn.
       const draw = waiting
-      if (draw) root.render(draw())
+      waiting = null
+      root.pending = false
+      if (draw) paint(draw())
     },
     unmount() {
       roots.delete(root)

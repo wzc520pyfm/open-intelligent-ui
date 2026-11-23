@@ -114,3 +114,18 @@ export async function until(check: () => void, timeout = 2000) {
     }
   }
 }
+
+/** Where the nesting of `css` returns to the top level, counting braces the way a browser does. */
+export function topLevelCloses(css: string): number[] {
+  const closes: number[] = []
+  let depth = 0
+  for (let i = 0; i < css.length; i++) {
+    const ch = css[i]
+    if (ch === "\\") i++
+    else if (ch === '"' || ch === "'") {
+      for (i++; i < css.length && css[i] !== ch && css[i] !== "\n"; i++) if (css[i] === "\\") i++
+    } else if (ch === "{") depth++
+    else if (ch === "}" && --depth === 0) closes.push(i)
+  }
+  return closes
+}

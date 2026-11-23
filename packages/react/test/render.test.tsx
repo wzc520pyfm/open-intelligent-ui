@@ -352,6 +352,26 @@ describe("presets", () => {
     }
   })
 
+  test("Chart keeps its marks apart when a field is listed twice", () => {
+    const complaints = vi.spyOn(console, "error").mockImplementation(() => {})
+    try {
+      for (const type of ["line", "bar", "area", "pie"]) {
+        const { container, unmount } = render(
+          <IntelligentUI
+            source={`<state rows={[{ m: "Jan", total: 4, "label-total": 2 }, { m: "Feb", total: 9, "label-total": 0 }]} />
+<Chart type="${type}" data={rows} x="m" y={["total", "total", "label-total"]} legend grid labels />
+<Chart type="${type}" data={[{ m: "Jan", total: 0 }]} x="m" y="total" grid />`}
+          />
+        )
+        expect(container.querySelectorAll("svg").length).toBeGreaterThan(0)
+        unmount()
+      }
+      expect(complaints).not.toHaveBeenCalled()
+    } finally {
+      complaints.mockRestore()
+    }
+  })
+
   test("Chart draws one bar per row from state", () => {
     const { container } = render(
       <IntelligentUI

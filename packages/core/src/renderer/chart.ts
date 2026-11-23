@@ -7,6 +7,8 @@ type Datum = Record<string, unknown>
 
 interface Series {
   key: string
+  /** Names what is drawn for this series. A field can be listed twice, so the field's name can't. */
+  slot: string
   name: string
   color: string
   values: number[]
@@ -75,6 +77,7 @@ export function readChartData(props: ViewProps): ChartData {
   const palette = Array.isArray(props.colors) ? props.colors : []
   const series = yInput.map((key, index) => ({
     key,
+    slot: `s${index}`,
     name: typeof names[key] === "string" ? (names[key] as string) : key,
     color: color(palette[index]) ?? `var(--iui-color-chart-${(index % 6) + 1})`,
     values: rows.map((row) => {
@@ -222,7 +225,7 @@ export function chartView(props: ViewProps, state: ChartState): View {
       legend && !round && !spark
         ? view("div", { class: "iui-chart-legend" }, [
             series.map((item) =>
-              view("span", { key: item.key, class: "iui-chart-legend-item" }, [
+              view("span", { key: item.slot, class: "iui-chart-legend-item" }, [
                 view("i", { style: { background: item.color } }),
                 item.name,
               ])
@@ -305,7 +308,7 @@ function cartesian(props: CartesianProps): View {
         const corner = Math.min(4, barWidth / 2, barHeight)
         marks.push(
           view("rect", {
-            key: `${item.key}-${index}`,
+            key: `${item.slot}-${index}`,
             class: "iui-chart-bar",
             x: x + (stacked ? 0 : 1),
             y: to,
@@ -321,7 +324,7 @@ function cartesian(props: CartesianProps): View {
             view(
               "text",
               {
-                key: `label-${item.key}-${index}`,
+                key: `label-${item.slot}-${index}`,
                 class: "iui-chart-value",
                 x: x + barWidth / 2,
                 y: to - 5,
@@ -346,7 +349,7 @@ function cartesian(props: CartesianProps): View {
         const baseline = y(Math.max(scale.low, 0))
         marks.push(
           view("path", {
-            key: `area-${item.key}`,
+            key: `area-${item.slot}`,
             d: `${path}L${lastPoint[0].toFixed(1)},${baseline.toFixed(1)}L${firstPoint[0].toFixed(1)},${baseline.toFixed(1)}Z`,
             fill: `url(#${id}-${seriesIndex})`,
             stroke: "none",
@@ -355,7 +358,7 @@ function cartesian(props: CartesianProps): View {
       }
       marks.push(
         view("path", {
-          key: `line-${item.key}`,
+          key: `line-${item.slot}`,
           class: "iui-chart-line",
           d: path,
           fill: "none",
@@ -366,7 +369,7 @@ function cartesian(props: CartesianProps): View {
         const [dotX, dotY] = points[active] as [number, number]
         marks.push(
           view("circle", {
-            key: `dot-${item.key}`,
+            key: `dot-${item.slot}`,
             class: "iui-chart-dot",
             cx: dotX,
             cy: dotY,
@@ -408,7 +411,7 @@ function cartesian(props: CartesianProps): View {
           series.map((item, index) =>
             view(
               "linearGradient",
-              { key: item.key, id: `${id}-${index}`, x1: "0", y1: "0", x2: "0", y2: "1" },
+              { key: item.slot, id: `${id}-${index}`, x1: "0", y1: "0", x2: "0", y2: "1" },
               [
                 view("stop", { offset: "0%", "stop-color": item.color, "stop-opacity": 0.28 }),
                 view("stop", { offset: "100%", "stop-color": item.color, "stop-opacity": 0 }),
@@ -477,7 +480,7 @@ function cartesian(props: CartesianProps): View {
           [
             view("strong", {}, [labels[active]]),
             series.map((item) =>
-              view("span", { key: item.key }, [
+              view("span", { key: item.slot }, [
                 view("i", { style: { background: item.color } }),
                 series.length > 1 ? `${item.name} ` : "",
                 view("b", {}, [format(Math.round((item.values[active] ?? 0) * 100) / 100)]),

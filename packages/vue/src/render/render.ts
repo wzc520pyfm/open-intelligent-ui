@@ -41,6 +41,20 @@ function slotValue(given: unknown, binding: LetBinding, position: number): unkno
   return props
 }
 
+/**
+ * `onVnodeMounted` and its kin are not events: Vue calls them with the node
+ * it built, which leads to the app around the surface. Markup gets none.
+ */
+const VNODE_HOOK = /^onVnode/i
+
+function withoutHooks(props: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const [name, value] of Object.entries(props)) {
+    if (!VNODE_HOOK.test(name)) out[name] = value
+  }
+  return out
+}
+
 const declarations = new WeakMap<object, Set<string> | null>()
 
 /** The renderer's own components read what they are given by name and choose what reaches the DOM. */
@@ -80,9 +94,10 @@ function declared(type: Component): Set<string> | null {
  */
 function componentProps(type: Component, props: Record<string, unknown>, key: string) {
   const own = declared(type)
-  if (own === null) return { ...props, key }
+  if (own === null) return { ...withoutHooks(props), key }
   const out: Record<string, unknown> = { key }
   for (const [name, value] of Object.entries(props)) {
+    if (VNODE_HOOK.test(name)) continue
     const passes =
       name === "class" ||
       name === "style" ||
@@ -104,7 +119,8 @@ export const renderNodes = createRenderer<VNodeChild, Component>({
   presets: PRESETS,
   lookup: lookupUiSdk,
   fragment: (children, key) => h(Fragment, { key }, children),
-  element: (tag, props, key, children) => h(tag, { ...props, key }, children ?? undefined),
+  element: (tag, props, key, children) =>
+    h(tag, { ...withoutHooks(props), key }, children ?? undefined),
   component: (type, props, key, children) =>
     h(
       type,

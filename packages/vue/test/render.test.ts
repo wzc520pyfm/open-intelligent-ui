@@ -594,6 +594,22 @@ describe("safety", () => {
     expect(container.querySelector(".iui-error")).toBeNull()
   })
 
+  test("markup can't hook into Vue's own lifecycle", async () => {
+    await preloadUiSdk("Button")
+    const Plain = defineComponent({ props: { label: String }, render: () => h("span", "plain") })
+    const { container } = await draw({
+      source: `<state seen={null} hook={v => seen = "bound"} />
+<Button on:vnode-mounted={seen = "event"} onVnodeMounted={v => seen = v} onVnodeBeforeMount={seen = "before"} bind:onVnodeUpdated={hook}>One</Button>
+<Plain on:vnodeMounted={seen = "plain"} onVnodeMounted={seen = "plain"} />
+<div on:vnode-mounted={seen = "div"} onVnodeMounted={seen = "div"}>Two</div>
+<card onVnodeMounted={seen = "card"}>Three</card>
+<text>seen: {seen ?? "nothing"}</text>`,
+      components: { Plain },
+    })
+    await flushPromises()
+    expect(text(container)).toContain("seen: nothing")
+  })
+
   test("the host can refuse URLs", async () => {
     const { container } = await draw({
       source: `<a href="https://example.com/a">link</a><image src="https://cdn.test/a.png" alt="A" />`,

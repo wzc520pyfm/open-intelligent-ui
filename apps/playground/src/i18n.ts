@@ -47,6 +47,7 @@ export interface Copy {
   connectModel: string
   liveCaption: string
   writing: string
+  thinking: string
   done: string
   speed: string
   slow: string
@@ -103,6 +104,7 @@ const en: Copy = {
   connectModel: "Connect a model",
   liveCaption: "OpenAI, Anthropic, DeepSeek, or any compatible endpoint. Your key stays in this tab.",
   writing: "Writing…",
+  thinking: "Thinking…",
   done: "Done",
   speed: "Speed",
   slow: "Slow",
@@ -197,6 +199,7 @@ const zh: Copy = {
   connectModel: "连接模型",
   liveCaption: "OpenAI、Anthropic、DeepSeek，或任意兼容端点。密钥只留在本标签页。",
   writing: "正在写入…",
+  thinking: "正在思考…",
   done: "完成",
   speed: "速度",
   slow: "慢",

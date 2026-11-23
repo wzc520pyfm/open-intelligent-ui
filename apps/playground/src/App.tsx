@@ -102,6 +102,7 @@ export function App() {
   const [panel, setPanel] = useState<Panel | null>("source")
   const [turns, setTurns] = useState<Turn[]>([])
   const [streamingId, setStreamingId] = useState<number | null>(null)
+  const [thinking, setThinking] = useState(false)
   const [surfaceState, setSurfaceState] = useState<Record<string, unknown>>({})
   const [log, setLog] = useState<LogEntry[]>([])
   const [live, setLive] = useState<LiveSettings>(readLiveSettings)
@@ -141,6 +142,7 @@ export function App() {
     abort.current?.abort()
     abort.current = null
     setStreamingId(null)
+    setThinking(false)
   }, [])
 
   const patchTurn = useCallback((id: number, text: string) => {
@@ -202,8 +204,17 @@ export function App() {
           .map((turn) => ({ role: turn.role as "user" | "assistant", content: turn.text })),
       ]
       let text = ""
+      setThinking(false)
       try {
-        for await (const part of streamChat({ ...live, messages, signal: controller.signal })) {
+        for await (const part of streamChat({
+          ...live,
+          messages,
+          signal: controller.signal,
+          onReasoning: () => {
+            if (!text) setThinking(true)
+          },
+        })) {
+          if (text.length === 0) setThinking(false)
           text += part
           patchTurn(reply.id, unwrapFence(text))
         }
@@ -216,6 +227,7 @@ export function App() {
         if (abort.current === controller) {
           abort.current = null
           setStreamingId(null)
+          setThinking(false)
         }
       }
     },
@@ -476,7 +488,7 @@ export function App() {
           {mode === "demos" ? (
             <div className="pg-bar">
               <span className="pg-status" data-live={streamingId !== null}>
-                {streamingId !== null ? copy.writing : copy.done}
+                {streamingId !== null ? (thinking ? copy.thinking : copy.writing) : copy.done}
               </span>
               <span className="pg-spacer" />
               <label className="pg-field">
@@ -579,6 +591,10 @@ export function App() {
                 ) : turn.role === "note" ? (
                   <div key={turn.id} className="pg-note">
                     {turn.text}
+                  </div>
+                ) : thinking && turn.id === streamingId && !turn.text ? (
+                  <div key={turn.id} className="pg-note">
+                    {copy.thinking}
                   </div>
                 ) : (
                   <IntelligentUI

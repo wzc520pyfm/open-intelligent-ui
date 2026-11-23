@@ -6,7 +6,9 @@ import {
   createRoot,
   createSignal,
   Errored,
+  getObserver,
   getOwner,
+  Loading,
   type Owner,
   onCleanup,
   runWithOwner,
@@ -425,7 +427,9 @@ class ComponentMount implements Mounted {
    * owner, they are mounted again.
    */
   private readChildren(): unknown {
-    if (!this.filled[0]()) return undefined
+    // Read through the signal only where a change can be heard.
+    const filled = getObserver() ? this.filled[0]() : this.hasChildren(this.node)
+    if (!filled) return undefined
     if (this.node.scoped) return this.scopedChildren
     const slot = new Slot({ owner: getOwner(), space: this.place.space }, () => this.node.children)
     this.slots.add(slot)
@@ -618,15 +622,30 @@ class BoundaryMount implements Mounted {
     return () => failure(problem, this.quiet[0]())
   }
 
+  /**
+   * The block inside Solid's two boundaries. Without the inner one, a
+   * component that is still loading would hold back the whole page the
+   * surface is on, not only its own block.
+   */
   private guarded(node: BoundaryNode): ComponentNode {
     return {
       kind: "component",
       type: Errored,
       key: undefined,
       props: { fallback: this.fallback },
-      children: [node.child],
+      children: [
+        {
+          kind: "component",
+          type: Loading,
+          key: undefined,
+          props: { fallback: this.waiting },
+          children: [node.child],
+        },
+      ],
     }
   }
+
+  private readonly waiting = failure(null, true)
 
   private fail(error: unknown): void {
     this.inner?.dispose()

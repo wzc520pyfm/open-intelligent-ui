@@ -1,4 +1,4 @@
-import { $PROXY, createSignal } from "solid-js"
+import { $PROXY, createSignal, getObserver } from "solid-js"
 
 const WRITABLE = { ownedWrite: true }
 
@@ -53,7 +53,10 @@ export function createBag(
   const [names, setNames] = createSignal(0, WRITABLE)
   const callers = new Map<string, (...args: unknown[]) => unknown>()
 
+  // Outside an effect or a memo nothing would hear of a change, and Solid
+  // warns about a signal read there, so only a tracked read subscribes.
   const track = (name: string) => {
+    if (!getObserver()) return
     let cell = cells.get(name)
     if (!cell) {
       const [read, write] = createSignal(0, WRITABLE)
@@ -87,7 +90,7 @@ export function createBag(
 
   const has = (name: string): boolean => {
     if (Object.hasOwn(special, name)) return true
-    names()
+    if (getObserver()) names()
     return Object.hasOwn(current, name)
   }
 
@@ -98,7 +101,7 @@ export function createBag(
         name === $PROXY ? props : typeof name === "string" ? read(name) : undefined,
       has: (_, name) => name === $PROXY || (typeof name === "string" && has(name)),
       ownKeys: () => {
-        names()
+        if (getObserver()) names()
         return [...new Set([...Object.keys(current), ...Object.keys(special)])]
       },
       getOwnPropertyDescriptor: (_, name) =>

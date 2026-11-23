@@ -418,6 +418,22 @@ ${everywhere(`onClick={["alert", 1]} onPointerDown={{ handleEvent: 1 }} {...bag}
     }
   })
 
+  test("a style can't be written whole through cssText, or spelled with escapes", async () => {
+    // The renderer sets a style property by its script name, and `cssText` is one.
+    const style = String.raw`{{ cssText: "position: fixed; inset: 0", position: "f\\69xed", backgroundImage: "u\\72l(https://evil.test/a.png)", color: "red" }}`
+    const source = `<div aria-label="html" style=${style}>safe</div>
+<Button aria-label="part" style=${style}>safe</Button>
+<Plain aria-label="host" style=${style} />`
+    const { html, part, host } = await draws(source)
+    for (const element of [html(), part(), host()]) {
+      const written = (element as HTMLElement).style
+      expect(written.color).toBe("red")
+      expect(written.position).toBe("absolute")
+      expect(written.inset).toBe("")
+      expect(written.cssText).not.toContain("evil.test")
+    }
+  })
+
   test("a namespaced name is not a way around the URL check", async () => {
     const source = `<svg aria-label="html" viewBox="0 0 10 10">
   <a xlink:href="javascript:window.hacked = true" svg:href="javascript:window.hacked = true"><circle r="2" /></a>

@@ -36,6 +36,7 @@ function onAction(action) {
 - `source` is the model's reply so far. Pass the growing text on every chunk with `streaming` set.
 - `design` is a DESIGN.md file's text. Leave it out for the built-in design.
 - `tools` are the functions markup reads with `<query>` and writes with `call()`.
+- `library` is what your product adds, made with `defineLibrary`: its own components, its design, and the engines that draw charts and play motion. Give the same object to `buildSystemPrompt`.
 - `onAction` receives what the reader decided, to send back to the model. It is a prop, not an emitted event, because what it returns matters: return `true` when you have handled an `open` or `copy` action yourself.
 
 The markup, the props and the prompt are the same as for [`@open-intelligent-ui/react`](https://www.npmjs.com/package/@open-intelligent-ui/react); one reply renders to the same DOM in both. The prompt that teaches a model the markup comes from `buildSystemPrompt` in [`@open-intelligent-ui/core/prompt`](https://www.npmjs.com/package/@open-intelligent-ui/core).
@@ -60,7 +61,7 @@ UI SDK components and icons load on first use, one chunk per entry point or icon
 
 ESM only. `renderToString` produces the surface's HTML on a server, but hydrating that HTML has not been tested: in Nuxt, wrap it in `<ClientOnly>`.
 
-Tools, theming, your own components, state and the safety model are covered in the [integration guide](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/skills/intelligent-ui/references/integration.md).
+Tools, theming, your own components, state and the safety model are covered in the [integration guide](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/skills/intelligent-ui/references/integration.md). Registering components and widgets, and replacing the design, the chart engine and the motion engine: [`docs/extending.md`](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/docs/extending.md).
 
 ## License
 

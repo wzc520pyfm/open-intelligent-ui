@@ -174,9 +174,52 @@ Svelte 和 Solid 的写法与 React、Vue 相仿，示例和各自框架里的�
 
 模型给五个渲染器写的是同一份标记，提示词也是同一份。React、Vue、Solid 画出的 DOM 相同；Svelte 除了 `@ui-sdk/svelte` 自己摆放位置不同的几个元素以外也相同；Web Components 渲染器把 UI SDK 组件画成自定义元素（`<ui-tabs>`），角色、名称、状态和外观相同。
 
-[演示站](https://open-intelligent-ui-one.vercel.app)可以在同一条回复上切换这五个渲染器。`pnpm dev:vue`、`pnpm dev:svelte`、`pnpm dev:solid`、`pnpm dev:web` 各自只用一个渲染器运行那六个示例。
+[演示站](https://open-intelligent-ui-one.vercel.app)可以在同一条回复上切换这五个渲染器。`pnpm dev:vue`、`pnpm dev:svelte`、`pnpm dev:solid`、`pnpm dev:web` 各自只用一个渲染器运行同一批示例。
 
 这些包都是 ESM，带类型声明；React 包的入口标了 `"use client"`。工具、主题、宿主组件、状态读写和安全边界的说明在 [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md)。
+
+## 定制
+
+产品要加上或换掉的东西放进一个 `library`，渲染器和提示词读的是同一个对象，所以模型被告知的正好是渲染器能画的。
+
+```ts
+import { defineComponent, defineLibrary, defineWidget, view } from "@open-intelligent-ui/core"
+import { echartsCharts } from "@open-intelligent-ui/core/charts"
+import { motionAdapter } from "@open-intelligent-ui/core/motion"
+import { animate } from "motion"
+
+const OrderCard = defineComponent({
+  name: "OrderCard",
+  description: "一张订单：状态和金额。凡是展示订单的地方都用它。",
+  props: { order: { type: "object", required: true }, tone: ["neutral", "urgent"] },
+  events: { open: "卡片被点击；$value 是订单号。" },
+  example: `<OrderCard order={order} on:open={picked = $value} />`,
+  component: OrderCardView,
+})
+
+export const library = defineLibrary({
+  design: herouiDesignMd,                           // 任意一份 DESIGN.md，包括 HeroUI 的
+  components: [OrderCard, Steps],                   // 自己的组件，以及写一次就能在五个渲染器里用的小组件
+  charts: echartsCharts(() => import("echarts")),   // 或 g2Charts、rechartsCharts、自己的引擎
+  motion: motionAdapter(animate),                   // 或 gsapAdapter、waapiAdapter、自己的适配器
+})
+```
+
+```tsx
+<IntelligentUI source={replySoFar} library={library} />
+
+buildSystemPrompt({ library })   // 按定义写出 OrderCard 和 Steps 的说明
+```
+
+| 要换什么 | 用什么 | 提示词 |
+| --- | --- | --- |
+| 设计 | `design`：一份 DESIGN.md；为别的组件库写的也行（读它记录的 CSS 变量）；或 `designFromCss(themeCss)` | 列出这份设计的令牌和正文 |
+| 模型必须使用的固定组件 | `defineComponent`：框架组件，加上声明的属性、事件和示例 | 每个组件一节，由定义生成 |
+| 更多预置小组件 | `defineWidget`：用不依赖框架的视图来画，一份定义在 React、Vue、Svelte、Solid 和 Web Components 里都能用 | 同上 |
+| `<Chart>` 由谁画 | `echartsCharts`、`g2Charts`、`rechartsCharts`（React），或自己实现 `ChartEngine` | 加上引擎带来的图表类型 |
+| 动效由谁播 | `motionAdapter`、`gsapAdapter`、`waapiAdapter`，或 `createMotionAdapter` | 加上自定义的入场预设 |
+
+标记只能给注册的组件传它声明过的属性，值要符合声明的类型。`librarySpec(library)` 把库写成 JSON，给不加载 UI 的服务端生成提示词；`validateLibrary(library)` 在测试里检查说明和示例。全部选项见 [`docs/extending.md`](docs/extending.md)。
 
 ## 仓库结构
 
@@ -191,7 +234,7 @@ packages/web      Web Components 渲染器，建在 @ui-sdk/web 上：<intellige
 packages/open-intelligent-ui   不带 scope 的 npm 包名，只重导出 packages/core
 apps/playground   演示站（React），可以切换用五个渲染器中的任意一个来画回复
 apps/vue-demo、apps/svelte-demo、apps/solid-demo、apps/web-demo   同一批示例，各用一个渲染器
-design/           三份 DESIGN.md：Paper、Heritage、Signal
+design/           三份 DESIGN.md：Paper、Heritage、Signal。third-party/ 里是 HeroUI 发布的原文件
 skills/           给编码智能体的两个 skill：intelligent-ui 和 motion
 docs/             调研、语言规范、架构
 scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设计
@@ -204,6 +247,7 @@ scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设�
 | [`docs/research.md`](docs/research.md) | A2UI、OpenUI、OpenAI 智能界面、UI SDK、DESIGN.md 的调研；UI SDK 兼容性实测；预置组件和状态语法的取舍 |
 | [`docs/spec.md`](docs/spec.md) | IUI 标记规范 |
 | [`docs/architecture.md`](docs/architecture.md) | 各部分的分工、数据流、安全模型、测试覆盖 |
+| [`docs/extending.md`](docs/extending.md) | 替换设计、图表和动效；注册组件和小组件；提示词怎么跟上 |
 | [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | 给智能体：怎么写界面、怎么接入 |
 | [`skills/motion/SKILL.md`](skills/motion/SKILL.md) | 给智能体：怎么设计和检查动效 |
 

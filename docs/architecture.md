@@ -52,8 +52,12 @@ packages/core            不依赖任何框架
   src/runtime            Surface：状态、派生值、查询、动作
   src/design             DESIGN.md 解析、令牌到 CSS 变量、CSS 作用域与净化
   src/prompt             系统提示词、语言指南、UI SDK 清单（生成）
+  src/library            产品的扩展：defineComponent、defineWidget、defineLibrary、属性 schema
+  src/charts             图表引擎的适配器：ECharts、AntV G2
+  src/motion             动效引擎的适配器：Motion、GSAP、Web Animations
   src/renderer           各渲染器共用的部分，不依赖框架，但会用到 DOM
                          树的遍历、属性与指令、令牌、原语、预置组件、图表
+                         小组件宿主、图表引擎宿主、动效适配器的运行时
   styles                 样式表，只有这一份
 packages/react           React 渲染器，建在 @ui-sdk/react 上
 packages/vue             Vue 渲染器，建在 @ui-sdk/vue 上
@@ -68,10 +72,11 @@ packages/web             Web Components 渲染器，建在 @ui-sdk/web 上，不
   src/mount、src/element  mount() 和 <intelligent-ui> 元素
   src/dom                自带的按 key 修补 DOM 的小型组件模型
   src/ui-sdk             把 UI SDK 部件画成自定义元素（<ui-tabs>）的适配层
-apps/playground          演示站：六个示例、流式回放、接真实模型；可以切换五个渲染器
+apps/playground          演示站：七个示例、流式回放、接真实模型；可以切换五个渲染器、设计、图表引擎和动效引擎
   src/surface            每个渲染器一个小适配器，演示站靠它用非 React 的渲染器画回复
 apps/vue-demo、solid-demo、svelte-demo、web-demo   同一批示例，各用一个渲染器
 design                   三份 DESIGN.md
+  third-party            别的组件库发布的 DESIGN.md 原文（HeroUI），用来验证替换设计
 skills                   给编码智能体的两个 skill
 scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DESIGN.md
 ```
@@ -130,7 +135,7 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 
 原语、预置组件和图表不直接生成框架元素，而是生成一棵中性的视图树（`view.ts`：标签、类名、样式、事件、子节点），每个框架用一个几十行的转换函数把它变成自己的元素。排序、翻页、悬停这类本地状态留在框架一侧，画什么由共用层决定。
 
-- **树到元素。** `createRenderer(host)` 返回的 `renderNodes` 逐节点生成元素。大写名字的查找顺序是宿主组件、`<define>`、预置组件、UI SDK。
+- **树到元素。** `createRenderer(host)` 返回的 `renderNodes` 逐节点生成元素。大写名字的查找顺序是库里的组件（`library`）、宿主组件（`components`）、`<define>`、预置组件、UI SDK。库里的组件声明了属性时，只有声明过且类型相符的属性会传给它。
 - **属性。** `props.ts` 把标记属性转成组件属性：`bind:` 变成值加回调，`on:` 变成事件处理函数，`class:`、`style:` 合并，危险属性（`dangerouslySetInnerHTML`、`srcdoc`、`formaction` 等）丢弃，链接和媒体地址经过 `safeUrl`。
 - **原语的属性是令牌。** `tokens.ts` 把 `gap={3}`、`color="muted"`、`radius="lg"` 解析成 `var(--iui-…)`；不认识的颜色名按 CSS 颜色处理并经过净化。
 - **错误边界。** 每个顶层块包在一个 `Boundary` 里。一块出错只影响这一块；流式期间不显示错误，只显示占位，因为下一个数据块可能就修好了。
@@ -138,6 +143,22 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 - **提示。** `toast()` 渲染在界面自己的一个 `popover` 区域里，进入浏览器顶层。
 
 **Web Components 渲染器的不同之处。** 它没有框架可以托付，所以自己带一个按 key 修补 DOM 的小型组件模型（`packages/web/src/dom`）：标记里还在的元素，更新之后还是同一个元素，焦点、输入到一半的文字和滚动位置都留着。UI SDK 部件在这里是 `@ui-sdk/web` 的自定义元素，原生标签由自定义元素包着或顶替（`<ui-tabs-tab>` 里再放一个 `<button>`），`data-slot`、角色、名称和状态与 React 相同。有些自定义元素只在接入页面时读一次自己的子节点（`Field`、`Select`、`Slider` 等），流式期间子节点还没到齐，所以这类部件在结束标签到达时重画一次，上面的 `open` 就是为它加的；容器类部件（标签页、对话框、菜单）不重画。React 画成 `<label>`、`<button>`、`<table>` 的部件在这里是自定义元素，得不到样式表和浏览器给这些标签的默认样子，`packages/web/styles/elements.css` 把它们补回来。日历是另一种情况：`<ui-calendar-weeks>` 自己排出每一周，并把模板里的那一天复制给每个日期、写上日期，所以渲染器在它排好之后把每一天接过来，按标记对这个日期的写法画（`dom/patch.ts` 的 `adopt`）：标记在这一天放了内容，就只显示内容；没放，就留着元素写的日期。这样日期格里读 `cell` 的内容才和 React 一样。
+
+## 扩展点
+
+产品能换掉或加上的东西都收在一个 `Library` 里（`packages/core/src/library`），渲染器和 `buildSystemPrompt` 读同一个对象。用法见 [`extending.md`](extending.md)，这里只说各部分落在哪一层。
+
+| 扩展 | 定义 | 谁来画 |
+| --- | --- | --- |
+| 框架组件 | `defineComponent`：名字、说明、属性 schema、事件、示例、组件 | 该框架的渲染器直接用这个组件 |
+| 小组件 | `defineWidget`：同上，但用 `setup` 返回视图 | 共用层调用 `setup`；每个渲染器实现一个几十行的 `host.widget`，负责重画、清理和把元素交给小组件。内置预置组件走的是同一条路，所以新增的小组件不需要为每个框架再写一遍 |
+| 图表引擎 | `ChartEngine`：`mount(element, spec, context)` 或框架组件 | `chart-engine.ts` 把标记属性整理成 `ChartSpec`（行、系列、解析好的颜色、格式化函数、主题），用一个小组件承载引擎画出来的元素；主题变化时再调一次 `update` |
+| 动效适配器 | `MotionAdapter`：`animate(element, keyframes, timing)` | `renderer/motion.ts` 的运行时观察界面的 DOM，决定谁入场、谁离场、谁循环、`morph` 从哪到哪，再交给适配器播放。有适配器时根元素带 `data-iui-motion-engine`，`motion.css` 里对应的 CSS 动画让位 |
+| 设计 | DESIGN.md 文本，或 `parseDesign`、`designFromCss` 的结果 | `designToCss`，和内置设计同一条路 |
+
+属性 schema（`schema.ts`）有三个去处：写进提示词（`describeType`）、渲染时检查标记传的值（`checkProp`）、`validateLibrary` 检查示例。一份定义管三件事，是"提示词不能承诺渲染器做不到的事"在扩展上的落实。
+
+`librarySpec(library)` 去掉组件本身，剩下纯数据，可以在构建时写成 JSON 交给生成提示词的服务。
 
 ## UI SDK 的接入
 
@@ -181,6 +202,8 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 - **UI SDK 走同一套变量。** 在 `.iui-root` 上把 UI SDK 的 `--ui-*` 指向 `--iui-*`，行为组件和原语的视觉因此一致。
 - **令牌值会被检查。** DESIGN.md 可能来自不受信任的地方；含有 `;`、`{`、`}`、`<`、反斜杠、`url(`、`image-set(`、`@import` 的值被丢弃，不写进样式表。
 - **正文给模型。** 令牌解决“用什么值”，正文解决“什么时候用”。`buildSystemPrompt` 把两者都放进提示词。
+- **没有令牌 YAML 的设计也能读。** 为别的组件库写的 DESIGN.md（例如 HeroUI 的）把令牌写成 CSS 变量的表格。`extract.ts` 从表格、行内代码和 `css` 代码块里读出变量，按值和名字归到颜色、圆角、间距、字体；`designFromCss` 对一份主题样式表做同样的事。这样读出来的设计标记为 `source: "css-variables"`，提示词会告诉模型它的正文是为另一个库写的。
+- **角色可以指定。** 设计的颜色名和渲染器的角色对不上时，`parseDesign(source, { roles })` 指定哪个令牌充当哪个角色。`muted` 是最常见的歧义（有的设计里是底色，有的是文字色），按它和页面底色的明度差判断；`color.ts` 为此能读 hex、`rgb()`、`hsl()`、`oklch()`、`oklab()` 的明度。
 
 ## 样式分层
 
@@ -220,6 +243,11 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 
 `prefers-reduced-motion: reduce` 下，所有动画和过渡的时长降到 1 毫秒，循环动画只播一次。
 
+**换成脚本动效库时**（`library.motion`），上面第 1、3 点和离场改由 `renderer/motion.ts` 的运行时驱动，第 2 点不变。运行时自己不播动画，只做三件事：用 `MutationObserver` 看界面里新到的元素并按 `motion`、`stagger`、`delay` 算出每个元素的关键帧和时间；离场时让适配器播完再让框架卸载；`morph` 用 FLIP（记下旧位置，状态提交后量新位置，让适配器把差值播回零）。逐帧截图发现的两个问题留在了代码里：
+
+- **用脚本计时的引擎会吃掉入场的前半段。** 流式期间页面忙着布局，引擎的时钟却已经在走。所以对没有声明 `startsOnPaint` 的适配器，元素先由 `data-iui-hold` 藏住，等页面画过一帧再开始。
+- **一个界面只入场一次。** 记录"谁已经入过场"的集合按根元素保存，不随运行时销毁：框架重建运行时（React 严格模式、换了一个 `library` 对象）不会让整个界面重播一遍；被中途打断的入场则会从头播。
+
 ## 提示词
 
 `packages/core/src/prompt`。`buildSystemPrompt` 把几份指南拼起来：
@@ -232,6 +260,8 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 | 动效 | 属性、令牌、规则 |
 | 写法 | 先给答案、一卡一事、让它可调、少说、把决定交还 |
 | 设计 | DESIGN.md 的令牌名和正文 |
+| 产品的组件 | `library` 里每个组件一节，由它的定义生成：说明、属性和类型、事件、是否接受子内容、第一个示例 |
+| 图表和动效的补充 | 图表引擎多出来的图表类型，动效适配器的自定义预设 |
 | 工具 | 宿主声明的读、写工具 |
 
 两条约束：
@@ -262,6 +292,7 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 | 接走页面上的文件 | UI SDK 的 `FileInputDropzone` 有两个选项决定它在哪里收文件：`target="document"` 让它接整个窗口的拖放，`pasteTarget` 取 `"document"` 或一个在整页里查找的选择器，让它接别处的粘贴。回复写了它们，读者拖到或粘贴到宿主页面上的文件就会进回复的文件框，宿主自己的粘贴还会被取消。这两个选项在该组件上丢弃，不论大小写、是否经 `bind:` 或展开写入；拖放区只收落在它自己上面的文件。另外，页面上只要有拖放区，UI SDK 就会取消落在拖放区之外的文件拖放（免得浏览器直接打开文件），宿主自己不是 UI SDK 拖放区的投放目标在这样的回复显示期间会受影响，这是 UI SDK 的行为，没有改 |
 | 借自定义元素的属性伸到界面之外 | Web Components 渲染器里，标记只能给元素设置 HTML 属性（attribute），不能赋 property；`on` 开头的属性不会以字符串落到元素上。UI SDK 的自定义元素会读自己的属性，其中 `container` 能把弹层挂到页面上任意位置，部件上的 `for` 能指向界面之外的元素，这两个丢弃。宿主自己的自定义元素只有它列出的名字才按 property 赋值，`innerHTML`、`textContent` 一类即使列了也不赋 |
 | 借框架的钩子读到宿主 | Vue 的 `onVnodeMounted` 一类属性不是事件，调用时会拿到虚拟节点，顺着它能读到应用上下文。Vue 渲染器在标记能写到的每一处都丢弃这类名字；`ref` 在两边都丢弃 |
+| 借产品注册的组件越界 | 库里的组件声明了属性后，标记只能传声明过的名字，值要符合声明的类型，否则丢弃并报告；带地址的属性照样过协议过滤和 `allowUrl`。图表引擎拿到的是整理过的 `ChartSpec`，适配器的提示框用 DOM 节点拼成，标签文字不会被当成 HTML。动效预设只能按名字引用，标记写不了关键帧 |
 | 嵌入其他文档 | `iframe`、`object`、`embed`、SVG `foreignObject` 被丢弃 |
 | 越权读写数据 | 标记只能调用宿主传入的工具。工具在读者的会话里运行，宿主应在服务端校验每一次调用 |
 

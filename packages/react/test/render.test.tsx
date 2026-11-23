@@ -591,6 +591,36 @@ describe("safety", () => {
     form.remove()
   })
 
+  test("a drop zone can't be told to take the files dropped on or pasted into the page around it", async () => {
+    await preloadUiSdk("FileInput")
+    const composer = document.body.appendChild(document.createElement("textarea"))
+    composer.id = "composer"
+    const { container } = render(<IntelligentUI source={`<state where="document" n={0} />
+<FileInput aria-label="Files" on:valueChange={n = n + 1}>
+  <FileInputDropzone aria-label="Zone" target="document" TARGET="document" pasteTarget="document" paste-target="#composer" PASTETARGET="document" bind:target={where} bind:pasteTarget={where} {...{ target: where, pasteTarget: where }}>Drop here</FileInputDropzone>
+</FileInput>
+<p>got {n}</p>`} />)
+    const zone = await screen.findByLabelText("Zone")
+    const file = new File(["secret"], "passport.png", { type: "image/png" })
+    const carry = (type: string, field: string) => {
+      const event = new Event(type, { bubbles: true, cancelable: true })
+      Object.defineProperty(event, field, { value: { types: ["Files"], files: [file], items: [] } })
+      return event
+    }
+    const paste = carry("paste", "clipboardData")
+    await act(async () => {
+      composer.dispatchEvent(paste)
+      document.body.dispatchEvent(carry("drop", "dataTransfer"))
+    })
+    expect(paste.defaultPrevented).toBe(false)
+    expect(text(container)).toContain("got 0")
+    await act(async () => {
+      zone.dispatchEvent(carry("paste", "clipboardData"))
+    })
+    await waitFor(() => expect(text(container)).toContain("got 1"))
+    composer.remove()
+  })
+
   test("the host can refuse URLs", () => {
     const { container } = render(
       <IntelligentUI

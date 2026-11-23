@@ -59,7 +59,7 @@ The layout primitives and the presets `Stat`, `Number`, `DataTable`, `CodeBlock`
 
 UI SDK components and icons load on first use, one chunk per entry point or icon. Call `preloadUiSdk()` or `preloadUiSdk("Tabs", "Dialog")`, and `preloadIcons("arrow-up", "x")`, to load them ahead of time.
 
-The package ships `.svelte` files and the modules beside them, as Svelte libraries do, so it needs a bundler with the Svelte plugin: Vite with `@sveltejs/vite-plugin-svelte`, or SvelteKit. ESM only. Rendering on a server has not been tested: in SvelteKit, draw it in the browser only.
+The package ships `.svelte` files and the modules beside them, as Svelte libraries do, so it needs a bundler with the Svelte plugin: Vite with `@sveltejs/vite-plugin-svelte`, or SvelteKit. ESM only. `render` from `svelte/server` produces the surface's HTML, but hydrating that HTML has not been tested: in SvelteKit, draw it in the browser only.
 
 Tools, theming, your own components, state and the safety model are covered in the [integration guide](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/skills/intelligent-ui/references/integration.md).
 

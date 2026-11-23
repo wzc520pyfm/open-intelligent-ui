@@ -6,3 +6,6 @@ dist
 .netlify
 coverage
 /artifacts
+packages/*/LICENSE
+packages/*/NOTICE
+*.tgz

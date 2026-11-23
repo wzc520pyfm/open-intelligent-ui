@@ -2,8 +2,25 @@
   "name": "@open-intelligent-ui/react",
   "version": "0.1.0",
   "description": "React renderer for Open Intelligent UI. Renders streaming IUI markup with UI SDK behaviors, DESIGN.md tokens and motion.",
-  "type": "module",
+  "keywords": [
+    "generative-ui",
+    "intelligent-ui",
+    "agent",
+    "llm",
+    "react",
+    "ui-sdk",
+    "design-md",
+    "streaming"
+  ],
+  "homepage": "https://github.com/wzc520pyfm/open-intelligent-ui#readme",
+  "bugs": "https://github.com/wzc520pyfm/open-intelligent-ui/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wzc520pyfm/open-intelligent-ui.git",
+    "directory": "packages/react"
+  },
   "license": "MIT",
+  "type": "module",
   "sideEffects": [
     "**/*.css"
   ],
@@ -13,9 +30,26 @@
     "./styles.css": "./src/styles/index.css"
   },
   "files": [
-    "src"
+    "dist",
+    "NOTICE"
   ],
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./ui-sdk": {
+        "types": "./dist/ui-sdk.d.ts",
+        "default": "./dist/ui-sdk.js"
+      },
+      "./styles.css": "./dist/styles.css"
+    }
+  },
   "scripts": {
+    "build": "tsdown && node scripts/build-css.mjs",
+    "prepack": "pnpm run build && node ../../scripts/copy-license.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {

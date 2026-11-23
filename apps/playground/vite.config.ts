@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
+import { svelte } from "@sveltejs/vite-plugin-svelte"
 import { defineConfig } from "vite"
 import { keepSiteStylesOutOfSurfaces } from "./build/outside-surfaces"
 
@@ -9,7 +10,8 @@ const core = JSON.parse(
 ) as { version: string }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  // The Svelte renderer and UI SDK for Svelte are `.svelte` files; this compiles them and nothing else.
+  plugins: [react(), svelte({ configFile: false, compilerOptions: { runes: true } }), tailwindcss()],
   css: { postcss: { plugins: [keepSiteStylesOutOfSurfaces] } },
   define: {
     __VERSION__: JSON.stringify(core.version),

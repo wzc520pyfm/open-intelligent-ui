@@ -320,9 +320,9 @@ function spacerView(props: ViewProps): View {
 }
 
 export interface ImageState {
-  /** True once the picture has failed to load. */
-  failed: boolean
-  onError: () => void
+  /** The address that failed to load, if one did. A picture at another address is tried again. */
+  failed: string | null
+  onError: (src: string) => void
 }
 
 /** A picture, or a placeholder of the same shape when there is none to show. */
@@ -340,7 +340,7 @@ export function imageView(props: ViewProps, state: ImageState): View {
     ...(fit && /^(cover|contain|fill|none|scale-down)$/.test(fit) ? { objectFit: fit } : null),
     ...style,
   }
-  if (!src || state.failed) {
+  if (!src || state.failed === src) {
     return view("span", {
       role: "img",
       "aria-label": alt || undefined,
@@ -358,7 +358,7 @@ export function imageView(props: ViewProps, state: ImageState): View {
     referrerpolicy: "no-referrer",
     class: joinClass("iui-el iui-image", className),
     style: merged,
-    on: { error: state.onError },
+    on: { error: () => state.onError(src) },
   })
 }
 

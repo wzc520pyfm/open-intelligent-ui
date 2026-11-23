@@ -110,9 +110,9 @@ const Image = defineComponent({
   name: "IuiImage",
   inheritAttrs: false,
   setup(_, { attrs }) {
-    const failed = ref(false)
-    const onError = () => {
-      failed.value = true
+    const failed = ref<string | null>(null)
+    const onError = (src: string) => {
+      failed.value = src
     }
     return () => toVue(imageView(attrs as ViewProps, { failed: failed.value, onError }), PARTS)
   },

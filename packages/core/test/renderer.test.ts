@@ -1,9 +1,11 @@
 import { describe, expect, test, vi } from "vitest"
 import { type EvalHost, evaluate, parseExpression, parseProgram, run, Scope } from "../src/expr"
+import { parse } from "../src/markup"
 import {
   chartValues,
   chartView,
   claimId,
+  createRenderer,
   exitAnimations,
   lazyRecord,
   numberView,
@@ -11,6 +13,7 @@ import {
   readChartData,
   type View,
 } from "../src/renderer"
+import { Surface } from "../src/runtime/surface"
 
 const host: EvalHost = {
   lookup: () => ({ found: false }),
@@ -97,6 +100,78 @@ function texts(node: unknown, out: string[] = []): string[] {
   else if (node && typeof node === "object") texts((node as View).children, out)
   return out
 }
+
+/** The props a host component named `Plain`, or the element `tag`, is handed when `source` is rendered. */
+function handed(source: string, tag?: string): Record<string, unknown> {
+  let given: Record<string, unknown> = {}
+  const component = (_type: string, props: Record<string, unknown>) => {
+    given = props
+    return null
+  }
+  const render = createRenderer<unknown, string>({
+    dialect: {
+      className: "class",
+      html: (lower) => lower,
+      svg: (_lower, written) => written,
+      prop: (name) => name,
+      event: (name) => `on:${name}`,
+      handler: (name) => name,
+      bindEvent: () => "on:change",
+      bindProps: (argument) => [`on:${argument}Change`],
+    },
+    primitives: {},
+    presets: {},
+    lookup: () => ({ status: "unknown" }),
+    fragment: (children) => children,
+    element: (type, props) => {
+      if (type === tag) given = props
+      return null
+    },
+    component,
+    scoped: component,
+    presence: (child) => child,
+    pending: () => null,
+  })
+  const doc = parse(source)
+  const surface = new Surface()
+  surface.update(doc)
+  render(doc.children, {
+    surface,
+    scope: surface.scope,
+    slot: null,
+    templateDepth: 0,
+    options: {
+      components: { Plain: "Plain" },
+      streaming: false,
+      report: () => {},
+      invoke: (work) => work(),
+      write: (work) => work(),
+    },
+  })
+  return given
+}
+
+describe("what markup hands a component", () => {
+  // A component passes what it doesn't know to its element, and an HTML
+  // element reads `STYLE` as `style`.
+  test("is a style only under the name the style is checked under", () => {
+    const given = handed(`<state css="position: fixed; background: url(https://evil.test/a.png)" bag={{ Style: "background: url(https://evil.test/b.png)" }} />
+<Plain title="ok" style="color: red; background: url(https://evil.test/c.png)" STYLE={css} sTyLe="position: fixed" {...bag} bind:STYLE={css} />`)
+    expect(given).toEqual({ title: "ok", style: { color: "red" } })
+  })
+})
+
+describe("what markup hands an element", () => {
+  // A browser reads the type of an input in any case, and React writes a
+  // list of one word as that word.
+  test("is not a file picker, however the type is written", () => {
+    for (const type of ['"file"', '"FILE"', '"File"', '{"fi" + "le"}', '{["file"]}', '{["FiLe"]}']) {
+      expect(handed(`<input type=${type} name="doc" />`, "input"), type).toEqual({ name: "doc" })
+    }
+    expect(handed('<input type="email" name="doc" />', "input")).toEqual({ type: "email", name: "doc" })
+    expect(handed('<input type={["a", "b"]} />', "input")).toEqual({ type: ["a", "b"] })
+  })
+})
 
 describe("charts", () => {
   const chart = (type: string, values: number[]) => {

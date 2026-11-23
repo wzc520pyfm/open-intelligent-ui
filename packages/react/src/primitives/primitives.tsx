@@ -50,11 +50,8 @@ const Icon: Primitive = (input) => {
 const PARTS = { icon: Icon }
 
 const Image: Primitive = (input) => {
-  const [failed, setFailed] = useState(false)
-  return toReact(
-    imageView(viewProps(input).props, { failed, onError: () => setFailed(true) }),
-    PARTS
-  )
+  const [failed, setFailed] = useState<string | null>(null)
+  return toReact(imageView(viewProps(input).props, { failed, onError: setFailed }), PARTS)
 }
 
 const shared = Object.fromEntries(

@@ -1,10 +1,10 @@
-import type { Library, SurfaceAction, Tool, ToolEvent } from "@open-intelligent-ui/core"
+import type { Design, Library, SurfaceAction, Tool, ToolEvent } from "@open-intelligent-ui/core"
 
 /** What the site gives a surface, whichever renderer draws it. */
 export interface SurfaceProps {
   source: string
   streaming: boolean
-  design: string
+  design: string | Design
   scheme: "light" | "dark"
   tools: Record<string, Tool>
   /** The product's components and the engines chosen for charts and motion. */

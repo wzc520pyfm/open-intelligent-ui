@@ -135,7 +135,7 @@ function open(next: Demo) {
   const fresh = document.createElement("intelligent-ui") as IntelligentUIElement
   fresh.className = "wd-surface"
   fresh.source = next.source
-  fresh.design = themeOf(design.value)?.source
+  fresh.design = themeOf(design.value)?.design
   fresh.scheme = scheme
   fresh.tools = createTicketTools()
   fresh.library = next.library
@@ -162,7 +162,7 @@ for (const item of DEMOS) {
 }
 
 design.addEventListener("change", () => {
-  surface.design = themeOf(design.value)?.source
+  surface.design = themeOf(design.value)?.design
 })
 
 schemeButton.addEventListener("click", () => {

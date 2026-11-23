@@ -199,7 +199,7 @@ export function App() {
   const systemPrompt = useMemo(
     () =>
       buildSystemPrompt({
-        design: theme.source,
+        design: theme.design,
         ...(library ? { library } : null),
         ...(useTools ? { tools: TICKET_TOOLS } : null),
       }),
@@ -672,7 +672,7 @@ export function App() {
                     handle={turn.id === latestSurface?.id ? handle : undefined}
                     source={turn.text}
                     streaming={turn.id === streamingId}
-                    design={theme.source}
+                    design={theme.design}
                     scheme={scheme}
                     tools={tools}
                     library={library}

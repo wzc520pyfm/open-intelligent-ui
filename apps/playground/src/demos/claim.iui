@@ -43,7 +43,7 @@
   </card>
   <card padding={4} gap={3}>
     <title level={3}>Spend against cap</title>
-    <Chart type="bar" data={lines} x="category" y={["amount", "cap"]} names={{ amount: "Claimed", cap: "Cap" }} colors={["chart-1", "chart-3"]} format="currency" digits={0} height={210} aria-label="Claimed amount and cap for each line" />
+    <Chart type="bar" data={lines} x="category" y={["amount", "cap"]} names={{ amount: "Claimed", cap: "Cap" }} colors={["chart-1", "muted-foreground"]} format="currency" digits={0} height={210} aria-label="Claimed amount and cap for each line" />
   </card>
 </grid>
 

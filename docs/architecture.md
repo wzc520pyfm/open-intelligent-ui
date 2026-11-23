@@ -137,7 +137,7 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 - **离场。** `show={false}` 的元素由 `Presence` 多保留一段时间：先加上离场状态，等动画结束再卸载。
 - **提示。** `toast()` 渲染在界面自己的一个 `popover` 区域里，进入浏览器顶层。
 
-**Web Components 渲染器的不同之处。** 它没有框架可以托付，所以自己带一个按 key 修补 DOM 的小型组件模型（`packages/web/src/dom`）：标记里还在的元素，更新之后还是同一个元素，焦点、输入到一半的文字和滚动位置都留着。UI SDK 部件在这里是 `@ui-sdk/web` 的自定义元素，原生标签由自定义元素包着或顶替（`<ui-tabs-tab>` 里再放一个 `<button>`），`data-slot`、角色、名称和状态与 React 相同。有些自定义元素只在接入页面时读一次自己的子节点（`Field`、`Select`、`Slider` 等），流式期间子节点还没到齐，所以这类部件在结束标签到达时重画一次，上面的 `open` 就是为它加的；容器类部件（标签页、对话框、菜单）不重画。React 画成 `<label>`、`<button>`、`<table>` 的部件在这里是自定义元素，得不到样式表和浏览器给这些标签的默认样子，`packages/web/styles/elements.css` 把它们补回来。日历是另一种情况：`<ui-calendar-weeks>` 自己排出每一周，并把模板里的那一天复制给每个日期，所以渲染器在它排好之后把每一天接过来，按标记对这个日期的写法画（`dom/patch.ts` 的 `adopt`），日期格里读 `cell` 的内容才和 React 一样。
+**Web Components 渲染器的不同之处。** 它没有框架可以托付，所以自己带一个按 key 修补 DOM 的小型组件模型（`packages/web/src/dom`）：标记里还在的元素，更新之后还是同一个元素，焦点、输入到一半的文字和滚动位置都留着。UI SDK 部件在这里是 `@ui-sdk/web` 的自定义元素，原生标签由自定义元素包着或顶替（`<ui-tabs-tab>` 里再放一个 `<button>`），`data-slot`、角色、名称和状态与 React 相同。有些自定义元素只在接入页面时读一次自己的子节点（`Field`、`Select`、`Slider` 等），流式期间子节点还没到齐，所以这类部件在结束标签到达时重画一次，上面的 `open` 就是为它加的；容器类部件（标签页、对话框、菜单）不重画。React 画成 `<label>`、`<button>`、`<table>` 的部件在这里是自定义元素，得不到样式表和浏览器给这些标签的默认样子，`packages/web/styles/elements.css` 把它们补回来。日历是另一种情况：`<ui-calendar-weeks>` 自己排出每一周，并把模板里的那一天复制给每个日期、写上日期，所以渲染器在它排好之后把每一天接过来，按标记对这个日期的写法画（`dom/patch.ts` 的 `adopt`）：标记在这一天放了内容，就只显示内容；没放，就留着元素写的日期。这样日期格里读 `cell` 的内容才和 React 一样。
 
 ## UI SDK 的接入
 

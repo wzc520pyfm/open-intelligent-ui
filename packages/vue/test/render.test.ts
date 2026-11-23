@@ -439,6 +439,19 @@ describe("presets", () => {
     expect(container.querySelector('.iui-image[data-missing][role="img"]')).not.toBeNull()
   })
 
+  test("a picture that failed is tried again at another address", async () => {
+    const { container } = await draw({
+      source: `<state file="a" />
+<image src={"https://example.com/" + file + ".png"} alt="A view" />
+<button on:click={file = "b"}>Next</button>`,
+    })
+    ;(container.querySelector("img") as HTMLImageElement).dispatchEvent(new Event("error"))
+    await flushPromises()
+    expect(container.querySelector("img")).toBeNull()
+    await click(byText(container, "Next"))
+    expect(container.querySelector("img")?.getAttribute("src")).toBe("https://example.com/b.png")
+  })
+
   test("icons are drawn once they load, and unknown names leave a gap", async () => {
     const { container } = await draw({
       source: `<icon name="arrow-up" size="lg" label="Up" /><icon name="HomeIcon" /><icon name="no-such-icon" />`,

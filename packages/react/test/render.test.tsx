@@ -352,6 +352,21 @@ describe("presets", () => {
     }
   })
 
+  test("a picture that failed is tried again at another address", () => {
+    const { container } = render(
+      <IntelligentUI
+        source={`<state file="a" />
+<image src={"https://example.com/" + file + ".png"} alt="A view" />
+<button on:click={file = "b"}>Next</button>`}
+      />
+    )
+    fireEvent.error(container.querySelector("img") as HTMLImageElement)
+    expect(container.querySelector("img")).toBeNull()
+    expect(container.querySelector(".iui-image[data-missing]")).not.toBeNull()
+    fireEvent.click(screen.getByText("Next"))
+    expect(container.querySelector("img")?.getAttribute("src")).toBe("https://example.com/b.png")
+  })
+
   test("Chart keeps its marks apart when a field is listed twice", () => {
     const complaints = vi.spyOn(console, "error").mockImplementation(() => {})
     try {

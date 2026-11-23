@@ -113,9 +113,9 @@ PARTS.icon = icon
 
 /** A picture, or a placeholder of the same shape once it has failed to load. */
 const image: Widget = ({ redraw }) => {
-  let failed = false
-  const onError = () => {
-    failed = true
+  let failed: string | null = null
+  const onError = (src: string) => {
+    failed = src
     redraw()
   }
   return (props) => imageView(props, { failed, onError })

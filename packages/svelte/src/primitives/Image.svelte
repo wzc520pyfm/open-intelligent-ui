@@ -5,9 +5,9 @@
   /** A picture that says so when it can't be loaded. */
   let props: ViewProps = $props()
 
-  let failed = $state(false)
-  const onError = () => {
-    failed = true
+  let failed = $state<string | null>(null)
+  const onError = (src: string) => {
+    failed = src
   }
 </script>
 

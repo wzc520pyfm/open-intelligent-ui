@@ -72,7 +72,7 @@ export function describe(root: Element): string {
     }
     if (node instanceof HTMLInputElement) {
       if (node.type === "checkbox" || node.type === "radio") attributes.push(`.checked=${node.checked}`)
-      else attributes.push(`.value=${JSON.stringify(node.value)}`)
+      attributes.push(`.value=${JSON.stringify(node.value)}`)
     } else if (node instanceof HTMLTextAreaElement || node instanceof HTMLSelectElement) {
       attributes.push(`.value=${JSON.stringify(node.value)}`)
     }
@@ -83,20 +83,23 @@ export function describe(root: Element): string {
     // Walk the live children so property values are read from real elements,
     // but merge neighbouring text the way `normalize` would.
     let text = ""
-    const flush = () => {
+    let before = false
+    // A space between two elements is one the reader sees, so it is kept.
+    const flush = (after: boolean) => {
       const merged = text.replace(/\s+/g, " ")
-      if (merged.trim()) lines.push(`${pad}  "${merged}"`)
+      if (merged.trim() || (merged && before && after)) lines.push(`${pad}  "${merged}"`)
       text = ""
     }
     for (const child of node.childNodes) {
       if (child.nodeType === Node.TEXT_NODE) text += child.textContent ?? ""
       else if (child.nodeType === Node.COMMENT_NODE) continue
       else {
-        flush()
+        flush(true)
         walk(child, depth + 1)
+        before = true
       }
     }
-    flush()
+    flush(false)
   }
   walk(root, 0)
   return lines.join("\n")

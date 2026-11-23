@@ -19,7 +19,16 @@ window.matchMedia = ((query: string) => ({
   removeEventListener() {},
 })) as unknown as typeof window.matchMedia
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 40))
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/** Waits for what arrives late: an icon is a placeholder until its drawing has loaded. */
+async function settle(root: () => Element | null) {
+  await pause(40)
+  for (let waited = 0; waited < 5000; waited += 10) {
+    if (!root()?.querySelector("span.iui-icon:not([data-missing])")) return
+    await pause(10)
+  }
+}
 
 interface Drawn {
   dom: string
@@ -44,7 +53,7 @@ async function drawnByReact(sample: Sample): Promise<Drawn> {
       })
     )
   })
-  await act(settle)
+  await act(() => settle(() => host))
   const dom = describeDom(host.firstElementChild as Element)
   await act(async () => root.unmount())
   host.remove()
@@ -63,7 +72,7 @@ async function drawnByVue(sample: Sample): Promise<Drawn> {
     },
   })
   await flushPromises()
-  await settle()
+  await settle(() => view.element)
   await flushPromises()
   const dom = describeDom(view.element)
   view.unmount()
@@ -86,5 +95,6 @@ test.each(CORPUS.map((sample) => [sample.name, sample] as const))(
     expect(react.dom).not.toContain("iui-error")
     expect(vue.dom).toBe(react.dom)
     expect(vue.warnings).toEqual(react.warnings)
+    expect(react.warnings).toEqual([])
   }
 )

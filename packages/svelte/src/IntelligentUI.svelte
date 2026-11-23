@@ -14,7 +14,7 @@
     type Toast,
     usesMorph,
   } from "@open-intelligent-ui/core/renderer"
-  import { flushSync, onMount, untrack } from "svelte"
+  import { flushSync, onDestroy, onMount, untrack } from "svelte"
   import { getUiSdkVersion, subscribeUiSdk } from "./registry/ui-sdk.js"
   import type { IntelligentUIProps } from "./types.js"
   import Boundary from "./render/Boundary.svelte"
@@ -204,11 +204,20 @@
   const designSheet = $derived(designCss(design ?? library?.design, id))
 
   // As soon as the surface is in the page, so nothing shows at rest and then plays its entrance.
+  // An effect runs again whenever what it read may have changed, which is more often than it
+  // does change, and attaching again stops what is playing. An adapter held in `$state` is a
+  // new proxy under each new library, so it is told apart by the function it animates with.
+  let moved: { by: unknown; named: unknown; on: HTMLElement | null; stop: () => void } | undefined
   $effect(() => {
     const adapter = library?.motion
     const element = root
-    return untrack(() => attachMotion(element, adapter))
+    const by = (adapter as { animate?: unknown } | undefined)?.animate
+    const named = `${adapter?.name ?? ""} ${Object.keys(adapter?.presets ?? {}).join(" ")}`
+    if (moved && moved.by === by && moved.named === named && moved.on === element) return
+    moved?.stop()
+    moved = { by, named, on: element, stop: untrack(() => attachMotion(element, adapter)) }
   })
+  onDestroy(() => moved?.stop())
   let sheets: { key: string; css: string } | undefined
   const modelSheet = $derived.by(() => {
     void doc

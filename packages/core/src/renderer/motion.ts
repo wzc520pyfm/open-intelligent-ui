@@ -100,6 +100,15 @@ export interface MotionAdapter extends MotionSpec {
    */
   morph?: "flip" | "view-transition"
   /**
+   * True when the engine starts an animation's clock at the frame that
+   * first shows it, as CSS and the Web Animations API do. An engine that
+   * keeps time in script starts counting at once, so an entrance that
+   * begins while the page is busy drawing is half over when it is first
+   * seen; for those the renderer keeps what enters hidden until the page
+   * has painted, then starts the engine. Defaults to false.
+   */
+  startsOnPaint?: boolean
+  /**
    * True when the engine leaves inline styles on an element it has
    * animated. The renderer then puts back what was there when an entrance
    * ends. Defaults to true.
@@ -176,6 +185,11 @@ const STREAMED = ".iui-el, li, tr"
 const STAGGER_LIMIT = 11
 const RESTORED = ["opacity", "transform", "translate", "scale", "rotate", "filter", "stroke-dashoffset", "transform-origin", "will-change"]
 
+/** Marks an element that is hidden until its entrance starts. `motion.css` does the hiding. */
+const HOLD = "data-iui-hold"
+/** How long an element waits for the page to paint before it enters regardless. */
+const HOLD_LIMIT = 200
+
 type Target = HTMLElement | SVGElement
 
 function milliseconds(value: string | undefined): number | null {
@@ -216,19 +230,35 @@ interface Playing {
 }
 
 /** One surface whose motion an adapter plays. */
+/**
+ * What has already entered, by surface. It outlives a runtime, so handing a
+ * surface to another adapter doesn't bring everything on it in again.
+ */
+const arrivals = new WeakMap<HTMLElement, WeakSet<Element>>()
+
 class MotionRuntime {
   private readonly playing = new Map<Target, Playing>()
-  private readonly entered = new WeakSet<Element>()
+  private readonly entered: WeakSet<Element>
+  /** True while taking over a surface that was already moving: only what repeats starts again. */
+  private resuming = false
+  /** What is hidden until the page has painted, with what stops the wait. */
+  private readonly held = new Map<Target, () => void>()
   private observer: MutationObserver | undefined
 
   constructor(
     readonly root: HTMLElement,
     readonly adapter: MotionAdapter
-  ) {}
+  ) {
+    const known = arrivals.get(root)
+    this.resuming = known !== undefined
+    this.entered = known ?? new WeakSet()
+    arrivals.set(root, this.entered)
+  }
 
   start(): void {
     this.root.setAttribute("data-iui-motion-engine", this.adapter.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"))
     for (const child of this.root.children) this.arrive(child)
+    this.resuming = false
     if (typeof MutationObserver === "undefined") return
     this.observer = new MutationObserver((records) => this.changed(records))
     this.observer.observe(this.root, {
@@ -242,7 +272,15 @@ class MotionRuntime {
   stop(): void {
     this.observer?.disconnect()
     this.observer = undefined
-    for (const target of [...this.playing.keys()]) this.cancel(target)
+    // An entrance cut short was never seen: whichever adapter comes next plays it from the start.
+    for (const target of [...this.held.keys()]) {
+      this.entered.delete(target)
+      this.release(target)
+    }
+    for (const [target, { kind }] of [...this.playing]) {
+      if (kind === "enter" || kind === "emphasis") this.entered.delete(target)
+      this.cancel(target)
+    }
     this.root.removeAttribute("data-iui-motion-engine")
   }
 
@@ -268,7 +306,60 @@ class MotionRuntime {
       for (const target of [...this.playing.keys()]) {
         if (!this.root.contains(target)) this.cancel(target, false)
       }
+      for (const target of [...this.held.keys()]) {
+        if (!this.root.contains(target)) this.release(target)
+      }
     }
+  }
+
+  /** Shows an element that was waiting for its entrance, without playing it. */
+  private release(target: Target): void {
+    this.held.get(target)?.()
+  }
+
+  /**
+   * Plays an entrance once the page has painted what just arrived. An
+   * engine that keeps time in script would otherwise spend the first part
+   * of the entrance behind the work of drawing it.
+   */
+  private afterPaint(target: Target, keyframes: MotionKeyframes, timing: MotionTiming): void {
+    const view = target.ownerDocument.defaultView
+    if (!view || typeof view.requestAnimationFrame !== "function") {
+      this.play(target, keyframes, timing)
+      return
+    }
+    this.release(target)
+    target.setAttribute(HOLD, "")
+    let frame = 0
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const clear = () => {
+      view.cancelAnimationFrame(frame)
+      clearTimeout(timer)
+      this.held.delete(target)
+    }
+    const begin = () => {
+      if (!this.held.has(target)) return
+      clear()
+      if (!this.root.contains(target)) {
+        target.removeAttribute(HOLD)
+        return
+      }
+      this.play(target, keyframes, timing)
+      // An engine that writes its first frame later keeps the element hidden until it has.
+      if (this.playing.has(target) && this.adapter.writesStyle !== false && target.style.opacity === "") {
+        view.requestAnimationFrame(() => target.removeAttribute(HOLD))
+      } else target.removeAttribute(HOLD)
+    }
+    this.held.set(target, () => {
+      clear()
+      target.removeAttribute(HOLD)
+    })
+    // The first frame paints what arrived, hidden; the entrance starts with the second.
+    frame = view.requestAnimationFrame(() => {
+      frame = view.requestAnimationFrame(begin)
+    })
+    // A page that isn't drawing frames (a hidden tab) must not keep content hidden for good.
+    timer = setTimeout(begin, HOLD_LIMIT)
   }
 
   /** Plays the entrance of an element that just arrived, and of what arrived inside it. */
@@ -287,6 +378,7 @@ class MotionRuntime {
   }
 
   private cancel(target: Target, restore = true): void {
+    this.release(target)
     const current = this.playing.get(target)
     if (!current) return
     this.playing.delete(target)
@@ -326,7 +418,8 @@ class MotionRuntime {
   }
 
   private enter(element: Element): void {
-    if (this.entered.has(element)) return
+    const seen = this.entered.has(element)
+    if (seen && !this.resuming) return
     const view = element.ownerDocument.defaultView
     if (!view || !("style" in element)) return
     const own = element.getAttribute("data-iui-motion")
@@ -342,6 +435,8 @@ class MotionRuntime {
     if (!name) return
     const preset = this.preset(name)
     if (!preset) return
+    // It came in under the adapter before this one; a loop is all there is to pick up.
+    if (seen && preset.kind !== "loop") return
     this.entered.add(element)
     if (prefersReducedMotion()) return
 
@@ -369,7 +464,9 @@ class MotionRuntime {
     if (keyframes.opacity && Number.isFinite(natural) && natural !== 1 && preset.kind !== "loop") {
       keyframes.opacity = keyframes.opacity.map((value) => value * natural)
     }
-    this.play(element as Target, keyframes, timing)
+    const hidden = keyframes.opacity?.[0] === 0 && timing.kind !== "loop"
+    if (hidden && this.adapter.startsOnPaint !== true) this.afterPaint(element as Target, keyframes, timing)
+    else this.play(element as Target, keyframes, timing)
   }
 
   private timing(
@@ -398,12 +495,18 @@ class MotionRuntime {
     return timing
   }
 
-  private play(target: Target, keyframes: MotionKeyframes, timing: MotionTiming, after?: () => void): Promise<unknown> | null {
+  /**
+   * Plays keyframes on a target and puts its inline styles back when they
+   * end. `origin` is the transform origin the keyframes are measured from.
+   */
+  private play(target: Target, keyframes: MotionKeyframes, timing: MotionTiming, origin?: string): Promise<unknown> | null {
     this.cancel(target)
     const before = RESTORED.map((property) => [property, target.style.getPropertyValue(property)] as const)
+    if (origin !== undefined) target.style.setProperty("transform-origin", origin)
     const restore = () => {
-      if (this.adapter.writesStyle === false) return
       for (const [property, value] of before) {
+        // An engine that writes no styles left only the origin set above to put back.
+        if (this.adapter.writesStyle === false && (property !== "transform-origin" || origin === undefined)) continue
         if (value) target.style.setProperty(property, value)
         else target.style.removeProperty(property)
       }
@@ -415,19 +518,22 @@ class MotionRuntime {
       playback = undefined
     }
     if (!playback) {
-      after?.()
+      restore()
       return null
     }
-    const current: Playing = { playback, kind: timing.kind, restore: () => {
-      restore()
-      after?.()
-    } }
+    const current: Playing = { playback, kind: timing.kind, restore }
     this.playing.set(target, current)
     const done = () => {
       if (this.playing.get(target) !== current) return
       this.playing.delete(target)
       // What has left stays as the exit left it until the renderer removes it.
-      if (timing.kind !== "exit") current.restore()
+      if (timing.kind === "exit") return
+      current.restore()
+      // Some engines write the last frame after they say they are done.
+      if (this.adapter.writesStyle === false) return
+      target.ownerDocument.defaultView?.requestAnimationFrame?.(() => {
+        if (!this.playing.has(target) && !this.held.has(target)) restore()
+      })
     }
     const finished = Promise.resolve(playback.finished).then(done, done)
     return finished
@@ -488,11 +594,7 @@ class MotionRuntime {
           keyframes.scaleX = [scaleX, 1]
           keyframes.scaleY = [scaleY, 1]
         }
-        const origin = element.style.transformOrigin
-        element.style.transformOrigin = "0 0"
-        this.play(element, keyframes, this.timing("layout", "morph", { duration, easing }), () => {
-          element.style.transformOrigin = origin
-        })
+        this.play(element, keyframes, this.timing("layout", "morph", { duration, easing }), "0 0")
       }
     }
     const result = update()

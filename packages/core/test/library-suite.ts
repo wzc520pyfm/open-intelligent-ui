@@ -115,15 +115,17 @@ interface Played {
 /** A motion adapter that records what it is asked to play, and ends each animation when told to. */
 function fakeMotion(options: Partial<MotionAdapter> = {}) {
   const played: Played[] = []
-  const ends: (() => void)[] = []
+  const ends: { entry: Played; end: () => void }[] = []
   const adapter: MotionAdapter = {
     name: "Fake",
+    // Starts from the moment it is told to, as the browser's own animations do.
+    startsOnPaint: true,
     ...options,
     animate: (element, keyframes, timing) => {
       const entry: Played = { element, keyframes, timing, cancelled: false }
       played.push(entry)
       return {
-        finished: new Promise<void>((resolve) => ends.push(resolve)),
+        finished: new Promise<void>((resolve) => ends.push({ entry, end: resolve })),
         cancel: () => {
           entry.cancelled = true
         },
@@ -131,7 +133,14 @@ function fakeMotion(options: Partial<MotionAdapter> = {}) {
     },
   }
   const names = () => played.map((entry) => `${entry.timing.name}:${entry.element.localName}${entry.element.className ? `.${String(entry.element.className).split(" ").pop()}` : ""}`)
-  return { adapter, played, names, finish: () => ends.splice(0).forEach((end) => end()) }
+  /** Ends what is playing. What repeats never ends by itself. */
+  const finish = () => {
+    for (const { entry, end } of ends.splice(0)) {
+      if (entry.timing.repeat) ends.push({ entry, end })
+      else end()
+    }
+  }
+  return { adapter, played, names, finish }
 }
 
 /**
@@ -458,6 +467,77 @@ export function librarySuite(harness: SuiteHarness): void {
       await flush()
       expect(container.querySelector(".panel")).not.toBeNull()
       expect(fake.played.at(-1)?.timing).toMatchObject({ name: "rise", kind: "enter" })
+    })
+
+    test("a library made again around the same adapter plays nothing again", async () => {
+      const fake = fakeMotion()
+      const source = `<card class="first">One</card>`
+      const view = await draw({ source, library: defineLibrary({ motion: fake.adapter }) })
+      await flush()
+      fake.finish()
+      await flush()
+      expect(fake.names()).toEqual(["rise:div.first"])
+      // An application that builds its library where it renders hands over a new object each time.
+      await view.update({ library: defineLibrary({ motion: fake.adapter }) })
+      await flush()
+      expect(fake.names()).toEqual(["rise:div.first"])
+      expect(view.container.getAttribute("data-iui-motion-engine")).toBe("fake")
+    })
+
+    test("an entrance another adapter cut short is played from the start", async () => {
+      const first = fakeMotion()
+      const second = fakeMotion({ name: "Other" })
+      const source = `<card class="first">One</card>`
+      const view = await draw({ source, library: defineLibrary({ motion: first.adapter }) })
+      await flush()
+      // Still entering when the surface changes hands.
+      await view.update({ library: defineLibrary({ motion: second.adapter }) })
+      await flush()
+      expect(first.played.map((entry) => entry.cancelled)).toEqual([true])
+      expect(second.names()).toEqual(["rise:div.first"])
+    })
+
+    test("another adapter takes over what repeats, and brings nothing in a second time", async () => {
+      const first = fakeMotion()
+      const second = fakeMotion({ name: "Other" })
+      const source = `<card class="first">One</card>
+
+<badge class="live" motion="pulse">Live</badge>`
+      const view = await draw({ source, library: defineLibrary({ motion: first.adapter }) })
+      await flush()
+      expect(first.names().sort()).toEqual(["pulse:span.live", "rise:div.first"])
+      first.finish()
+      await flush()
+      await view.update({ library: defineLibrary({ motion: second.adapter }) })
+      await flush()
+      expect(view.container.getAttribute("data-iui-motion-engine")).toBe("other")
+      // The first adapter let go of what it was still playing.
+      expect(first.played.find((entry) => entry.timing.name === "pulse")?.cancelled).toBe(true)
+      expect(second.names()).toEqual(["pulse:span.live"])
+      // What arrives from now on enters with the new one.
+      await view.update({ source: `${source}\n\n<card class="late">Two</card>` })
+      await flush()
+      expect(second.names()).toEqual(["pulse:span.live", "rise:div.late"])
+    })
+
+    test("holds what fades in out of sight until the page has painted, for an engine on the script's clock", async () => {
+      const fake = fakeMotion({ startsOnPaint: false })
+      const { container } = await draw({
+        source: `<card class="first">One</card>
+
+<card class="loud" motion="pulse">Two</card>`,
+        library: defineLibrary({ motion: fake.adapter }),
+      })
+      await flush()
+      const first = container.querySelector(".first") as HTMLElement
+      // Its clock would have run through the work of drawing: it waits, unseen.
+      expect(first.hasAttribute("data-iui-hold")).toBe(true)
+      expect(fake.played.some((entry) => entry.element === first)).toBe(false)
+      // What doesn't start from nothing has nothing to hide.
+      expect(fake.played.map((entry) => entry.timing.name)).toEqual(["pulse"])
+      await expect.poll(() => fake.played.some((entry) => entry.element === first), { timeout: 2000 }).toBe(true)
+      await expect.poll(() => first.hasAttribute("data-iui-hold"), { timeout: 2000 }).toBe(false)
+      expect(fake.played.filter((entry) => entry.element === first)).toHaveLength(1)
     })
 
     test("plays the adapter's own presets, and blocks as a stream writes them", async () => {

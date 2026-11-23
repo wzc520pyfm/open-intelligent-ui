@@ -177,6 +177,15 @@
     animation: none;
   }
 
+  /*
+   * What is about to enter with an engine that keeps time in script waits
+   * unseen for the page to paint, so its entrance is seen from the start.
+   * Important, to hold against the opacity markup or the engine writes inline.
+   */
+  .iui-root[data-iui-motion-engine] [data-iui-hold] {
+    opacity: 0 !important;
+  }
+
   @keyframes iui-fade {
     from {
       opacity: 0;

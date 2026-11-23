@@ -49,20 +49,25 @@ describe("streaming from an OpenAI-compatible endpoint", () => {
     expect(parts.join("")).toBe("<card>Hi</card>")
     expect(calls[0]?.url).toBe("https://example.test/v1/chat/completions")
     expect((calls[0]?.init.headers as Record<string, string>).Authorization).toBe("Bearer k")
-    expect(JSON.parse(calls[0]?.init.body as string)).toMatchObject({ model: "m", stream: true })
+    expect(JSON.parse(calls[0]?.init.body as string)).toMatchObject({
+      model: "m",
+      stream: true,
+      max_tokens: 8192,
+    })
+    expect(JSON.parse(calls[0]?.init.body as string).thinking).toBeUndefined()
   })
 
-  test("DeepSeek uses the OpenAI protocol against its own host", async () => {
-    const calls: { url: string }[] = []
+  test("DeepSeek uses the OpenAI protocol against its own host and turns thinking off", async () => {
+    const calls: { url: string; init: RequestInit }[] = []
     const fake = sse([delta("ok") + "data: [DONE]\n\n"])
     const spy = ((url: string, init: RequestInit) => {
-      calls.push({ url })
+      calls.push({ url, init })
       return fake(url, init)
     }) as unknown as typeof fetch
     for await (const _ of streamChat({
       provider: "deepseek",
       baseUrl: "https://api.deepseek.com",
-      model: "deepseek-chat",
+      model: "deepseek-flash",
       apiKey: "k",
       messages: [{ role: "user", content: "hi" }],
       fetch: spy,
@@ -70,6 +75,40 @@ describe("streaming from an OpenAI-compatible endpoint", () => {
       /* drain */
     }
     expect(calls[0]?.url).toBe("https://api.deepseek.com/chat/completions")
+    expect(JSON.parse(calls[0]?.init.body as string)).toMatchObject({
+      model: "deepseek-flash",
+      stream: true,
+      thinking: { type: "disabled" },
+    })
+  })
+
+  test("skips null content and reports reasoning_content while waiting for markup", async () => {
+    const reasoning = (text: string) =>
+      `data: ${JSON.stringify({
+        choices: [{ delta: { content: null, reasoning_content: text } }],
+      })}\n\n`
+    const wire =
+      reasoning("plan") +
+      reasoning("…") +
+      delta("<card>") +
+      delta("Hi") +
+      delta("</card>") +
+      "data: [DONE]\n\n"
+    const parts: string[] = []
+    const thoughts: string[] = []
+    for await (const part of streamChat({
+      provider: "openai",
+      baseUrl: "https://example.test/v1",
+      model: "m",
+      apiKey: "k",
+      messages: [],
+      fetch: sse([wire]),
+      onReasoning: (chunk) => thoughts.push(chunk),
+    })) {
+      parts.push(part)
+    }
+    expect(thoughts.join("")).toBe("plan…")
+    expect(parts.join("")).toBe("<card>Hi</card>")
   })
 
   test("reports what the endpoint said when it refuses", async () => {

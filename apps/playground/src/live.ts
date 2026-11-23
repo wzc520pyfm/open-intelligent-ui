@@ -39,7 +39,7 @@ export const PROVIDERS: ProviderPreset[] = [
     label: "DeepSeek",
     api: "openai",
     baseUrl: "https://api.deepseek.com",
-    model: "deepseek-chat",
+    model: "deepseek-flash",
   },
   {
     id: "custom",
@@ -70,6 +70,13 @@ export interface StreamOptions extends LiveSettings {
   messages: ChatMessage[]
   signal?: AbortSignal
   fetch?: typeof fetch
+  /**
+   * Called when the endpoint streams chain-of-thought into
+   * `delta.reasoning_content` (DeepSeek thinking models, etc.) before any
+   * assistant `content`. The playground uses this to show a thinking state
+   * so a long silent reasoning phase does not look like a hung request.
+   */
+  onReasoning?: (chunk: string) => void
 }
 
 /**
@@ -88,13 +95,26 @@ export async function* streamChat(options: StreamOptions): AsyncGenerator<string
 
 async function* streamOpenAI(options: StreamOptions): AsyncGenerator<string> {
   const request = options.fetch ?? fetch
+  /**
+   * DeepSeek's flash/pro models default to a long `reasoning_content` phase
+   * with `content: null`. Generative UI needs the markup tokens immediately,
+   * so the DeepSeek preset turns thinking off. Custom OpenAI-compatible
+   * gateways are left alone — they may reject unknown fields.
+   */
+  const deepseek = options.provider === "deepseek"
   const response = await request(`${options.baseUrl.replace(/\/+$/, "")}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(options.apiKey ? { Authorization: `Bearer ${options.apiKey}` } : null),
     },
-    body: JSON.stringify({ model: options.model, messages: options.messages, stream: true }),
+    body: JSON.stringify({
+      model: options.model,
+      messages: options.messages,
+      stream: true,
+      max_tokens: 8192,
+      ...(deepseek ? { thinking: { type: "disabled" } } : null),
+    }),
     signal: options.signal ?? null,
   })
   if (!response.ok || !response.body) {
@@ -104,9 +124,12 @@ async function* streamOpenAI(options: StreamOptions): AsyncGenerator<string> {
   yield* readSse(response.body, (data) => {
     try {
       const parsed = JSON.parse(data) as {
-        choices?: { delta?: { content?: unknown } }[]
+        choices?: { delta?: { content?: unknown; reasoning_content?: unknown } }[]
       }
-      const content = parsed.choices?.[0]?.delta?.content
+      const delta = parsed.choices?.[0]?.delta
+      const reasoning = delta?.reasoning_content
+      if (typeof reasoning === "string" && reasoning) options.onReasoning?.(reasoning)
+      const content = delta?.content
       return typeof content === "string" ? content : ""
     } catch {
       return ""

@@ -81,4 +81,5 @@ export const reactDialect: PropsDialect = {
   event: (name, kind) => eventProp(name, kind !== "component"),
   handler: (name) => name,
   bindEvent: (_tag, argument) => (argument === "open" ? "onToggle" : "onChange"),
+  bindProps: (argument) => [`on${capitalize(argument)}Change`],
 }

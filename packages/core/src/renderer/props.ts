@@ -44,6 +44,8 @@ export interface PropsDialect {
   handler(name: string, kind: ElementKind, tag: string): string
   /** The event prop through which a native element reports a `bind:` change. */
   bindEvent(tag: string, argument: string): string
+  /** The props through which a component reports a `bind:` change. */
+  bindProps(argument: string, kind: ElementKind): string[]
 }
 
 export interface ElementProps {
@@ -520,8 +522,9 @@ export function buildProps(
       } else {
         props[argument] = current
         if (set) {
-          const event = `on${capitalize(argument)}Change`
-          handlers[event] = chain(handlers[event], (next) => set(plainArg(next)))
+          for (const event of dialect.bindProps(argument, kind)) {
+            handlers[event] = chain(handlers[event], (next) => set(plainArg(next)))
+          }
         }
       }
       continue

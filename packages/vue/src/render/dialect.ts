@@ -148,4 +148,10 @@ export const vueDialect: PropsDialect = {
     if (argument === "value" && tag !== "select") return "onInput"
     return "onChange"
   },
+  bindProps: (argument, kind) => {
+    const changed = `on${capitalize(argument)}Change`
+    // UI SDK reports every change as `valueChange`. A component of the host's
+    // may follow that, or Vue's own `update:value`, which `v-model:value` uses.
+    return kind === "ui-sdk" ? [changed] : [changed, `onUpdate:${argument}`]
+  },
 }

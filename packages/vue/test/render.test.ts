@@ -335,6 +335,21 @@ describe("components", () => {
     expect(text(container)).toContain("Picked Lisbon")
   })
 
+  test("bind: works with a component built for v-model", async () => {
+    const Stepper = defineComponent({
+      props: { value: { type: Number, default: 0 } },
+      emits: ["update:value"],
+      setup: (props, { emit }) => () =>
+        h("button", { onClick: () => emit("update:value", props.value + 1) }, `Step ${props.value}`),
+    })
+    const { container } = await draw({
+      source: `<state n={2} />\n<Stepper bind:value={n} />\n<text>n is {n}</text>`,
+      components: { Stepper },
+    })
+    await click(byText(container, "Step 2"))
+    expect(text(container)).toBe("Step 3n is 3")
+  })
+
   test("one failing component doesn't take down the surface", async () => {
     const Broken = defineComponent({
       render() {

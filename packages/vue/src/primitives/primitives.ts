@@ -7,23 +7,44 @@ import {
 } from "@open-intelligent-ui/core/renderer"
 import { type Component, defineComponent, h, ref, shallowRef } from "vue"
 import { toVue, type ViewParts } from "../render/view"
-import { ICON_LOADERS, type IconData } from "./icons.generated"
+import type { ICON_LOADERS, IconData } from "./icons.generated"
+
+type Loaders = typeof ICON_LOADERS
 
 const drawings = new Map<string, IconData>()
 const loading = new Set<string>()
 /** Read by every icon on screen, so one arriving redraws the ones waiting for it. */
 const arrivals = shallowRef(0)
 
-function drawing(name: string): IconData | undefined {
+let loaders: Loaders | undefined
+let loadersComing: Promise<Loaders> | undefined
+
+/** The list of icons is long, so it stays out of the way until an icon is drawn. */
+function iconLoaders(): Promise<Loaders> {
+  loadersComing ??= import("./icons.generated").then((module) => {
+    loaders = module.ICON_LOADERS
+    return loaders
+  })
+  return loadersComing
+}
+
+async function load(name: string): Promise<void> {
+  const all = await iconLoaders()
+  const loader = Object.hasOwn(all, name) ? all[name] : undefined
+  if (loader) drawings.set(name, (await loader()).__iconData)
+}
+
+/** The icon's drawing, `null` when there is no such icon, `undefined` while it loads. */
+function drawing(name: string): IconData | null | undefined {
   const ready = drawings.get(name)
   if (ready) return ready
+  if (loaders && !Object.hasOwn(loaders, name)) return null
   // Subscribes the icon being drawn to the next arrival.
   void arrivals.value
   if (!loading.has(name)) {
     loading.add(name)
-    void (ICON_LOADERS[name] as (typeof ICON_LOADERS)[string])().then(
-      (module) => {
-        drawings.set(name, module.__iconData)
+    void load(name).then(
+      () => {
         arrivals.value++
       },
       (error: unknown) => {
@@ -37,14 +58,7 @@ function drawing(name: string): IconData | undefined {
 
 /** Loads icons ahead of time, so the first render draws them at once. */
 export async function preloadIcons(...names: string[]): Promise<void> {
-  await Promise.all(
-    names
-      .filter((name) => Object.hasOwn(ICON_LOADERS, name) && !drawings.has(name))
-      .map(async (name) => {
-        const module = await (ICON_LOADERS[name] as (typeof ICON_LOADERS)[string])()
-        drawings.set(name, module.__iconData)
-      })
-  )
+  await Promise.all(names.filter((name) => !drawings.has(name)).map(load))
   arrivals.value++
 }
 
@@ -57,11 +71,8 @@ const Icon: Component = defineComponent({
   setup(_, { attrs }) {
     return () => {
       const spec = iconSpec(attrs as ViewProps)
-      if (spec.name === null || !Object.hasOwn(ICON_LOADERS, spec.name)) {
-        return toVue(iconPlaceholder(spec, true), PARTS)
-      }
-      const data = drawing(spec.name)
-      if (!data) return toVue(iconPlaceholder(spec, false), PARTS)
+      const data = spec.name === null ? null : drawing(spec.name)
+      if (!data) return toVue(iconPlaceholder(spec, data === null), PARTS)
       const box = data.size ?? 24
       // The same element lucide-react draws, so one stylesheet fits both.
       return h(

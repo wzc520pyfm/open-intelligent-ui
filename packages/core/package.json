@@ -1,6 +1,6 @@
 {
   "name": "@open-intelligent-ui/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Framework-free core of Open Intelligent UI: the IUI markup parser, safe expression language, surface store, DESIGN.md loader, system prompt builder, and what the renderers share.",
   "keywords": [
     "generative-ui",

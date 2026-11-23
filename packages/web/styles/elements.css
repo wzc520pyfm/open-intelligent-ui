@@ -1,0 +1,125 @@
+/*
+ * Web renderer only. React and Vue draw <label>, <p>, <h2>, <ul>, <li>, <table> and <button> for
+ * some UI SDK parts; here a custom element stands in for each, with the same role but none of what
+ * a stylesheet or the browser gives the tag. These rules give it back, so a reply looks the same.
+ *
+ * Each rule matches with one class less than the rule it repeats (`:where(.iui-root)`), which puts
+ * it where the original sits in the cascade: whatever outweighs the original outweighs it too.
+ */
+@layer ui-sdk {
+  /* What the browser gives a <button> before any stylesheet. */
+  :where(.iui-root)
+    :where(ui-checkbox, ui-radio, ui-switch, ui-segmented-control-item, ui-rating-radio) {
+    padding-block: 1px;
+    padding-inline: 6px;
+    color: buttontext;
+    font: -moz-button;
+    font: -webkit-small-control;
+    letter-spacing: normal;
+    word-spacing: normal;
+    line-height: normal;
+    text-transform: none;
+    text-indent: 0;
+    text-shadow: none;
+    text-align: center;
+    cursor: default;
+    /* ui-sdk.generated.css: `button[data-slot]`, for the pending state. */
+    transition: filter 0s linear 0.3s;
+  }
+
+  :where(.iui-root) :where(ui-label, ui-field-label, ui-autocomplete-label, ui-combobox-label) {
+    cursor: default;
+  }
+
+  /* React draws nothing around a token input's editor, and @ui-sdk/web gives this root no display. */
+  :where(.iui-root) :where(ui-token-input) {
+    display: contents;
+  }
+
+  /*
+   * React draws the calendar as a <table>, which fills a stretched calendar; ui-sdk.generated.css
+   * lays the custom elements out as fixed-size flex items instead. The elements already carry the
+   * table roles, so they are laid out as the table they describe.
+   */
+  .iui-root [data-slot="calendar-grid"]:not(table) {
+    display: table;
+  }
+
+  .iui-root :is([data-slot="calendar-weekdays"], [data-slot="calendar-week"]):not(tr) {
+    display: table-row;
+  }
+
+  .iui-root :is([data-slot="calendar-weekday"], [data-slot="calendar-day"]):not(th, td) {
+    display: table-cell;
+    vertical-align: middle;
+  }
+
+  /*
+   * An empty input keeps its clear button in the tree, hidden, where React leaves it out, so
+   * `:has([data-slot="input-clear"])` in ui-sdk.generated.css narrows the padding too early.
+   */
+  .iui-root [data-slot="input-group"]:not(:has([data-slot="input-clear"]:not([hidden]))) {
+    padding-inline-end: calc(var(--ui-spacing) * 2.5);
+  }
+}
+
+@layer iui {
+  /* base.css: flow margins of p, ul and table. */
+  :where(.iui-root)
+    :where(:not(.iui-root, .iui-box, .iui-row, .iui-grid, .iui-card, .iui-presence))
+    > :where(
+      ui-field-description,
+      ui-dialog-description,
+      ui-alert-dialog-description,
+      ui-drawer-description,
+      ui-popover-description,
+      ui-navigation-menu-list,
+      ui-pagination-list,
+      ui-calendar-grid
+    ):not(:first-child) {
+    margin-block-start: 0.75em;
+  }
+
+  /* base.css: headings. */
+  :where(.iui-root)
+    :where(:not(.iui-root, .iui-box, .iui-row, .iui-grid, .iui-card, .iui-presence))
+    > :where(
+      ui-calendar-heading,
+      ui-dialog-title,
+      ui-alert-dialog-title,
+      ui-drawer-title,
+      ui-popover-title
+    ):not(:first-child) {
+    margin-block-start: 1.25em;
+  }
+
+  :where(.iui-root)
+    :where(
+      ui-calendar-heading,
+      ui-dialog-title,
+      ui-alert-dialog-title,
+      ui-drawer-title,
+      ui-popover-title
+    ) {
+    font-family: var(--iui-heading);
+    color: var(--iui-color-foreground);
+    text-wrap: balance;
+  }
+
+  /* base.css: lists. */
+  :where(.iui-root) :where(ui-navigation-menu-list, ui-pagination-list) {
+    padding-inline-start: 1.4em;
+  }
+
+  :where(.iui-root)
+    :where(ui-navigation-menu-item, ui-pagination-item)
+    + :where(ui-navigation-menu-item, ui-pagination-item) {
+    margin-block-start: 0.3em;
+  }
+
+  /* base.css: labels. */
+  :where(.iui-root) :where(ui-label, ui-field-label, ui-autocomplete-label, ui-combobox-label) {
+    font-size: var(--iui-font-label-size, 0.8125rem);
+    font-weight: var(--iui-font-label-weight, 500);
+  }
+}

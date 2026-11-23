@@ -55,7 +55,7 @@
     }
   },
   "scripts": {
-    "build": "tsdown && node ../../scripts/build-css.mjs",
+    "build": "tsdown && node ../../scripts/build-css.mjs && node scripts/build-css.mjs",
     "prepack": "pnpm run build && node ../../scripts/copy-license.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

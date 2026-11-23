@@ -1,7 +1,7 @@
 {
   "name": "@open-intelligent-ui/core",
   "version": "0.1.0",
-  "description": "Framework-free core of Open Intelligent UI: the IUI markup parser, safe expression language, surface store, DESIGN.md loader and system prompt builder.",
+  "description": "Framework-free core of Open Intelligent UI: the IUI markup parser, safe expression language, surface store, DESIGN.md loader, system prompt builder, and what the renderers share.",
   "keywords": [
     "generative-ui",
     "intelligent-ui",
@@ -26,6 +26,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./prompt": "./src/prompt/index.ts",
+    "./renderer": "./src/renderer/index.ts",
     "./styles.css": "./styles/index.css"
   },
   "files": [
@@ -42,6 +43,10 @@
       "./prompt": {
         "types": "./dist/prompt.d.ts",
         "default": "./dist/prompt.js"
+      },
+      "./renderer": {
+        "types": "./dist/renderer.d.ts",
+        "default": "./dist/renderer.js"
       },
       "./styles.css": "./dist/styles.css"
     }

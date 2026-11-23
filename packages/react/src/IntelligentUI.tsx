@@ -1,17 +1,26 @@
 import {
-  DEFAULT_DESIGN,
   type Design,
   type Diagnostic,
-  designToCss,
   parse,
-  parseDesign,
   type StorageLike,
   Surface,
   type SurfaceAction,
-  scopeCss,
   type Tool,
   type ToolEvent,
 } from "@open-intelligent-ui/core"
+import {
+  copyText,
+  designCss as readDesignCss,
+  guard,
+  modelCss as readModelCss,
+  openUrl,
+  runMorph,
+  styleText,
+  TOAST_LIFETIME,
+  TOAST_LIMIT,
+  type Toast,
+  usesMorph,
+} from "@open-intelligent-ui/core/renderer"
 import {
   type ComponentType,
   type CSSProperties,
@@ -30,7 +39,7 @@ import {
 import { flushSync } from "react-dom"
 import { getUiSdkVersion, subscribeUiSdk } from "./registry/ui-sdk"
 import { Boundary } from "./render/Boundary"
-import { type RenderContext, renderNodes } from "./render/render"
+import { type AnyComponent, type RenderContext, renderNodes } from "./render/render"
 
 export interface IntelligentUIHandle {
   /** The surface's current state, as plain data. */
@@ -87,92 +96,6 @@ export interface IntelligentUIProps {
   ref?: Ref<IntelligentUIHandle>
 }
 
-interface Toast {
-  id: number
-  message: string
-  tone: string | undefined
-}
-
-const TOAST_LIFETIME = 4000
-
-function styleText(css: string): string {
-  return css.replace(/<\//g, "<\\/")
-}
-
-type StartViewTransition = (update: () => void) => { finished?: Promise<unknown> } | undefined
-
-/** `document.startViewTransition`, when the browser has it and motion is welcome. */
-function viewTransition(): StartViewTransition | null {
-  const start = (document as Document & { startViewTransition?: StartViewTransition })
-    .startViewTransition
-  if (typeof start !== "function") return null
-  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return null
-  return start.bind(document)
-}
-
-/** True when nothing clips the element: it is whole inside the viewport and every scrolling ancestor. */
-function inView(element: HTMLElement): boolean {
-  const rect = element.getBoundingClientRect()
-  if (rect.width === 0 || rect.height === 0) return false
-  let top = 0
-  let left = 0
-  let bottom = window.innerHeight
-  let right = window.innerWidth
-  for (let parent = element.parentElement; parent; parent = parent.parentElement) {
-    const { overflowX, overflowY } = getComputedStyle(parent)
-    if (overflowX === "visible" && overflowY === "visible") continue
-    const box = parent.getBoundingClientRect()
-    top = Math.max(top, box.top)
-    left = Math.max(left, box.left)
-    bottom = Math.min(bottom, box.bottom)
-    right = Math.min(right, box.right)
-  }
-  return (
-    rect.top >= top - 1 && rect.left >= left - 1 && rect.bottom <= bottom + 1 && rect.right <= right + 1
-  )
-}
-
-/**
- * Gives `morph` elements their view-transition names for one snapshot.
- *
- * A named element is drawn above the whole page while the transition runs,
- * so one that a scroll container is hiding would show through for that
- * moment. Only elements in full view take part; the rest change in place.
- * A name can be on screen once, so the first element with it wins.
- */
-function nameMorphs(root: HTMLElement | null): void {
-  if (!root) return
-  const taken = new Set<string>()
-  for (const element of root.querySelectorAll<HTMLElement>("[data-iui-morph]")) {
-    const name = element.dataset.iuiMorph as string
-    const named = !taken.has(name) && inView(element)
-    if (named) taken.add(name)
-    element.style.viewTransitionName = named ? name : ""
-  }
-}
-
-/**
- * Keeps the element the reader acted on above the others while it travels.
- * Returns a function that undoes it.
- */
-function raiseActiveMorph(root: HTMLElement | null): () => void {
-  const active = document.activeElement
-  const source = active && root?.contains(active) ? active.closest<HTMLElement>("[data-iui-morph]") : null
-  const name = source?.dataset.iuiMorph
-  if (!name) return () => {}
-  const style = document.createElement("style")
-  style.textContent = `::view-transition-group(${name}) { z-index: 1; }`
-  document.head.append(style)
-  return () => style.remove()
-}
-
-function clearMorphs(root: HTMLElement | null): void {
-  if (!root) return
-  for (const element of root.querySelectorAll<HTMLElement>("[data-iui-morph]")) {
-    element.style.viewTransitionName = ""
-  }
-}
-
 function useLatest<T>(value: T): { current: T } {
   const ref = useRef(value)
   ref.current = value
@@ -204,7 +127,7 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
 
   const showToast = useCallback((message: string, tone?: string) => {
     const toast: Toast = { id: ++toastId.current, message, tone }
-    setToasts((list) => [...list.slice(-3), toast])
+    setToasts((list) => [...list.slice(1 - TOAST_LIMIT), toast])
     const timer = setTimeout(() => {
       timers.current.delete(timer)
       setToasts((list) => list.filter((item) => item.id !== toast.id))
@@ -262,13 +185,8 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
         onAction: (action) => {
           if (latest.current.onAction?.(action) === true) return
           if (action.type === "toast") showToast(action.message, action.tone)
-          else if (action.type === "copy") {
-            void navigator.clipboard?.writeText(action.text).catch(() => {})
-          } else if (action.type === "open") {
-            if (/^(https?:|mailto:|tel:)/i.test(action.url)) {
-              window.open(action.url, "_blank", "noopener,noreferrer")
-            }
-          }
+          else if (action.type === "copy") copyText(action.text)
+          else if (action.type === "open") openUrl(action.url)
         },
         onTool: (event) => latest.current.onTool?.(event),
         onWarning: (message) => report(message),
@@ -322,73 +240,36 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
   )
 
   const write = useCallback(
-    (work: () => unknown): unknown => {
-      const fail = (error: unknown) => {
-        const message = error instanceof Error ? error.message : String(error)
+    (work: () => unknown): unknown =>
+      guard(work, (message) => {
         latest.current.onWarning?.(message)
         showToast(message, "danger")
-      }
-      try {
-        const result = work()
-        if (result instanceof Promise) {
-          return result.catch((error: unknown) => {
-            fail(error)
-          })
-        }
-        return result
-      } catch (error) {
-        fail(error)
-        return undefined
-      }
-    },
+      }),
     [latest, showToast]
   )
 
   const rootElement = useRef<HTMLDivElement>(null)
-  const morphRun = useRef(0)
-  const morphing = /\bmorph\s*=/.test(source)
+  const morphing = usesMorph(source)
   const invoke = useCallback(
     (work: () => unknown): unknown => {
-      const transition = morphing ? viewTransition() : null
-      if (!transition) return write(work)
-      // Elements that share a `morph` name glide to where the new state puts
-      // them. The browser runs the update on its next frame.
-      const run = ++morphRun.current
-      nameMorphs(rootElement.current)
-      const lower = raiseActiveMorph(rootElement.current)
-      const started = transition(() => {
-        flushSync(() => {
-          write(work)
-        })
-        nameMorphs(rootElement.current)
-      })
-      const done = () => {
-        lower()
-        if (morphRun.current === run) clearMorphs(rootElement.current)
-      }
-      if (started?.finished) started.finished.then(done, done)
-      else done()
-      return undefined
+      if (!morphing) return write(work)
+      const ran = runMorph(
+        () => rootElement.current,
+        () => {
+          flushSync(() => {
+            write(work)
+          })
+        }
+      )
+      return ran ? undefined : write(work)
     },
     [write, morphing]
   )
 
-  const designCss = useMemo(() => {
-    const parsed =
-      typeof design === "object" ? design : parseDesign(design || DEFAULT_DESIGN)
-    return designToCss(parsed, { selector: `.iui-root[data-iui-id="${id}"]` })
-  }, [design, id])
+  const designCss = useMemo(() => readDesignCss(design, id), [design, id])
 
   const sheetKey = surface.styles.join("\u0000")
-  const modelCss = useMemo(
-    () =>
-      sheetKey
-        .split("\u0000")
-        .filter(Boolean)
-        .map((css) => scopeCss(css, `.iui-root[data-iui-id="${id}"]`, id).css)
-        .join("\n"),
-    [sheetKey, id]
-  )
+  const modelCss = useMemo(() => readModelCss(sheetKey.split("\u0000"), id), [sheetKey, id])
 
   const ctx: RenderContext = {
     surface,
@@ -396,7 +277,7 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
     slot: null,
     templateDepth: 0,
     options: {
-      components: components ?? {},
+      components: (components ?? {}) as Record<string, AnyComponent>,
       streaming,
       report,
       invoke,

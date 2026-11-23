@@ -30,9 +30,15 @@ function niceScale(min: number, max: number, count = 4) {
   const step = unit * power
   const low = Math.floor(min / step) * step
   const high = Math.ceil(max / step) * step
+  // Numbers near the largest a float holds round to infinity. Draw the range as given.
+  if (![low, high, step].every(Number.isFinite) || step <= 0) {
+    return { low: min, high: max, ticks: [min, max] }
+  }
+  // Counted, not added up: a step too small to change the value would never arrive.
+  const steps = Math.min(Math.round((high - low) / step), count * 3)
   const ticks: number[] = []
-  for (let value = low; value <= high + step / 2; value += step) {
-    ticks.push(Number(value.toFixed(10)))
+  for (let index = 0; index <= steps; index += 1) {
+    ticks.push(Number((low + index * step).toFixed(10)))
   }
   return { low, high, ticks }
 }
@@ -499,7 +505,9 @@ interface DonutProps {
 function donut(props: DonutProps): View {
   const { series, labels, height, active, format, select } = props
   const values = series.values.map((value) => Math.max(0, value))
-  const total = values.reduce((sum, value) => sum + value, 0) || 1
+  const sum = values.reduce((all, value) => all + value, 0)
+  // Shares are of the whole; with nothing to share, every share is zero.
+  const total = sum || 1
   const sizePx = height
   const stroke = props.pie ? sizePx / 2 - 2 : Math.max(12, sizePx * 0.13)
   const r = sizePx / 2 - stroke / 2 - 2
@@ -553,7 +561,7 @@ function donut(props: DonutProps): View {
         ? null
         : view("div", { class: "iui-chart-center" }, [
             view("b", {}, [
-              format(Math.round((shown !== null ? (values[shown] ?? 0) : total) * 100) / 100),
+              format(Math.round((shown !== null ? (values[shown] ?? 0) : sum) * 100) / 100),
             ]),
             view("span", {}, [shown !== null ? labels[shown] : "Total"]),
           ]),

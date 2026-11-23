@@ -15,6 +15,14 @@ function numberFormat(props: ViewProps) {
   }
 }
 
+/** Whether there is a number to count to: nothing, text and infinity are shown as they are. */
+function countable(value: unknown): boolean {
+  if (value === null || value === undefined || value === "" || typeof value === "boolean") {
+    return false
+  }
+  return Number.isFinite(Number(value))
+}
+
 /** Where a `<Number>` is heading and how long it takes to get there. */
 export function numberTarget(props: ViewProps): { target: number; duration: number } {
   const target = Number(props.value)
@@ -27,7 +35,7 @@ export function numberTarget(props: ViewProps): { target: number; duration: numb
  */
 export function numberView(props: ViewProps, current: number): View {
   const options = numberFormat(props)
-  const shown = formatValue(Number.isFinite(Number(props.value)) ? current : props.value, options)
+  const shown = formatValue(countable(props.value) ? current : props.value, options)
   return view(
     "span",
     {

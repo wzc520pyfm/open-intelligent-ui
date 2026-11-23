@@ -127,7 +127,8 @@ function clearMorphs(root: HTMLElement | null): void {
   }
 }
 
-let morphRun = 0
+/** The latest morph on each surface: only that one clears the surface's names. */
+const morphRuns = new WeakMap<HTMLElement, object>()
 
 /**
  * Runs `update` inside a view transition, so elements that share a `morph`
@@ -140,8 +141,10 @@ export function runMorph(root: () => HTMLElement | null, update: () => void | Pr
   const transition = viewTransition()
   if (!transition) return false
   // The browser runs the update on its next frame.
-  const run = ++morphRun
-  nameMorphs(root())
+  const run = {}
+  const surface = root()
+  if (surface) morphRuns.set(surface, run)
+  nameMorphs(surface)
   const lower = raiseActiveMorph(root())
   const rename = () => nameMorphs(root())
   const started = transition(() => {
@@ -151,11 +154,25 @@ export function runMorph(root: () => HTMLElement | null, update: () => void | Pr
   })
   const done = () => {
     lower()
-    if (morphRun === run) clearMorphs(root())
+    if (surface && morphRuns.get(surface) !== run) return
+    clearMorphs(root())
   }
   if (started?.finished) started.finished.then(done, done)
   else done()
   return true
+}
+
+/**
+ * Resolves when the exit animations under `element` have played, or returns
+ * `null` when there are none to wait for. An animation that repeats forever,
+ * a spinner inside what is leaving, is not waited for: it never ends.
+ */
+export function exitAnimations(element: Element | null): Promise<unknown> | null {
+  const ending = (element?.getAnimations?.({ subtree: true }) ?? []).filter((animation) => {
+    const end = animation.effect?.getComputedTiming?.().endTime
+    return end === undefined || Number.isFinite(Number(end))
+  })
+  return ending.length ? Promise.allSettled(ending.map((animation) => animation.finished)) : null
 }
 
 /**

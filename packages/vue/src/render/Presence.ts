@@ -1,9 +1,10 @@
+import { exitAnimations } from "@open-intelligent-ui/core/renderer"
 import { defineComponent, h, nextTick, ref, watch } from "vue"
 
 /**
  * Keeps its child on screen while the exit animation plays. The child gets
  * `data-iui-exit` on its wrapper during that time, and is removed once every
- * animation inside has finished.
+ * animation inside that ends has finished.
  */
 export const Presence = defineComponent({
   name: "IuiPresence",
@@ -33,9 +34,9 @@ export const Presence = defineComponent({
         // The exit styles have to be applied before their animations exist.
         void nextTick(() => {
           if (run !== mine) return
-          const animations = element.value?.getAnimations?.({ subtree: true }) ?? []
-          if (animations.length === 0) done()
-          else void Promise.allSettled(animations.map((animation) => animation.finished)).then(done)
+          const exit = exitAnimations(element.value)
+          if (exit) void exit.then(done)
+          else done()
         })
       }
     )

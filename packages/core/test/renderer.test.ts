@@ -1,6 +1,15 @@
 import { describe, expect, test } from "vitest"
 import { type EvalHost, evaluate, parseExpression, parseProgram, run, Scope } from "../src/expr"
-import { lazyRecord, plainArg } from "../src/renderer"
+import {
+  chartValues,
+  chartView,
+  exitAnimations,
+  lazyRecord,
+  numberView,
+  plainArg,
+  readChartData,
+  type View,
+} from "../src/renderer"
 
 const host: EvalHost = {
   lookup: () => ({ found: false }),
@@ -77,5 +86,89 @@ describe("what a component hands to markup", () => {
     await run(parseProgram("progress.value = 1"), scope, host)
     expect(state.value).toBe(40)
     expect(record.value).toBe(40)
+  })
+})
+
+/** Every piece of text in a view, in order. */
+function texts(node: unknown, out: string[] = []): string[] {
+  if (typeof node === "string" || typeof node === "number") out.push(String(node))
+  else if (Array.isArray(node)) for (const child of node) texts(child, out)
+  else if (node && typeof node === "object") texts((node as View).children, out)
+  return out
+}
+
+describe("charts", () => {
+  const chart = (type: string, values: number[]) => {
+    const props = { type, data: values.map((value, index) => ({ label: `r${index}`, value })) }
+    const data = readChartData(props)
+    return chartView(props, {
+      data,
+      values: chartValues(data),
+      width: 560,
+      active: null,
+      setActive: () => {},
+      id: "c",
+    })
+  }
+
+  test("a scale is drawn for numbers a float can barely hold or tell apart", () => {
+    for (const values of [
+      [0, 1.7e308],
+      [-1.7e308, 1.7e308],
+      [1e16, 1e16 + 2],
+      [5e-324, 1e-323],
+    ]) {
+      for (const type of ["bar", "line", "area"]) {
+        expect(texts(chart(type, values)).length).toBeLessThan(60)
+      }
+    }
+  })
+
+  test("a donut of nothing adds up to nothing", () => {
+    expect(texts(chart("donut", [0, 0]))).toContain("0")
+    expect(texts(chart("donut", [0, 0]))).not.toContain("1")
+    expect(texts(chart("donut", [3, 1]))).toContain("4")
+  })
+})
+
+describe("a number", () => {
+  test("that is missing is not counted up from zero", () => {
+    for (const value of [null, undefined, ""]) {
+      expect(texts(numberView({ value }, 0))).toEqual(["–"])
+    }
+    expect(texts(numberView({ value: 0 }, 0))).toEqual(["0"])
+    expect(texts(numberView({ value: "12" }, 7))).toEqual(["7"])
+  })
+})
+
+describe("waiting for an element to leave", () => {
+  const animation = (endTime: number, finished: Promise<unknown>) => ({
+    finished,
+    effect: { getComputedTiming: () => ({ endTime }) },
+  })
+  const element = (...animations: unknown[]) =>
+    ({ getAnimations: () => animations }) as unknown as Element
+
+  test("is over when the animations that end have ended", async () => {
+    let finish = () => {}
+    const exit = new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    const forever = new Promise(() => {})
+    let left = false
+    void exitAnimations(element(animation(200, exit), animation(Infinity, forever)))?.then(() => {
+      left = true
+    })
+    await Promise.resolve()
+    expect(left).toBe(false)
+    finish()
+    await new Promise((resolve) => setTimeout(resolve))
+    expect(left).toBe(true)
+  })
+
+  test("is not needed when nothing ends", () => {
+    expect(exitAnimations(element(animation(Infinity, new Promise(() => {}))))).toBeNull()
+    expect(exitAnimations(element())).toBeNull()
+    expect(exitAnimations(null)).toBeNull()
   })
 })

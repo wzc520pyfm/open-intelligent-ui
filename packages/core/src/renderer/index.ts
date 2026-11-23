@@ -71,6 +71,7 @@ export {
   designCss,
   guard,
   modelCss,
+  exitAnimations,
   openUrl,
   runMorph,
   styleText,

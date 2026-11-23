@@ -40,6 +40,14 @@ export interface Copy {
   switchToLight: string
   switchToDark: string
   inspect: string
+  tagline: string
+  intro: string
+  renderer: string
+  rendererHint: string
+  rendererFailed: string
+  retry: string
+  docs: string
+  modelSettings: string
   examples: string
   agentAsked: string
   askYourself: string
@@ -97,6 +105,15 @@ const en: Copy = {
   switchToLight: "Switch to light",
   switchToDark: "Switch to dark",
   inspect: "Inspect",
+  tagline: "Agents answer with interfaces",
+  intro:
+    "A model writes a reply as markup. It renders live on UI SDK components, in your DESIGN.md, with motion that means something.",
+  renderer: "Renderer",
+  rendererHint: "The same reply, drawn by another framework's renderer.",
+  rendererFailed: "This renderer could not be loaded.",
+  retry: "Try again",
+  docs: "Docs",
+  modelSettings: "Model settings",
   examples: "Examples",
   agentAsked: "An agent was asked",
   askYourself: "Or ask one yourself",
@@ -192,6 +209,14 @@ const zh: Copy = {
   switchToLight: "切换到浅色",
   switchToDark: "切换到深色",
   inspect: "检查",
+  tagline: "让智能体用界面作答",
+  intro: "模型把回复写成标记，由 UI SDK 组件实时渲染，遵循你的 DESIGN.md，动效各有其义。",
+  renderer: "渲染器",
+  rendererHint: "同一条回复，换一个框架的渲染器来画。",
+  rendererFailed: "这个渲染器没能加载。",
+  retry: "重试",
+  docs: "文档",
+  modelSettings: "模型设置",
   examples: "示例",
   agentAsked: "有人问智能体",
   askYourself: "或者自己问一句",

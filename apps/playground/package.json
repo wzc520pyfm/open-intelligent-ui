@@ -10,12 +10,23 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@heroui/react": "3.2.8",
+    "@heroui/styles": "3.2.8",
     "@open-intelligent-ui/core": "workspace:*",
     "@open-intelligent-ui/react": "workspace:*",
+    "@open-intelligent-ui/vue": "workspace:*",
+    "@tailwindcss/vite": "^4.3.5",
     "@ui-sdk/core": "0.1.0-beta.13",
     "@ui-sdk/react": "0.1.0-beta.13",
+    "@ui-sdk/vue": "0.1.0-beta.13",
     "lucide-react": "^1.77.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "tailwindcss": "^4.3.5",
+    "vue": "^3.5.46"
+  },
+  "devDependencies": {
+    "postcss": "8.5.33",
+    "postcss-selector-parser": "^7.2.1"
   }
 }

@@ -3,5 +3,5 @@
   "compilerOptions": {
     "types": ["vite/client"]
   },
-  "include": ["src", "test", "vite.config.ts"]
+  "include": ["src", "test", "build", "vite.config.ts", "../../packages/vue/src/primitives/lucide.d.ts"]
 }

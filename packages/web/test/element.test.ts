@@ -1,3 +1,4 @@
+import { claimId } from "@open-intelligent-ui/core/renderer"
 import { afterEach, describe, expect, test, vi } from "vitest"
 import { defineIntelligentUI, type IntelligentUIElement, mount } from "../src"
 import { byLabel, byText, click, flushPromises, text } from "./helpers"
@@ -241,6 +242,40 @@ describe("mount()", () => {
     expect(first.length).toBeGreaterThan(1)
     expect(second).toHaveLength(first.length)
     expect(new Set([...first, ...second]).size).toBe(first.length * 2)
+  })
+
+  test("an id a surface from another renderer holds is not taken, and an id is given back", async () => {
+    const chart = `<Chart type="area" data={[{ m: "a", v: 1 }, { m: "b", v: 2 }]} x="m" y="v" />`
+    const draw = async () => {
+      const host = document.body.appendChild(document.createElement("div"))
+      made.push(host)
+      const ui = mount(host, { source: chart })
+      await flushPromises()
+      const root = host.querySelector(".iui-root") as HTMLElement
+      return { ui, root, id: root.getAttribute("data-iui-id") as string }
+    }
+    const probe = await draw()
+    const [, count] = /^w([0-9a-z]+)$/.exec(probe.id) as RegExpExecArray
+    const gradient = probe.root.querySelector("linearGradient")?.id as string
+    probe.ui.unmount()
+    // Both names are free again once the surface has left.
+    for (const name of [probe.id, gradient.replace(/-\d+$/, "")]) {
+      const claim = claimId(name)
+      expect(claim.id).toBe(name)
+      claim.release()
+    }
+
+    // The next surface would be given the next number; something else on the page has it.
+    const next = `w${(Number.parseInt(count as string, 36) + 1).toString(36)}`
+    const other = claimId(next)
+    expect(other.id).toBe(next)
+    const { ui, root, id } = await draw()
+    expect(id).not.toBe(next)
+    expect(id.startsWith(next)).toBe(true)
+    const css = [...root.querySelectorAll("style")].map((style) => style.textContent).join("\n")
+    expect(css).toContain(`[data-iui-id="${id}"]`)
+    ui.unmount()
+    other.release()
   })
 
   test("an option left out of update() keeps its value", async () => {

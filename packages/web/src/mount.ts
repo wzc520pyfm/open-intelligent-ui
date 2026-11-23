@@ -106,7 +106,8 @@ export interface MountedUI extends IntelligentUIHandle {
  */
 export function mount(target: Element, initial: IntelligentUIOptions): MountedUI {
   let options: IntelligentUIOptions = { ...initial }
-  const id = nextId("surface")
+  const claim = nextId("surface")
+  const id = claim.id
   let toasts: Toast[] = []
   const timers = new Set<ReturnType<typeof setTimeout>>()
   const reported = new Set<string>()
@@ -268,7 +269,7 @@ export function mount(target: Element, initial: IntelligentUIOptions): MountedUI
       "div",
       {
         attrs: {
-          class: "iui-root",
+          class: options.class ? `iui-root ${options.class}` : "iui-root",
           "data-iui-id": id,
           "data-iui-scheme": options.scheme ?? "auto",
           "data-streaming": streaming ? "" : undefined,

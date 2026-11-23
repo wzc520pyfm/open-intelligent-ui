@@ -24,7 +24,9 @@ export const Chart: Component<ViewProps> = (instance) => {
   let element: Element | null = null
   let width = CHART_WIDTH
   let active: number | null = null
-  const id = `iui-chart-${nextId("chart")}`
+  const claim = nextId("chart")
+  const id = claim.id
+  instance.onUnmounted(claim.release)
   const setActive = (index: number | null) => {
     if (active === index) return
     active = index

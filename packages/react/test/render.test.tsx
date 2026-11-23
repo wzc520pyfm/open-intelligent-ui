@@ -324,6 +324,34 @@ describe("presets", () => {
     expect(text(container)).toContain("Picked: Apple")
   })
 
+  test("DataTable keeps rows apart when ids repeat and a column is listed twice", () => {
+    const complaints = vi.spyOn(console, "error").mockImplementation(() => {})
+    try {
+      const { container } = render(
+        <IntelligentUI
+          source={`<state rows={[
+  { id: "at:1", name: "Pear", price: 3 },
+  { name: "Apple", price: 5 },
+  { id: 7, name: "Fig", price: 1 },
+  { id: 7, name: "Plum", price: 2 }
+]} />
+<DataTable data={rows} columns={["name", "price", { key: "price", label: "Cost", format: "currency" }]} />`}
+        />
+      )
+      const names = () =>
+        [...container.querySelectorAll("tbody tr td:first-child")].map((cell) => cell.textContent)
+      expect(names()).toEqual(["Pear", "Apple", "Fig", "Plum"])
+      expect(container.querySelectorAll("tbody tr:first-child td")).toHaveLength(3)
+      fireEvent.click(screen.getByText("Cost"))
+      expect(names()).toEqual(["Fig", "Plum", "Pear", "Apple"])
+      fireEvent.click(screen.getByText("Cost"))
+      expect(names()).toEqual(["Apple", "Pear", "Plum", "Fig"])
+      expect(complaints).not.toHaveBeenCalled()
+    } finally {
+      complaints.mockRestore()
+    }
+  })
+
   test("Chart draws one bar per row from state", () => {
     const { container } = render(
       <IntelligentUI

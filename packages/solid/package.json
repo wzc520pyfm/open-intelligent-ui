@@ -1,0 +1,75 @@
+{
+  "name": "@open-intelligent-ui/solid",
+  "version": "0.2.0",
+  "description": "Solid renderer for Open Intelligent UI: turns IUI markup written by a model into a live, stateful, animated interface built on UI SDK.",
+  "keywords": [
+    "generative-ui",
+    "intelligent-ui",
+    "agent",
+    "llm",
+    "solid",
+    "solid-js",
+    "ui-sdk",
+    "design-md"
+  ],
+  "homepage": "https://github.com/wzc520pyfm/open-intelligent-ui#readme",
+  "bugs": "https://github.com/wzc520pyfm/open-intelligent-ui/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wzc520pyfm/open-intelligent-ui.git",
+    "directory": "packages/solid"
+  },
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./ui-sdk": "./src/registry/ui-sdk.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "files": [
+    "dist",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./ui-sdk": {
+        "types": "./dist/ui-sdk.d.ts",
+        "default": "./dist/ui-sdk.js"
+      },
+      "./styles.css": "./dist/styles.css"
+    }
+  },
+  "scripts": {
+    "build": "tsdown && node ../../scripts/build-css.mjs",
+    "prepack": "pnpm run build && node ../../scripts/copy-license.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@open-intelligent-ui/core": "workspace:*",
+    "lucide": "1.77.0"
+  },
+  "peerDependencies": {
+    "@solidjs/web": "^2.0.0",
+    "@ui-sdk/core": "^0.1.0-beta.13",
+    "@ui-sdk/solid": "^0.1.0-beta.13",
+    "solid-js": "^2.0.0"
+  },
+  "devDependencies": {
+    "@open-intelligent-ui/react": "workspace:*",
+    "@solidjs/web": "^2.0.3",
+    "@ui-sdk/core": "0.1.0-beta.13",
+    "@ui-sdk/react": "0.1.0-beta.13",
+    "@ui-sdk/solid": "0.1.0-beta.13",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "solid-js": "^2.0.3"
+  }
+}

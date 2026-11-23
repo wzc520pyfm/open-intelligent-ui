@@ -33,6 +33,19 @@ export default defineConfig({
           css: false,
         },
       },
+      {
+        extends: true,
+        // Solid's packages hand Node their server build; the tests need the one a browser gets.
+        resolve: { conditions: ["browser", "development"] },
+        test: {
+          name: "solid",
+          include: ["packages/solid/test/**/*.test.ts"],
+          environment: "jsdom",
+          setupFiles: ["packages/solid/test/setup.ts"],
+          css: false,
+          server: { deps: { inline: [/solid-js/, /@solidjs\//, /@ui-sdk\/solid/] } },
+        },
+      },
     ],
   },
 })

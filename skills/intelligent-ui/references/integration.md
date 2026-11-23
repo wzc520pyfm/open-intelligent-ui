@@ -404,6 +404,9 @@ JavaScript.
   `Pagination`'s `getHref` returns.
 - The `form` attribute is dropped everywhere, so a control can't join a
   form of yours by its id, and a button can't submit one.
+- A `<FileInputDropzone>` takes the files dropped on or pasted into it.
+  The options that would make it listen to the whole page, `target` and
+  `pasteTarget`, are dropped.
 - `<style>` is scoped to its surface. `@import`, `url()` to other sites and
   unknown at-rules are removed, and `position: fixed` becomes `absolute`,
   so a surface can't draw over your page. The scope holds across the page,

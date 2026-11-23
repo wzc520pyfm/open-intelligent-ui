@@ -156,6 +156,19 @@ function refused(name: string): boolean {
   return BLOCKED_NAMES.has(lower) || UNCHECKED_URL_PROPS.has(lower) || !PROP_NAME.test(name)
 }
 
+/**
+ * Whether a browser would take `value` for the `file` type of an input. It
+ * reads the type in any case, and a renderer writes a value that isn't text
+ * as the text it makes.
+ */
+function isFileType(value: unknown): boolean {
+  try {
+    return String(value).toLowerCase() === "file"
+  } catch {
+    return false
+  }
+}
+
 const DATA_PROPS = new Set(["variant", "size", "tone"])
 const MOTION_ATTRIBUTE = /^[a-z]+(?:-[a-z]+)*$/
 
@@ -466,7 +479,7 @@ export function buildProps(
         }
         return
       }
-      if (lower === "type" && tag === "input" && value === "file") return
+      if (lower === "type" && tag === "input" && isFileType(value)) return
       props[dialect.html(lower, name)] = fromStatic ? coerceStatic(value) : value
       return
     }

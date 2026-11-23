@@ -101,8 +101,8 @@ function texts(node: unknown, out: string[] = []): string[] {
   return out
 }
 
-/** The props a host component named `Plain` is handed when `source` is rendered. */
-function handed(source: string): Record<string, unknown> {
+/** The props a host component named `Plain`, or the element `tag`, is handed when `source` is rendered. */
+function handed(source: string, tag?: string): Record<string, unknown> {
   let given: Record<string, unknown> = {}
   const component = (_type: string, props: Record<string, unknown>) => {
     given = props
@@ -123,7 +123,10 @@ function handed(source: string): Record<string, unknown> {
     presets: {},
     lookup: () => ({ status: "unknown" }),
     fragment: (children) => children,
-    element: () => null,
+    element: (type, props) => {
+      if (type === tag) given = props
+      return null
+    },
     component,
     scoped: component,
     presence: (child) => child,
@@ -155,6 +158,18 @@ describe("what markup hands a component", () => {
     const given = handed(`<state css="position: fixed; background: url(https://evil.test/a.png)" bag={{ Style: "background: url(https://evil.test/b.png)" }} />
 <Plain title="ok" style="color: red; background: url(https://evil.test/c.png)" STYLE={css} sTyLe="position: fixed" {...bag} bind:STYLE={css} />`)
     expect(given).toEqual({ title: "ok", style: { color: "red" } })
+  })
+})
+
+describe("what markup hands an element", () => {
+  // A browser reads the type of an input in any case, and React writes a
+  // list of one word as that word.
+  test("is not a file picker, however the type is written", () => {
+    for (const type of ['"file"', '"FILE"', '"File"', '{"fi" + "le"}', '{["file"]}', '{["FiLe"]}']) {
+      expect(handed(`<input type=${type} name="doc" />`, "input"), type).toEqual({ name: "doc" })
+    }
+    expect(handed('<input type="email" name="doc" />', "input")).toEqual({ type: "email", name: "doc" })
+    expect(handed('<input type={["a", "b"]} />', "input")).toEqual({ type: ["a", "b"] })
   })
 })
 

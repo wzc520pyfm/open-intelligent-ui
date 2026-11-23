@@ -79,6 +79,14 @@ export function flatten(nodes: unknown): Item[] {
   const out: Item[] = []
   if (Array.isArray(nodes)) addAll(nodes, "", out)
   else add(nodes, "", 0, out)
+  // Two views can be given one key, from data that repeats. Svelte stops at a repeated key.
+  const taken = new Set<string>()
+  out.forEach((item, position) => {
+    let key = item.key
+    while (taken.has(key)) key = `${key}~${position}`
+    taken.add(key)
+    if (key !== item.key) out[position] = { ...item, key }
+  })
   return out
 }
 

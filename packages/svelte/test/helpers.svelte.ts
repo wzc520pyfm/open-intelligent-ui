@@ -1,14 +1,22 @@
 import { flushSync, mount, tick, unmount } from "svelte"
+import { vi } from "vitest"
 import { IntelligentUI, type IntelligentUIHandle, type IntelligentUIProps } from "../src"
 
 export type Props = IntelligentUIProps
 
 const mounted = new Set<() => void>()
 
-/** Takes every surface a test drew off the page. */
+/** Has something undone once the test is over, whether it passed or not. */
+export function afterTest(undo: () => void) {
+  mounted.add(undo)
+}
+
+/** Takes every surface a test drew off the page, and puts back what the test replaced. */
 export function cleanup() {
   for (const remove of mounted) remove()
   mounted.clear()
+  vi.restoreAllMocks()
+  Reflect.deleteProperty(document, "startViewTransition")
 }
 
 // Taken now, so a test that fakes timers doesn't stop the helpers too.
@@ -27,13 +35,15 @@ export async function flushPromises() {
 export function drawNow(initial: Props) {
   const props = $state({ ...initial })
   const target = document.body.appendChild(document.createElement("div"))
-  const ui = mount(IntelligentUI, { target, props }) as unknown as IntelligentUIHandle
-  flushSync()
+  let drawn: IntelligentUIHandle | undefined
   const remove = () => {
-    void unmount(ui as never)
+    if (drawn) void unmount(drawn as never)
     target.remove()
   }
+  // Before anything is drawn: a surface that throws while it draws is taken off the page too.
   mounted.add(remove)
+  const ui = (drawn = mount(IntelligentUI, { target, props }) as unknown as IntelligentUIHandle)
+  flushSync()
   const view = {
     /** What `bind:this` gives a parent. */
     vm: ui,

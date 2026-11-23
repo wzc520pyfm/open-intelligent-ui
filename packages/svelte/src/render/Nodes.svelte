@@ -37,6 +37,7 @@
         ><Nodes nodes={item.children} svg={drawn && item.tag !== "foreignObject"} /></svelte:element
       >{/if}{:else if item.kind === "component"}{@const Type = item.type}{#snippet content(given: unknown)}<Nodes
         nodes={item.render ? item.render(given) : item.children}
+        {svg}
       />{/snippet}<Type
       {...item.props}
       children={item.render || item.children.length ? content : undefined}

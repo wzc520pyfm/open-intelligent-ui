@@ -11,6 +11,7 @@ import PlainSpan from "./fixtures/PlainSpan.svelte"
 import PlainVideo from "./fixtures/PlainVideo.svelte"
 import Stepper from "./fixtures/Stepper.svelte"
 import {
+  afterTest,
   byLabel,
   byRole,
   byText,
@@ -233,6 +234,17 @@ Total: {currency(total, "USD")}`,
     await flushPromises()
     expect(text(container)).toBe("Osaka")
     expect(onStateChange).toHaveBeenLastCalledWith({ city: "Osaka" })
+  })
+
+  test("state a later piece of the stream declares is reported to the host", async () => {
+    const onStateChange = vi.fn()
+    const { view } = await draw({ source: "Thinking", streaming: true, onStateChange })
+    expect(onStateChange).toHaveBeenLastCalledWith({})
+    await view.setProps({ source: `Thinking\n<state city="Kyoto" />` })
+    await until(() => expect(onStateChange).toHaveBeenLastCalledWith({ city: "Kyoto" }))
+    const calls = onStateChange.mock.calls.length
+    await view.setProps({ source: `Thinking\n<state city="Kyoto" />\nmore` })
+    expect(onStateChange).toHaveBeenCalledTimes(calls)
   })
 
   test("parse problems are reported for each source", async () => {
@@ -656,6 +668,44 @@ describe("safety", () => {
     expect(container.querySelector("img")).toBeNull()
   })
 
+  test("a reply can't add to or submit a form outside it, and an address a function returns is checked", async () => {
+    await preloadUiSdk("Input", "Checkbox", "Button", "Pagination")
+    const form = document.body.appendChild(document.createElement("form"))
+    form.id = "host-form"
+    form.innerHTML = '<input name="amount" value="10">'
+    const { container } = await draw({
+      source: `<state id="host-form" />
+<Input aria-label="To" form="host-form" name="to" defaultValue="someone" />
+<Checkbox aria-label="Admin" FORM="host-form" name="admin" defaultChecked />
+<Button aria-label="Go" type="submit" form="host-form" bind:form={id} {...{ form: id }}>Go</Button>
+<Pagination aria-label="Pages" pageCount={3} getHref={(page) => page == 2 ? "javascript:alert(1)" : "/list?page=" + page}>
+  <PaginationList>
+    <PaginationItem><PaginationLink page={1} /></PaginationItem>
+    <PaginationItem><PaginationLink page={2} /></PaginationItem>
+  </PaginationList>
+</Pagination>`,
+    })
+    await until(() => expect(container.querySelectorAll('[data-slot="pagination-link"]')).toHaveLength(2))
+    const links = [...container.querySelectorAll('[data-slot="pagination-link"]')]
+    expect(links.map((link) => link.getAttribute("href"))).toEqual(["/list?page=1", null])
+    expect(container.querySelector("[form]")).toBeNull()
+    expect([...new FormData(form)]).toEqual([["amount", "10"]])
+    form.remove()
+  })
+
+  test("a link the host refuses is not opened by an action either", async () => {
+    const opened = vi.spyOn(window, "open").mockImplementation(() => null)
+    const { container } = await draw({
+      source: `<button on:click={open("https://example.com/a")}>Kept</button>
+<button on:click={open("https://evil.test/a")}>Refused</button>`,
+      allowUrl: (url) => url.startsWith("https://example.com/"),
+    })
+    await click(byText(container, "Refused"))
+    await click(byText(container, "Kept"))
+    expect(opened.mock.calls.map((call) => call[0])).toEqual(["https://example.com/a"])
+    opened.mockRestore()
+  })
+
   test("expressions can't reach globals or prototypes", async () => {
     const { container } = await draw({
       source: `<text>[{typeof window}] [{constructor}] [{"a".constructor}] [{[].__proto__}]</text>`,
@@ -806,6 +856,7 @@ describe("motion hooks", () => {
       const root = document.createElement("div")
       root.innerHTML = `<div data-iui-morph="${name}"></div>`
       document.body.append(root)
+      afterTest(() => root.remove())
       return root
     }
     const first = surface("a")

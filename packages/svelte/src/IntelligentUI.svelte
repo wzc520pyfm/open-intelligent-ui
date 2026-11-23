@@ -99,7 +99,7 @@
       if (onAction?.(action) === true) return
       if (action.type === "toast") showToast(action.message, action.tone)
       else if (action.type === "copy") copyText(action.text)
-      else if (action.type === "open") openUrl(action.url)
+      else if (action.type === "open") openUrl(action.url, allowUrl)
     },
     onTool: (event) => onTool?.(event),
     onWarning: (message) => report(message),
@@ -168,6 +168,8 @@
     untrack(() => {
       // Queries written later in the stream exist only after a re-parse.
       surface.start()
+      // State the new piece declared changed the surface without a notice.
+      version = surface.getVersion()
       onDiagnostics?.(next.diagnostics)
     })
   })

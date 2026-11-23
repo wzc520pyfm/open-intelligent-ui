@@ -2,19 +2,32 @@ import { IntelligentUI as ReactUI, preloadUiSdk as preloadReact } from "@open-in
 import { act, createElement } from "react"
 import { createRoot } from "react-dom/client"
 import { mount, unmount } from "svelte"
-import { claimId } from "@open-intelligent-ui/core/renderer"
+import { claimId, view } from "@open-intelligent-ui/core/renderer"
 import { describe, expect, test, vi } from "vitest"
 import { preloadUiSdk } from "../src"
 import { UI_SDK_PROPS } from "../src/registry/ui-sdk.generated"
 import { held } from "../src/render/held"
 import Nodes from "../src/render/Nodes.svelte"
 import { componentProps, cssText, nativeProps, PROPERTY_SINKS } from "../src/render/props"
+import { flatten } from "../src/render/view"
 import Counter from "./fixtures/Counter.svelte"
 import Dump, { dumped } from "./fixtures/Dump.svelte"
+import Group from "./fixtures/Group.svelte"
 import PlainLink from "./fixtures/PlainLink.svelte"
 import Rating from "./fixtures/Rating.svelte"
 import Stepper from "./fixtures/Stepper.svelte"
-import { byLabel, byRole, byText, click, draw, flushPromises, text, type, until } from "./helpers.svelte"
+import {
+  afterTest,
+  byLabel,
+  byRole,
+  byText,
+  click,
+  draw,
+  flushPromises,
+  text,
+  type,
+  until,
+} from "./helpers.svelte"
 
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean
@@ -463,6 +476,7 @@ ${tags
 <select aria-label="nothing" value={none}>${options}</select>
 <select aria-label="missing" value="xl">${options}</select>
 <select aria-label="many" multiple value={["s", "l"]}>${options}</select>
+<select aria-label="text" value="Medium"><option>Small</option><option>{#if size}Medium{/if}</option></select>
 <button on:click={size = "l"}>Large</button>`
     const read = (container: HTMLElement) =>
       [...container.querySelectorAll("select")].map((select) => [
@@ -547,15 +561,41 @@ ${tags
 /** Draws nodes as the renderer draws them, without the shared layer in front. */
 function drawNodes(nodes: unknown) {
   const target = document.body.appendChild(document.createElement("div"))
-  const drawn = mount(Nodes, { target, props: { nodes } })
-  return {
-    target,
-    remove: () => {
-      void unmount(drawn)
-      target.remove()
-    },
+  let drawn: ReturnType<typeof mount> | undefined
+  const remove = () => {
+    if (drawn) void unmount(drawn)
+    drawn = undefined
+    target.remove()
   }
+  afterTest(remove)
+  drawn = mount(Nodes, { target, props: { nodes } })
+  return { target, remove }
 }
+
+describe("what is drawn", () => {
+  test("shapes inside a host's part are still shapes", async () => {
+    const { container } = await draw({
+      source: `<svg viewBox="0 0 10 10"><Group><circle cx="5" cy="5" r="2" /></Group></svg>`,
+      components: { Group },
+    })
+    const circle = container.querySelector("[data-group] circle")
+    expect(circle?.namespaceURI).toBe("http://www.w3.org/2000/svg")
+  })
+
+  test("views that were given one key are drawn apart", () => {
+    const nodes = [
+      view("i", { key: "a" }, ["1"]),
+      view("i", { key: "a" }, ["2"]),
+      [view("b", { key: "a" }, ["3"]), view("b", { key: "a" }, ["4"])],
+      view("i", { key: "a~1" }, ["5"]),
+    ]
+    const keys = flatten(nodes).map((item) => item.key)
+    expect(new Set(keys).size).toBe(5)
+    expect(keys[0]).toBe("=a")
+    const { target } = drawNodes(nodes)
+    expect(target.textContent).toBe("12345")
+  })
+})
 
 /** Every file of the renderer, as written. */
 const sources = import.meta.glob<string>("../src/**/*.{ts,svelte}", {

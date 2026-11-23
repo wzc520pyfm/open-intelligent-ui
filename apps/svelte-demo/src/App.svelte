@@ -58,6 +58,7 @@
 
   function onAction(action: SurfaceAction) {
     if (action.type === "send") note("send", `${action.text} ${JSON.stringify(action.data ?? {})}`)
+    else if (action.type === "toast") note("toast", action.message)
     else note(action.type, "url" in action ? action.url : "text" in action ? action.text : "")
     return undefined
   }

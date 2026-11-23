@@ -37,6 +37,20 @@ function lookup(name: string): Lookup<AnyComponent> {
   return found
 }
 
+/** The text an option shows, which a block inside it can hold. */
+function textOf(nodes: readonly unknown[]): string {
+  let text = ""
+  for (const node of nodes) {
+    if (typeof node === "string") text += node
+    else if (Array.isArray(node)) text += textOf(node)
+    else if (node !== null && typeof node === "object") {
+      const given = node as Exclude<RenderNode, string>
+      if (given.kind === "fragment") text += textOf(given.children)
+    }
+  }
+  return text
+}
+
 /** The options of a `<select>`, wherever in its children they are. */
 function optionsOf(nodes: readonly unknown[], found: SelectOption[] = []): SelectOption[] {
   for (const node of nodes) {
@@ -52,8 +66,7 @@ function optionsOf(nodes: readonly unknown[], found: SelectOption[] = []): Selec
     else if (given.tag === "optgroup") optionsOf(given.children, found)
     else if (given.tag === "option") {
       // Without a `value` an option's value is its text.
-      const text = given.children.filter((child) => typeof child === "string").join("")
-      const value = given.props.value ?? text.trim().replace(/\s+/g, " ")
+      const value = given.props.value ?? textOf(given.children).trim().replace(/\s+/g, " ")
       found.push({ value: String(value), disabled: given.props.disabled !== undefined })
     }
   }

@@ -415,7 +415,7 @@ export function createRenderer<N, C>(
     }
     if (name === "button") props.type ??= "button"
     if (name === "form") {
-      const event = dialect.event("submit", true, name)
+      const event = dialect.event("submit", "html", name)
       const submit = props[event] as ((submitted: unknown) => unknown) | undefined
       props[event] = (submitted: { preventDefault(): void }) => {
         submitted.preventDefault()

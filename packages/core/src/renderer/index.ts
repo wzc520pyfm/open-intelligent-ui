@@ -14,10 +14,10 @@ export {
   readChartData,
 } from "./chart"
 export {
-  easeOut,
   type FormatOptions,
   formatValue,
-  prefersReducedMotion,
+  tween,
+  tweenless,
 } from "./format"
 export {
   COPIED_LIFETIME,
@@ -52,6 +52,7 @@ export {
   type ElementKind,
   type ElementProps,
   evalAttr,
+  lazyRecord,
   type PropsContext,
   type PropsDialect,
   plainArg,

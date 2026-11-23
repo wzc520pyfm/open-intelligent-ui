@@ -77,7 +77,8 @@ export const reactDialect: PropsDialect = {
     REACT_NAMES[lower] ??
     (written.includes("-") || written.includes(":") ? camel(written) : written),
   prop: (name) => (name === "for" ? "htmlFor" : name),
-  event: (name, dom) => eventProp(name, dom),
+  // The host's own components name their events themselves.
+  event: (name, kind) => eventProp(name, kind !== "component"),
   handler: (name) => name,
   bindEvent: (_tag, argument) => (argument === "open" ? "onToggle" : "onChange"),
 }

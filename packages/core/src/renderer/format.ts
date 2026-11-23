@@ -88,4 +88,36 @@ export function prefersReducedMotion(): boolean {
   )
 }
 
-export const easeOut = (t: number) => 1 - (1 - t) ** 3
+const easeOut = (t: number) => 1 - (1 - t) ** 3
+
+/** Whether numbers should jump to their new value instead of travelling there. */
+export function tweenless(): boolean {
+  return prefersReducedMotion() || typeof requestAnimationFrame !== "function"
+}
+
+/**
+ * Moves a list of numbers from `start` to `target` over `duration`
+ * milliseconds, calling `set` on every frame. Returns a function that stops it.
+ */
+export function tween(
+  start: number[],
+  target: number[],
+  duration: number,
+  set: (values: number[]) => void
+): () => void {
+  let frame = 0
+  const began = performance.now()
+  const step = (now: number) => {
+    const t = Math.min(1, (now - began) / duration)
+    const eased = easeOut(t)
+    set(
+      target.map((end, index) => {
+        const begin = start[index] as number
+        return begin + (end - begin) * eased
+      })
+    )
+    if (t < 1) frame = requestAnimationFrame(step)
+  }
+  frame = requestAnimationFrame(step)
+  return () => cancelAnimationFrame(frame)
+}

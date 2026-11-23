@@ -38,10 +38,10 @@ export interface PropsDialect {
   svg(lower: string, written: string): string
   /** Names a prop handed to a component or a primitive. */
   prop(name: string): string
-  /** The prop for `on:name`. `dom` is false for the host's own components. */
-  event(name: string, dom: boolean, tag: string): string
-  /** The prop for a handler written as `onName={...}`. `native` is true on HTML and SVG elements. */
-  handler(name: string, native: boolean): string
+  /** The prop for `on:name` on an element of this kind. */
+  event(name: string, kind: ElementKind, tag: string): string
+  /** The prop for a handler written as `onName={...}`. */
+  handler(name: string, kind: ElementKind, tag: string): string
   /** The event prop through which a native element reports a `bind:` change. */
   bindEvent(tag: string, argument: string): string
 }
@@ -142,6 +142,39 @@ function isPlain(value: unknown): value is Record<string, unknown> {
   return proto === Object.prototype || proto === null
 }
 
+const lazyRecords = new WeakSet<object>()
+
+/**
+ * Plain data whose fields are fetched when an expression reads them. Some
+ * components hand over state that only knows a field once it is asked for,
+ * and that notes what was asked so it can say when that changes; copying
+ * such state up front would read nothing. `read` is called with each field
+ * name and what it returns is made plain like any other argument.
+ */
+export function lazyRecord(read: (name: string) => unknown): Record<string, unknown> {
+  const field = (name: string | symbol) =>
+    typeof name === "string" ? plainArg(read(name)) : undefined
+  const record = new Proxy<Record<string, unknown>>(
+    {},
+    {
+      get: (_, name) => field(name),
+      has: (_, name) => field(name) !== undefined,
+      getOwnPropertyDescriptor: (_, name) => {
+        const value = field(name)
+        return value === undefined
+          ? undefined
+          : { value, enumerable: true, configurable: true, writable: false }
+      },
+      // A write lands nowhere, as it would on a copy of the state.
+      set: () => true,
+      defineProperty: () => false,
+      deleteProperty: () => true,
+    }
+  )
+  lazyRecords.add(record)
+  return record
+}
+
 /**
  * Turns what a component hands to a callback into plain data an expression
  * can read: events become `{ type, value, checked, key }`, and anything that
@@ -152,6 +185,7 @@ export function plainArg(value: unknown, depth = 0): unknown {
   const type = typeof value
   if (type === "string" || type === "number" || type === "boolean") return value
   if (type !== "object" || depth > 6) return undefined
+  if (lazyRecords.has(value as object)) return value
   if (value instanceof Date) return value.toISOString()
   if (Array.isArray(value)) return value.map((item) => plainArg(item, depth + 1))
   const record = value as Record<string, unknown>
@@ -457,8 +491,8 @@ export function buildProps(
       if (value.kind !== "expr") continue
       const event =
         directive === "on"
-          ? dialect.event(argument, kind !== "component", tag)
-          : dialect.handler(name, native)
+          ? dialect.event(argument, kind, tag)
+          : dialect.handler(name, kind, tag)
       handlers[event] = chain(handlers[event], handler(value.expr, ctx))
       continue
     }

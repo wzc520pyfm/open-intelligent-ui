@@ -1,4 +1,4 @@
-import { easeOut, prefersReducedMotion } from "@open-intelligent-ui/core/renderer"
+import { tween, tweenless } from "@open-intelligent-ui/core/renderer"
 import { useEffect, useRef, useState } from "react"
 
 /**
@@ -7,9 +7,7 @@ import { useEffect, useRef, useState } from "react"
  */
 export function useTween(target: number[], duration = 420, from = 0): number[] {
   const [values, setValues] = useState<number[]>(() =>
-    prefersReducedMotion() || typeof requestAnimationFrame !== "function"
-      ? target
-      : target.map(() => from)
+    tweenless() ? target : target.map(() => from)
   )
   const current = useRef(values)
   current.current = values
@@ -17,7 +15,7 @@ export function useTween(target: number[], duration = 420, from = 0): number[] {
 
   // `key` stands in for `target`, which is a new array on every render.
   useEffect(() => {
-    if (prefersReducedMotion() || typeof requestAnimationFrame !== "function") {
+    if (tweenless()) {
       setValues(target)
       return
     }
@@ -26,21 +24,7 @@ export function useTween(target: number[], duration = 420, from = 0): number[] {
       if (current.current.length !== target.length) setValues(target)
       return
     }
-    let frame = 0
-    const began = performance.now()
-    const step = (now: number) => {
-      const t = Math.min(1, (now - began) / duration)
-      const eased = easeOut(t)
-      setValues(
-        target.map((end, index) => {
-          const begin = start[index] as number
-          return begin + (end - begin) * eased
-        })
-      )
-      if (t < 1) frame = requestAnimationFrame(step)
-    }
-    frame = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(frame)
+    return tween(start, target, duration, setValues)
   }, [key, duration, from])
 
   return values.length === target.length ? values : target

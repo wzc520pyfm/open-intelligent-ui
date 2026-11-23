@@ -1,4 +1,5 @@
-import { type Child, fragment, h, type Listener } from "../dom/node"
+import { type Child, type ElementVNode, fragment, h, type Listener } from "../dom/node"
+import { type Adopted, adopt } from "../dom/patch"
 import { UI_SDK_ELEMENTS, type UiSdkElement } from "../registry/ui-sdk.generated"
 import { nativeElement } from "../render/native"
 import { drawElement, type Special } from "./adapter"
@@ -68,6 +69,115 @@ function press(handler: (...args: unknown[]) => unknown): Record<string, Listene
   }
 }
 
+/** What a calendar hands to the markup of a day. */
+interface Cell {
+  date: string
+  hidden: boolean
+}
+
+interface Days {
+  /** Draws the day markup wrote, for one cell. */
+  draw: (cell: Cell) => ElementVNode | undefined
+  /** Whether markup put anything of its own inside the day. */
+  filled: boolean
+  adopted: Map<Element, Adopted>
+  /** What stands in a day markup filled with nothing, so the element doesn't write a date there. */
+  keepers: WeakMap<Element, Element>
+  observer: MutationObserver | null
+}
+
+const calendars = new WeakMap<Element, Days>()
+
+const isDay = (child: Child | undefined): child is ElementVNode =>
+  typeof child === "object" && child !== null && !Array.isArray(child) && child.kind === "element" && child.tag === "ui-calendar-day"
+
+const placeholder = (): ElementVNode => h("span", { attrs: { hidden: "" } })
+
+/**
+ * The element lays the weeks out and copies its template once per day,
+ * which gives every day the same content. Each day it made is taken over
+ * here and drawn as markup wrote it for that date.
+ */
+function drawDays(weeks: Element) {
+  const days = calendars.get(weeks)
+  if (!days) return
+  const present = new Set<Element>(weeks.querySelectorAll("ui-calendar-day"))
+  for (const [element, adopted] of days.adopted) {
+    if (present.has(element)) continue
+    adopted.unmount()
+    days.adopted.delete(element)
+  }
+  for (const element of present) {
+    const day = days.draw({ date: element.getAttribute("value") ?? "", hidden: false })
+    if (!day) continue
+    let adopted = days.adopted.get(element)
+    if (!adopted) {
+      if (days.filled) element.replaceChildren()
+      adopted = adopt(element)
+      days.adopted.set(element, adopted)
+    }
+    adopted.render(day)
+    if (days.filled) keepFilled(element, days)
+  }
+  // What was just drawn is no news.
+  days.observer?.takeRecords()
+}
+
+/** The element writes the date into a day it finds empty, and goes on writing it there. */
+function keepFilled(day: Element, days: Days) {
+  const keeper = days.keepers.get(day)
+  const blank = ![...day.children].some((child) => child !== keeper) && !day.textContent?.trim()
+  if (blank && !keeper?.isConnected) {
+    const stand = document.createElement("span")
+    stand.hidden = true
+    days.keepers.set(day, stand)
+    day.appendChild(stand)
+  } else if (!blank && keeper?.isConnected) {
+    keeper.remove()
+  }
+}
+
+function watchDays(draw: Days["draw"], filled: boolean) {
+  const safely = (weeks: Element) => {
+    try {
+      drawDays(weeks)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+  return {
+    mounted(weeks: Element) {
+      const days: Days = { draw, filled, adopted: new Map(), keepers: new WeakMap(), observer: null }
+      calendars.set(weeks, days)
+      if (typeof MutationObserver !== "undefined") {
+        days.observer = new MutationObserver((records) => {
+          // Only the weeks and days the element adds or takes away; what is drawn inside a day is this renderer's.
+          const laidOut = records.some(
+            (record) => record.target === weeks || (record.target as Element).localName === "ui-calendar-week"
+          )
+          if (laidOut) safely(weeks)
+        })
+        days.observer.observe(weeks, { childList: true, subtree: true })
+      }
+      drawDays(weeks)
+    },
+    updated(weeks: Element) {
+      const days = calendars.get(weeks)
+      if (!days) return
+      days.draw = draw
+      days.filled = filled
+      drawDays(weeks)
+    },
+    removed(weeks: Element) {
+      const days = calendars.get(weeks)
+      if (!days) return
+      days.observer?.disconnect()
+      for (const adopted of days.adopted.values()) adopted.unmount()
+      calendars.delete(weeks)
+    },
+  }
+}
+
 export const SPECIALS: Record<string, Special> = {
   Button: {
     draw: (props, key, children) => {
@@ -118,13 +228,24 @@ export const SPECIALS: Record<string, Special> = {
       ]),
   },
 
-  // The element lays out the weeks itself and copies the day written in its template.
+  // The element lays out the weeks itself and copies the day in its template;
+  // each copy is then drawn as markup wrote it for that date.
   CalendarWeeks: {
     draw: (props, key) => drawElement(WEEKS, props, key, []),
-    scoped: (props, key, _lets, render) =>
-      drawElement(WEEKS, props, key, [
-        h("template", { key: "day" }, elementsOnly(render([{ date: "" }])).slice(0, 1)),
-      ]),
+    scoped: (props, key, _lets, render) => {
+      const draw = (cell: Cell) => {
+        const day = elementsOnly(render([cell]))[0]
+        return isDay(day) ? day : undefined
+      }
+      const sample = draw({ date: "", hidden: false })
+      if (!sample) return drawElement(WEEKS, props, key, [])
+      const filled = sample.children.length > 0
+      const node = drawElement(WEEKS, props, key, [
+        h("template", { key: "day" }, [h("ui-calendar-day", {}, filled ? [placeholder()] : [])]),
+      ])
+      node.hooks = watchDays(draw, filled)
+      return node
+    },
   },
 }
 

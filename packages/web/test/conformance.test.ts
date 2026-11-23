@@ -95,8 +95,6 @@ test("there are samples to compare", () => {
 const usesUiSdk = (source: string) =>
   [...source.matchAll(/<([A-Z][A-Za-z0-9]*)/g)].some((match) => isUiSdkComponent(match[1] as string))
 
-const exact: string[] = []
-const byReader: string[] = []
 
 /**
  * A sample with no UI SDK component must give the same DOM, node for node.
@@ -113,10 +111,8 @@ test.each(CORPUS.map((sample) => [sample.name, sample] as const))(
     expect(react.dom).not.toContain("iui-error")
     if (usesUiSdk(sample.source)) {
       expect(web.reader).toBe(react.reader)
-      byReader.push(name)
     } else {
       expect(web.dom).toBe(react.dom)
-      exact.push(name)
     }
     expect(web.warnings).toEqual(react.warnings)
     expect(react.warnings).toEqual([])
@@ -125,7 +121,29 @@ test.each(CORPUS.map((sample) => [sample.name, sample] as const))(
 
 test("the corpus splits into samples compared exactly and samples compared as read", () => {
   // The split the report quotes; a new sample has to be counted on one side.
-  expect({ exact: exact.length, byReader: byReader.length }).toEqual({ exact: 6, byReader: 47 })
+  const asRead = CORPUS.filter((sample) => usesUiSdk(sample.source)).length
+  expect({ exact: CORPUS.length - asRead, byReader: asRead }).toEqual({ exact: 6, byReader: 47 })
+})
+
+test("a calendar whose days hold markup of their own reads the same in React and Web", async () => {
+  const sample: Sample = {
+    name: "fare calendar",
+    source: `<state day="2026-10-16" prices={{ "2026-10-16": 120, "2026-10-17": 95 }} />
+<Calendar bind:value={day}>
+  <CalendarPrevious /><CalendarHeading /><CalendarNext />
+  <CalendarGrid>
+    <CalendarWeekdays let:index><CalendarWeekday index={index} /></CalendarWeekdays>
+    <CalendarWeeks let:cell>
+      <CalendarDay value={cell.date}><b>{cell.date.slice(8)}</b>{#if prices[cell.date]}<small>{prices[cell.date]}</small>{/if}</CalendarDay>
+    </CalendarWeeks>
+  </CalendarGrid>
+</Calendar>`,
+  }
+  const react = await drawnByReact(sample)
+  const web = await drawnByWeb(sample)
+  expect(web.reader).toContain('"120"')
+  expect(web.reader).toBe(react.reader)
+  expect(web.warnings).toEqual(react.warnings)
 })
 
 test("the samples of our own stay clear of UI SDK", () => {

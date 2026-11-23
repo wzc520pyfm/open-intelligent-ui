@@ -1021,6 +1021,64 @@ ${tabs.replace('defaultValue="plan"', "bind:value={tab}")}
 })
 
 describe("children as a function of component state", () => {
+  test("each day of a calendar is drawn as markup wrote it for that date", async () => {
+    await preloadUiSdk("Calendar")
+    const { container } = await draw({
+      source: `<state day="2026-10-16" picked="" prices={{ "2026-10-16": 120, "2026-10-17": 95, "2026-11-03": 80 }} />
+<Calendar bind:value={day}>
+  <CalendarPrevious /><CalendarHeading /><CalendarNext />
+  <CalendarGrid>
+    <CalendarWeeks let:cell>
+      <CalendarDay value={cell.date} title={"Fare for " + cell.date} class:cheap={prices[cell.date] < 100} on:click={picked = cell.date}>
+        <b>{cell.date.slice(8)}</b>{#if prices[cell.date]}<small>{prices[cell.date]}</small>{/if}
+      </CalendarDay>
+    </CalendarWeeks>
+  </CalendarGrid>
+</Calendar>
+<button on:click={prices = { ...prices, "2026-10-16": 60 }}>drop</button>
+<text>picked {picked}</text>`,
+    })
+    const day = (date: string) => container.querySelector(`ui-calendar-day[value="${date}"]`) as HTMLElement
+    await until(() => expect(day("2026-10-16")?.textContent?.replace(/\s+/g, "")).toBe("16120"))
+    expect(day("2026-10-17").textContent?.replace(/\s+/g, "")).toBe("1795")
+    expect(day("2026-10-18").textContent?.replace(/\s+/g, "")).toBe("18")
+    expect(day("2026-10-17").title).toBe("Fare for 2026-10-17")
+    expect(day("2026-10-17").classList.contains("cheap")).toBe(true)
+    expect(day("2026-10-16").classList.contains("cheap")).toBe(false)
+    expect(container.querySelector("ui-calendar-day [hidden]")).toBeNull()
+
+    // State the days read reaches them, and the element stays the one it was.
+    const sixteenth = day("2026-10-16")
+    await click(byText(container, "drop"))
+    await until(() => expect(day("2026-10-16").textContent?.replace(/\s+/g, "")).toBe("1660"))
+    expect(day("2026-10-16")).toBe(sixteenth)
+    expect(sixteenth.classList.contains("cheap")).toBe(true)
+
+    await click(day("2026-10-17"))
+    await until(() => expect(text(container)).toContain("picked 2026-10-17"))
+
+    // The days of a month the element lays out later are drawn the same way.
+    await click(container.querySelector("ui-calendar-next button") as HTMLElement)
+    await until(() => expect(day("2026-11-03")?.textContent?.replace(/\s+/g, "")).toBe("0380"))
+    expect(day("2026-11-04").textContent?.replace(/\s+/g, "")).toBe("04")
+  })
+
+  test("a day markup left empty still gets its date from the calendar", async () => {
+    await preloadUiSdk("Calendar")
+    const { container } = await draw({
+      source: `<state on={false} />
+<Calendar defaultValue="2026-10-16">
+  <CalendarGrid><CalendarWeeks let:cell><CalendarDay value={cell.date} data-on={on ? cell.date : undefined} /></CalendarWeeks></CalendarGrid>
+</Calendar>
+<button on:click={on = true}>mark</button>`,
+    })
+    const day = () => container.querySelector('ui-calendar-day[value="2026-10-16"]') as HTMLElement
+    await until(() => expect(day()?.textContent).toBe("16"))
+    await click(byText(container, "mark"))
+    await until(() => expect(day().getAttribute("data-on")).toBe("2026-10-16"))
+    expect(day().textContent).toBe("16")
+  })
+
   test("let: passes what the component provides to the children", async () => {
     await preloadUiSdk("Calendar", "Pagination", "Progress")
     const { container } = await draw({

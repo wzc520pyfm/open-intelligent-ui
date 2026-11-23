@@ -59,6 +59,19 @@
   }
 
   /*
+   * A header's buttons sit one element deeper than in React, inside ui-calendar-previous and
+   * ui-calendar-next, so the rule in ui-sdk.generated.css that keeps a wrapper of them out of the
+   * full-width row doesn't see them.
+   */
+  .iui-root
+    :is([data-slot="calendar"], [data-slot="date-picker-content"])
+    > :has(> :is(ui-calendar-previous, ui-calendar-next)):not([data-slot="calendar-heading"]):not(
+      [data-slot="calendar-grid"]
+    ) {
+    grid-column: auto;
+  }
+
+  /*
    * An empty input keeps its clear button in the tree, hidden, where React leaves it out, so
    * `:has([data-slot="input-clear"])` in ui-sdk.generated.css narrows the padding too early.
    */

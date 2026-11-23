@@ -40,7 +40,11 @@ together, at one version.
 1. `pnpm version:set 0.2.0`, commit, merge to `main`.
 2. Either push the tag `v0.2.0`, which runs `.github/workflows/release.yml`
    (it needs the repository secret `NPM_TOKEN`), or run `pnpm release` on
-   `main` after `npm login`. For a prerelease, `pnpm release --tag beta`.
+   `main` after `npm login`.
+
+Both paths take the npm dist-tag from the version: `0.2.0` is published as
+`latest`, `0.2.0-beta.1` as `beta`, `0.2.0-rc.1` as `rc`. A prerelease
+never becomes what `npm install` picks by default.
 
 In the workspace the packages export `src/`, so the playground and the
 tests never need a build. `publishConfig.exports` replaces those with

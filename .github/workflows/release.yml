@@ -1,7 +1,7 @@
 name: Release
 
 # Publishes @open-intelligent-ui/core and @open-intelligent-ui/react to npm.
-# Runs when a tag like v0.1.0 is pushed, or by hand from the Actions tab.
+# Runs when a tag like v0.1.0 or v0.2.0-beta.1 is pushed, or by hand from the Actions tab.
 # Needs the repository secret NPM_TOKEN: an npm token allowed to publish to the @open-intelligent-ui scope.
 
 on:
@@ -31,7 +31,8 @@ jobs:
       - run: pnpm test
       - run: pnpm typecheck
       - run: pnpm check:packages
-      - run: pnpm -r --filter "./packages/*" publish --no-git-checks
+      # Picks the dist-tag from the version, so a prerelease never becomes `latest`.
+      - run: node scripts/publish-packages.mjs --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"

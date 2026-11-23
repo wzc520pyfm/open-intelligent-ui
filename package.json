@@ -22,7 +22,7 @@
     "generate:skills": "node scripts/generate-skills.mjs",
     "design:lint": "node scripts/lint-design.mjs",
     "version:set": "node scripts/set-version.mjs",
-    "release": "pnpm test && pnpm typecheck && pnpm check:packages && pnpm -r --filter \"./packages/*\" publish"
+    "release": "pnpm test && pnpm typecheck && pnpm check:packages && node scripts/publish-packages.mjs"
   },
   "devDependencies": {
     "@google/design.md": "^0.4.0",

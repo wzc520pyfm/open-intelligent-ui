@@ -27,6 +27,7 @@ import { createRoot, flush } from "./dom/patch"
 import { getUiSdkVersion, subscribeUiSdk } from "./registry/ui-sdk"
 import { Boundary } from "./render/Boundary"
 import type { HostComponent } from "./render/host"
+import { nextId } from "./render/ids"
 import { type RenderContext, renderNodes } from "./render/render"
 
 export type Scheme = "light" | "dark" | "auto"
@@ -97,8 +98,6 @@ export interface MountedUI extends IntelligentUIHandle {
   unmount(): void
 }
 
-let surfaces = 0
-
 /**
  * Renders IUI markup into `target`: Markdown, layout primitives, UI SDK
  * components and preset widgets, with the state, queries and actions the
@@ -107,7 +106,7 @@ let surfaces = 0
  */
 export function mount(target: Element, initial: IntelligentUIOptions): MountedUI {
   let options: IntelligentUIOptions = { ...initial }
-  const id = `w${(++surfaces).toString(36)}`
+  const id = nextId("surface")
   let toasts: Toast[] = []
   const timers = new Set<ReturnType<typeof setTimeout>>()
   const reported = new Set<string>()

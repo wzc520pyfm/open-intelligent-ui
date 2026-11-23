@@ -217,6 +217,32 @@ describe("mount()", () => {
     expect(host.textContent).toBe("kept by the host")
   })
 
+  test("two copies of the package on one page give their surfaces and charts different ids", async () => {
+    const chart = `<Chart type="area" data={[{ m: "a", v: 1 }, { m: "b", v: 2 }]} x="m" y="v" />`
+    const draw = async (copy: typeof import("../src")) => {
+      const host = document.body.appendChild(document.createElement("div"))
+      made.push(host)
+      copy.mount(host, { source: chart })
+      await flushPromises()
+      return [
+        host.querySelector(".iui-root")?.getAttribute("data-iui-id"),
+        ...[...host.querySelectorAll("[id]")].map((element) => element.id),
+      ]
+    }
+    // Each import after a reset is a copy that has drawn nothing yet.
+    const copy = async () => {
+      vi.resetModules()
+      return import("../src")
+    }
+    const [one, two] = [await copy(), await copy()]
+    expect(one.mount).not.toBe(two.mount)
+    const first = await draw(one)
+    const second = await draw(two)
+    expect(first.length).toBeGreaterThan(1)
+    expect(second).toHaveLength(first.length)
+    expect(new Set([...first, ...second]).size).toBe(first.length * 2)
+  })
+
   test("an option left out of update() keeps its value", async () => {
     const onWarning = vi.fn()
     const host = document.body.appendChild(document.createElement("div"))

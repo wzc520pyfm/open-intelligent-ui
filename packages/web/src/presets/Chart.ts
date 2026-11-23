@@ -8,10 +8,9 @@ import {
   type ViewProps,
 } from "@open-intelligent-ui/core/renderer"
 import type { Component } from "../dom/node"
+import { nextId } from "../render/ids"
 import { fromView } from "../render/view"
 import { useTween } from "./tween"
-
-let charts = 0
 
 /**
  * Bar, line, area, donut and sparkline charts drawn with SVG and colored from
@@ -25,7 +24,7 @@ export const Chart: Component<ViewProps> = (instance) => {
   let element: Element | null = null
   let width = CHART_WIDTH
   let active: number | null = null
-  const id = `iui-chart-w${++charts}`
+  const id = `iui-chart-${nextId("chart")}`
   const setActive = (index: number | null) => {
     if (active === index) return
     active = index

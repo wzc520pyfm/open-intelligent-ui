@@ -116,6 +116,14 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
   let toastId = 0
   let gone = false
 
+  /**
+   * What a callback prop holds now. A callback is called from wherever the
+   * surface happens to be, an effect included, and it is the latest one that
+   * is wanted there, not a subscription to it.
+   */
+  const latest = <Name extends keyof IntelligentUIProps>(name: Name): IntelligentUIProps[Name] =>
+    untrack(() => props[name])
+
   const showToast = (message: string, tone?: string) => {
     const toast: Toast = { id: ++toastId, message, tone }
     toasts = [...toasts.slice(1 - TOAST_LIMIT), toast]
@@ -131,7 +139,7 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
   const report = (message: string) => {
     if (reported.has(message)) return
     reported.add(message)
-    queueMicrotask(() => props.onWarning?.(message))
+    queueMicrotask(() => latest("onWarning")?.(message))
   }
 
   const first = untrack(() => ({
@@ -146,18 +154,19 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
 
   const surface = new Surface({
     callTool: (name, input) => {
-      const { tools, callTool } = props
+      const tools = latest("tools")
+      const callTool = latest("callTool")
       if (tools && Object.hasOwn(tools, name)) return (tools[name] as Tool)(input)
       if (callTool) return callTool(name, input)
       throw new Error(`No tool named "${name}" is available`)
     },
     onAction: (action) => {
-      if (props.onAction?.(action) === true) return
+      if (latest("onAction")?.(action) === true) return
       if (action.type === "toast") showToast(action.message, action.tone)
       else if (action.type === "copy") copyText(action.text)
       else if (action.type === "open") openUrl(action.url)
     },
-    onTool: (event) => props.onTool?.(event),
+    onTool: (event) => latest("onTool")?.(event),
     onWarning: (message) => report(message),
     ...(first.functions ? { functions: first.functions } : {}),
     ...(first.actions ? { actions: first.actions } : {}),
@@ -195,7 +204,7 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
 
   const write = (work: () => unknown): unknown =>
     guard(work, (message) => {
-      props.onWarning?.(message)
+      latest("onWarning")?.(message)
       showToast(message, "danger")
     })
 
@@ -321,7 +330,7 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
     const version = surface.getVersion()
     if (version === announced) return
     announced = version
-    props.onStateChange?.(surface.snapshot())
+    latest("onStateChange")?.(surface.snapshot())
   }
 
   /** Draws the surface again and has Solid put the result in the DOM at once. */
@@ -364,7 +373,7 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
     if (reparse) {
       // Queries written later in the stream exist only after a re-parse.
       surface.start()
-      props.onDiagnostics?.(doc.diagnostics)
+      latest("onDiagnostics")?.(doc.diagnostics)
     }
   })
 
@@ -374,7 +383,7 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
   onSettled(() => {
     surface.start()
     announce()
-    props.onDiagnostics?.(doc.diagnostics)
+    latest("onDiagnostics")?.(doc.diagnostics)
     // A component that finished loading before anyone was listening.
     if (getUiSdkVersion() !== drawnWith) schedule()
   })

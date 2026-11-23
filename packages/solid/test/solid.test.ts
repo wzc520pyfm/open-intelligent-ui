@@ -1,7 +1,8 @@
+import { createComponent, render } from "@solidjs/web"
 import { createSignal, onCleanup } from "solid-js"
 import { claimId } from "@open-intelligent-ui/core/renderer"
 import { describe, expect, test, vi } from "vitest"
-import { preloadUiSdk } from "../src"
+import { IntelligentUI, type IntelligentUIProps, preloadUiSdk } from "../src"
 import { byLabel, byRole, byText, click, draw, flushPromises, h, text, type, until } from "./helpers"
 
 /** Feeds the source a few characters at a time, as a model's reply arrives. */
@@ -582,5 +583,47 @@ describe("several Solid roots on one page", () => {
     expect(css).toContain(`[data-iui-id="${id}"]`)
     view.unmount()
     other.release()
+  })
+})
+
+describe("props a parent keeps in signals", () => {
+  test("a callback is read where it is called, without Solid's warning about an untracked read", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const calls: string[] = []
+    const one = '<query id="names" tool="listNames" />\n\n<text>{names.data?.[0] ?? "…"}</text>'
+    const [given, setGiven] = createSignal({
+      source: one,
+      tools: { listNames: async () => ["Ada"], listTowns: async () => ["Turin"] },
+      onTool: (event: { tool: string; status: string }) => calls.push(`${event.tool} ${event.status}`),
+      onStateChange: () => calls.push("state"),
+      onDiagnostics: () => calls.push("diagnostics"),
+      onWarning: (message: string) => calls.push(`warning ${message}`),
+    })
+    // What compiled JSX hands a component for `tools={given().tools}`.
+    const props = {}
+    for (const name of Object.keys(given()) as (keyof ReturnType<typeof given>)[]) {
+      Object.defineProperty(props, name, { enumerable: true, get: () => given()[name] })
+    }
+    const host = document.body.appendChild(document.createElement("div"))
+    const dispose = render(() => createComponent(IntelligentUI, props as IntelligentUIProps), host)
+    await until(() => expect(host.textContent).toContain("Ada"))
+    expect(calls).toContain("listNames done")
+    expect(calls).toContain("state")
+    expect(calls).toContain("diagnostics")
+
+    // A longer source brings a query that starts while Solid applies the change,
+    // and the tools it is given are the ones the parent holds by then.
+    setGiven({
+      ...given(),
+      source: `${one}\n\n<query id="towns" tool="listTowns" />\n\n<text>{towns.data?.[0] ?? "…"}</text>`,
+      tools: { listNames: async () => ["Ada"], listTowns: async () => ["Lyon"] },
+    })
+    await until(() => expect(host.textContent).toContain("Lyon"))
+    expect(calls).toContain("listTowns done")
+    const untracked = warn.mock.calls.filter(([message]) => String(message).includes("STRICT_READ_UNTRACKED"))
+    expect(untracked).toEqual([])
+    dispose()
+    host.remove()
+    warn.mockRestore()
   })
 })

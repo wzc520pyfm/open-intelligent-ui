@@ -39,6 +39,11 @@ export interface ElementVNode {
   style: Record<string, string | number> | undefined
   on: Record<string, Listener> | undefined
   hooks: ElementHooks | undefined
+  /**
+   * Drawn before all of its markup had arrived. An element that was open is
+   * drawn anew, with everything in it, on the first pass in which it isn't.
+   */
+  open?: boolean
   children: VNode[]
 }
 

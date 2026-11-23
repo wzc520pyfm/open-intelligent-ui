@@ -25,12 +25,14 @@ export interface UiSdkComponent {
   name: string
   /** `null` for the few names that have no custom element of their own. */
   spec: UiSdkElement | null
-  draw(props: Record<string, unknown>, key: string | undefined, children: Child[]): Child
+  /** `open` says more children can still arrive: the closing tag hasn't been streamed yet. */
+  draw(props: Record<string, unknown>, key: string | undefined, children: Child[], open?: boolean): Child
   scoped(
     props: Record<string, unknown>,
     key: string | undefined,
     lets: LetBinding[],
-    render: ScopedRender
+    render: ScopedRender,
+    open?: boolean
   ): Child
 }
 
@@ -170,6 +172,8 @@ export interface ScopedProps {
   props: Record<string, unknown>
   lets: LetBinding[]
   render: ScopedRender
+  /** More children can still arrive. */
+  open?: boolean | undefined
   /** What the part gives its children, read from the element once it is on the page. */
   read: (element: Element) => unknown[] | null
   /** Draws the children for one reading. By default they are drawn once, from all of it. */
@@ -242,7 +246,7 @@ export const Scoped: Component<ScopedProps> = (instance) => {
     ]
     const drawn = drawElement(spec, props, undefined, children)
     drawn.hooks = { mounted: watch }
-    return drawn
+    return whileOpen(type, drawn, instance.props.open === true)
   }
 }
 
@@ -331,25 +335,96 @@ export function publicState(element: Element): Record<string, unknown> {
   return state
 }
 
+/**
+ * Roots that end up the same however late their parts join them, as every
+ * root does in React: the core they share places a tab, a panel or an item
+ * whenever it registers. They stay the same elements while a reply streams,
+ * with what was typed, picked or opened in them.
+ *
+ * Any other root is drawn once more when its closing tag arrives, because
+ * its element works something out from what is in it when it joins the page
+ * and not again: a rating numbers its stars, a field looks for a required
+ * control, a select fills an empty trigger, a tooltip decides whether it
+ * names its trigger or describes it. `test/streaming.test.ts` streams every
+ * root both ways and is what puts a name on this list.
+ */
+const KEEPS_UP = new Set([
+  "Accordion",
+  "AlertDialog",
+  "Autocomplete",
+  "Avatar",
+  "Button",
+  "Carousel",
+  "Checkbox",
+  "CheckboxGroup",
+  "Collapsible",
+  "ColorPicker",
+  "Combobox",
+  "Command",
+  "DateInput",
+  "Dialog",
+  "Drawer",
+  "FieldGroup",
+  "FieldSet",
+  "HoverCard",
+  "ImageCropper",
+  "Input",
+  "InputGroup",
+  "Label",
+  "Listbox",
+  "Menu",
+  "MenuSub",
+  "Menubar",
+  "NavigationMenu",
+  "NumberInput",
+  "Pagination",
+  "PasswordInput",
+  "Popover",
+  "RadioGroup",
+  "ScrollArea",
+  "Separator",
+  "Switch",
+  "Tabs",
+  "Textarea",
+  "TimeInput",
+  "Timeline",
+  "Toggle",
+  "ToggleGroup",
+  "TokenInput",
+  "Toolbar",
+])
+
+/** Marks a root drawn while its markup is still arriving, so it is drawn anew once it is whole. */
+function whileOpen(type: UiSdkComponent, drawn: Child, open: boolean): Child {
+  if (!open || !type.spec?.root || KEEPS_UP.has(type.name)) return drawn
+  if (typeof drawn === "object" && drawn !== null && !Array.isArray(drawn) && drawn.kind === "element") {
+    drawn.open = true
+  }
+  return drawn
+}
+
 /** The plain mapping: the element the generator found, drawn from the props as given. */
 export function adapt(name: string, spec: UiSdkElement | null, special?: Special): UiSdkComponent {
+  const draw: UiSdkComponent["draw"] =
+    special?.draw ??
+    ((props, key, children) => (spec ? drawElement(spec, props, key, children) : fragment(children, key)))
+  const scoped: UiSdkComponent["scoped"] =
+    special?.scoped ??
+    ((props, key, lets, render, open) => {
+      if (!spec) return fragment(render([]), key)
+      return component(
+        Scoped as Component<ScopedProps>,
+        { type, props, lets, render, open, read: (element) => [publicState(element)] },
+        key
+      )
+    })
   const type: UiSdkComponent = {
     name,
     spec,
-    draw:
-      special?.draw ??
-      ((props, key, children) =>
-        spec ? drawElement(spec, props, key, children) : fragment(children, key)),
-    scoped:
-      special?.scoped ??
-      ((props, key, lets, render) => {
-        if (!spec) return fragment(render([]), key)
-        return component(
-          Scoped as Component<ScopedProps>,
-          { type, props, lets, render, read: (element) => [publicState(element)] },
-          key
-        )
-      }),
+    draw: (props, key, children, open) =>
+      whileOpen(type, draw.call(type, props, key, children), open === true),
+    scoped: (props, key, lets, render, open) =>
+      whileOpen(type, scoped.call(type, props, key, lets, render, open), open === true),
   }
   return type
 }

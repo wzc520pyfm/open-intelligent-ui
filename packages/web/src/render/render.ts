@@ -42,10 +42,11 @@ function draw(
   type: Renderable,
   props: Record<string, unknown>,
   key: string,
-  children: Child[]
+  children: Child[],
+  open: boolean
 ): Child {
   if (isOwn(type)) return component(type.own, props as ViewProps, key, children)
-  if (isUiSdk(type)) return type.draw(props, key, children)
+  if (isUiSdk(type)) return type.draw(props, key, children, open)
   if (typeof type === "function") {
     return component(HostFunctionComponent, { type: type as HostFunction, props }, key, children)
   }
@@ -62,14 +63,15 @@ export const renderNodes = createRenderer<Child, Renderable>({
   fragment: (children, key) => fragment(children, key),
   element: (tag, props, key, children) => nativeElement(tag, props, key, children ?? []),
   component: draw,
-  scoped: (type, props, key, lets, render) => {
-    if (isUiSdk(type)) return type.scoped(props, key, lets, render)
+  scoped: (type, props, key, lets, render, open) => {
+    if (isUiSdk(type)) return type.scoped(props, key, lets, render, open)
     // Nothing else hands its children anything, so what `let:` names is empty there.
     return draw(
       type,
       props,
       key,
-      render(lets.map(() => undefined))
+      render(lets.map(() => undefined)),
+      open
     )
   },
   presence: (child, show, key) => component(Presence, { show }, key, [child]),

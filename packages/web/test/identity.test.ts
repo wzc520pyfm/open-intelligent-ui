@@ -109,6 +109,84 @@ More text arrives after the tabs.
     expect(byRole(container, "tabpanel").find((panel) => !panel.hidden)?.textContent).toContain("Second panel 1")
   })
 
+  test("UI SDK tabs are the same element before and after their closing tag arrives", async () => {
+    await preloadUiSdk("Tabs")
+    const full = `<Tabs defaultValue="a">
+  <TabsList><TabsTab value="a">Alpha</TabsTab><TabsTab value="b">Beta</TabsTab></TabsList>
+  <TabsPanel value="a">First panel</TabsPanel>
+  <TabsPanel value="b">Second panel</TabsPanel>
+</Tabs>
+
+Text after the tabs.`
+    const { container, view } = await draw({
+      source: full.slice(0, full.indexOf("<TabsPanel")),
+      streaming: true,
+    })
+    const tabs = container.querySelector("ui-tabs")
+    const [, beta] = byRole(container, "tab")
+    await click(beta as HTMLElement)
+    for (const end of [full.indexOf(`<TabsPanel value="b"`), full.indexOf("</Tabs>"), full.indexOf("Text after")]) {
+      view.update({ source: full.slice(0, end), streaming: true })
+      await flushPromises()
+    }
+    view.update({ source: full, streaming: false })
+    await flushPromises()
+    expect(container.querySelector("ui-tabs")).toBe(tabs)
+    expect(byRole(container, "tab")[1]).toBe(beta)
+    expect(beta?.getAttribute("aria-selected")).toBe("true")
+    expect(byRole(container, "tabpanel").find((panel) => !panel.hidden)?.textContent).toBe("Second panel")
+  })
+
+  test("a root that reads its parts once is drawn anew when its closing tag arrives, and never again", async () => {
+    await preloadUiSdk("Field", "Input")
+    const full = `<state name="" />
+<Field>
+  <FieldLabel>Name</FieldLabel>
+  <Input aria-label="Bound" bind:value={name} />
+  <Input aria-label="Free" />
+  <FieldDescription>As it is on your passport.</FieldDescription>
+</Field>
+
+You typed {name}. More text arrives after the field.`
+    const { container, view } = await draw({
+      source: full.slice(0, full.indexOf("<FieldDescription")),
+      streaming: true,
+    })
+    const open = container.querySelector("ui-field")
+    const bound = byLabel<HTMLInputElement>(container, "Bound")
+    await type(bound, "Ada")
+    const free = byLabel<HTMLInputElement>(container, "Free")
+    free.focus()
+    free.value = "typed by hand"
+    free.setSelectionRange(3, 5)
+
+    view.update({ source: full.slice(0, full.indexOf("</Field>")), streaming: true })
+    await flushPromises()
+    expect(container.querySelector("ui-field")).toBe(open)
+    expect(byLabel(container, "Free")).toBe(free)
+
+    view.update({ source: full.slice(0, full.indexOf("You typed")), streaming: true })
+    await flushPromises()
+    const whole = container.querySelector("ui-field")
+    expect(whole).not.toBe(open)
+    expect(container.querySelectorAll("ui-field")).toHaveLength(1)
+    const again = byLabel<HTMLInputElement>(container, "Free")
+    expect(again).not.toBe(free)
+    expect(document.activeElement).toBe(again)
+    expect(again.value).toBe("typed by hand")
+    expect([again.selectionStart, again.selectionEnd]).toEqual([3, 5])
+    expect(byLabel<HTMLInputElement>(container, "Bound").value).toBe("Ada")
+
+    view.update({ source: full.slice(0, full.indexOf("More text")), streaming: true })
+    await flushPromises()
+    view.update({ source: full, streaming: false })
+    await flushPromises()
+    expect(container.querySelector("ui-field")).toBe(whole)
+    expect(byLabel(container, "Free")).toBe(again)
+    expect(document.activeElement).toBe(again)
+    expect(text(container)).toContain("You typed Ada.")
+  })
+
   test("a keyed list moves its elements instead of making new ones", async () => {
     const { container } = await draw({
       source: `<state items={[{ id: "a" }, { id: "b" }, { id: "c" }]} />

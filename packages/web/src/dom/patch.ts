@@ -332,16 +332,71 @@ function reconcile(parent: Mounted, before: Mounted[], next: VNode[], svg: boole
   const result = next.map((vnode, index) => {
     const key = nameNext(vnode, index)
     const match = old.get(key)
-    if (match && sameType(match.vnode, vnode)) {
+    const same = match && sameType(match.vnode, vnode)
+    if (match && same && !closed(match.vnode, vnode)) {
       old.delete(key)
       return update(match, vnode)
     }
     const fresh = create(vnode, parent, svg)
     if (match) takePlace(fresh, match)
+    if (match && same) handOver(match, fresh)
     return fresh
   })
   for (const leftover of old.values()) remove(leftover)
   return result
+}
+
+/**
+ * Whether an element was drawn while its markup was still arriving and is now
+ * whole. A custom element reads what is in it when it joins the page, and not
+ * every one of them keeps up with what joins it later, so a streamed element
+ * could end up unlike the same element drawn in one go. Drawing it once more
+ * when its last piece is in makes the two the same.
+ */
+function closed(before: VNode, next: VNode): boolean {
+  return before.kind === "element" && before.open === true && (next as ElementVNode).open !== true
+}
+
+/**
+ * Hands over what a person would notice missing when an element is drawn
+ * anew: where the focus is, with what was typed there and what is selected,
+ * and animations that had already run.
+ */
+function handOver(stale: Mounted, fresh: Mounted) {
+  const from = stale.dom
+  const to = fresh.dom
+  if (!(from instanceof Element) || !(to instanceof Element)) return
+  if (typeof to.getAnimations === "function") {
+    for (const animation of to.getAnimations({ subtree: true })) {
+      if (animation.effect?.getComputedTiming().endTime === Infinity) continue
+      try {
+        animation.finish()
+      } catch {
+        // An animation that can't be finished is left to run.
+      }
+    }
+  }
+  const active = from.ownerDocument.activeElement
+  if (!active || active === from || !from.contains(active)) return
+  const path: number[] = []
+  for (let at: Element = active; at !== from; at = at.parentElement as Element) {
+    path.unshift(Array.prototype.indexOf.call((at.parentElement as Element).children, at))
+  }
+  let target: Element | undefined = to
+  for (const index of path) target = target?.children[index]
+  if (!(target instanceof HTMLElement) || target.localName !== active.localName) return
+  const typed = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
+  if (typed && (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) {
+    target.value = active.value
+    target.focus({ preventScroll: true })
+    try {
+      target.setSelectionRange(active.selectionStart, active.selectionEnd, active.selectionDirection ?? undefined)
+    } catch {
+      // Not every kind of input has a selection.
+    }
+    return
+  }
+  target.focus({ preventScroll: true })
 }
 
 /** Puts a node's DOM where the one it replaces stands, which may be among nodes that aren't the patcher's. */

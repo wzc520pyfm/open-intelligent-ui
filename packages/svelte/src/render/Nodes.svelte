@@ -11,9 +11,10 @@
 </script>
 
 <script lang="ts">
+  import { held } from "./held.js"
   import Nodes from "./Nodes.svelte"
   import Presence from "./Presence.svelte"
-  import { flatten } from "./view"
+  import { flatten } from "./view.js"
 
   /**
    * Draws a list of nodes. The list is made again on every change; the keys
@@ -28,11 +29,11 @@
 {#each items as item (item.key)}{#if item.kind === "text"}{item.text}{:else if item.kind === "element"}{@const drawn = svg || item.tag === "svg"}{#if item.children === null}<svelte:element
         this={item.tag}
         xmlns={drawn ? SVG : undefined}
-        {...drawn ? inNamespace(item.props) : item.props}
+        {...drawn ? inNamespace(item.props) : held(item.tag, () => item.props)}
       />{:else}<svelte:element
         this={item.tag}
         xmlns={drawn ? SVG : undefined}
-        {...drawn ? inNamespace(item.props) : item.props}
+        {...drawn ? inNamespace(item.props) : held(item.tag, () => item.props)}
         ><Nodes nodes={item.children} svg={drawn && item.tag !== "foreignObject"} /></svelte:element
       >{/if}{:else if item.kind === "component"}{@const Type = item.type}{#snippet content(given: unknown)}<Nodes
         nodes={item.render ? item.render(given) : item.children}

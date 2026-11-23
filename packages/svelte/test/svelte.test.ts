@@ -284,6 +284,65 @@ ${tabs.replace('defaultValue="plan"', "value={tab}")}
     expect(container.querySelector(".iui-error")).toBeNull()
   })
 
+  test("a field's value written without bind: is held too, as it is in React", async () => {
+    const source = `<state n={0} word="w" q={5} />
+<input id="plain" value="fixed" />
+<textarea id="area" value="fixed"></textarea>
+<input id="box" type="checkbox" checked />
+<input id="one" type="radio" name="pick" checked={true} />
+<input id="two" type="radio" name="pick" checked={false} />
+<select id="select" value="b"><option value="a">A</option><option value="b">B</option></select>
+<input id="counted" value={"n" + n} on:input={n += 1} />
+<input id="set" value={word} on:input={word = "set"} />
+<input id="refused" value={word} on:input={n = n} />
+<input id="free" defaultvalue="start" />
+<input id="number" type="number" bind:value={q} />
+<text>{n} {word} {q}</text>`
+
+    const operate = async (container: HTMLElement, settle: () => Promise<void>) => {
+      const find = <T extends Element>(id: string) => container.querySelector(`#${id}`) as T
+      const write = async (id: string, value: string) => {
+        const field = find<HTMLInputElement>(id)
+        // React only hears of a value set through the element's own setter.
+        Object.getOwnPropertyDescriptor(Object.getPrototypeOf(field), "value")?.set?.call(field, value)
+        field.dispatchEvent(new Event("input", { bubbles: true }))
+        await settle()
+      }
+      await write("plain", "typed")
+      await write("area", "typed")
+      for (const id of ["box", "two"]) {
+        find<HTMLInputElement>(id).click()
+        await settle()
+      }
+      const select = find<HTMLSelectElement>("select")
+      select.selectedIndex = 0
+      select.dispatchEvent(new Event("change", { bubbles: true }))
+      await settle()
+      for (const id of ["counted", "set", "refused", "free"]) await write(id, "typed")
+      await write("number", "7.0")
+      return {
+        values: ["plain", "area", "select", "counted", "set", "refused", "free", "number"].map(
+          (id) => find<HTMLInputElement>(id).value
+        ),
+        checked: ["box", "one", "two"].map((id) => find<HTMLInputElement>(id).checked),
+        state: container.querySelector(".iui-text")?.textContent,
+      }
+    }
+
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {})
+    const react = await withReact({ source }, operate)
+    errors.mockRestore()
+    const { container } = await draw({ source })
+    const svelte = await operate(container, flushPromises)
+
+    expect(svelte).toEqual(react)
+    expect(svelte).toEqual({
+      values: ["fixed", "fixed", "b", "n1", "set", "set", "typed", "7.0"],
+      checked: [true, true, false],
+      state: "1 set 7",
+    })
+  })
+
   test("a held value follows state", async () => {
     await preloadUiSdk("Tabs")
     const { container } = await draw({

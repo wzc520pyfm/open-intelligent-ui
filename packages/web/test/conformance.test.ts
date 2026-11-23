@@ -146,6 +146,28 @@ test("a calendar whose days hold markup of their own reads the same in React and
   expect(web.warnings).toEqual(react.warnings)
 })
 
+test("a calendar that fills only some of its days reads the same in React and Web", async () => {
+  const sample: Sample = {
+    name: "sparse fare calendar",
+    source: `<state day="2026-10-16" prices={{ "2026-10-16": 120, "2026-10-17": 95 }} />
+<Calendar bind:value={day}>
+  <CalendarHeading />
+  <CalendarGrid>
+    <CalendarWeeks let:cell>
+      <CalendarDay value={cell.date}>{#if prices[cell.date]}<small>{prices[cell.date]}</small>{/if}</CalendarDay>
+    </CalendarWeeks>
+  </CalendarGrid>
+</Calendar>`,
+  }
+  const react = await drawnByReact(sample)
+  const web = await drawnByWeb(sample)
+  expect(web.reader).toContain('"120"')
+  expect(web.reader).toContain('"18"')
+  expect(web.reader).not.toContain('"16"')
+  expect(web.reader).toBe(react.reader)
+  expect(web.warnings).toEqual(react.warnings)
+})
+
 test("the samples of our own stay clear of UI SDK", () => {
   expect(EXACT_SAMPLES.filter((sample) => usesUiSdk(sample.source))).toEqual([])
 })

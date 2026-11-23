@@ -1079,6 +1079,56 @@ describe("children as a function of component state", () => {
     expect(day().textContent).toBe("16")
   })
 
+  test("a day shows what markup put in it for that date, and the date where markup put nothing", async () => {
+    await preloadUiSdk("Calendar")
+    const { container } = await draw({
+      source: `<state day="2026-10-16" loc="en-US" prices={{ "2026-10-16": 120, "2026-10-02": 70 }} />
+<Calendar bind:value={day} locale={loc}>
+  <CalendarPrevious /><CalendarHeading /><CalendarNext />
+  <CalendarGrid>
+    <CalendarWeeks let:cell>
+      <CalendarDay value={cell.date} class:fare={prices[cell.date]}>{#if prices[cell.date]}<small>{prices[cell.date]}</small>{/if}</CalendarDay>
+    </CalendarWeeks>
+  </CalendarGrid>
+</Calendar>
+<button on:click={prices = { "2026-10-02": 70, "2026-10-20": 60 }}>move</button>
+<button on:click={loc = "ar-EG"}>arabic</button>`,
+    })
+    const day = (date: string) => container.querySelector(`ui-calendar-day[value="${date}"]`) as HTMLElement
+    const shown = (date: string) => day(date)?.textContent?.replace(/\s+/g, "")
+    await until(() => expect(shown("2026-10-16")).toBe("120"))
+    expect(shown("2026-10-02")).toBe("70")
+    expect(shown("2026-10-17")).toBe("17")
+    expect(day("2026-10-16").classList.contains("fare")).toBe(true)
+
+    // A day that loses what markup put in it gets its date back; one that gains something loses it.
+    const sixteenth = day("2026-10-16")
+    await click(byText(container, "move"))
+    await until(() => expect(shown("2026-10-20")).toBe("60"))
+    expect(shown("2026-10-16")).toBe("16")
+    expect(day("2026-10-16")).toBe(sixteenth)
+    expect(sixteenth.classList.contains("fare")).toBe(false)
+
+    // The element writes the dates again into the days two months share. What markup put there stays.
+    const second = day("2026-10-02")
+    await click(container.querySelector("ui-calendar-previous button") as HTMLElement)
+    await until(() => expect(day("2026-09-01")).not.toBeNull())
+    await click(container.querySelector("ui-calendar-next button") as HTMLElement)
+    await until(() => expect(day("2026-10-31")).not.toBeNull())
+    expect(day("2026-10-02")).toBe(second)
+    await until(() => expect(shown("2026-10-02")).toBe("70"))
+    expect(shown("2026-10-20")).toBe("60")
+    expect(shown("2026-10-16")).toBe("16")
+
+    // And when the calendar words its dates another way.
+    const arabic = new Intl.DateTimeFormat("ar-EG", { day: "numeric" }).format(new Date(2000, 0, 16))
+    await click(byText(container, "arabic"))
+    await until(() => expect(shown("2026-10-16")).toBe(arabic))
+    expect(shown("2026-10-02")).toBe("70")
+    expect(shown("2026-10-20")).toBe("60")
+    expect(second.querySelector("small")).not.toBeNull()
+  })
+
   test("let: passes what the component provides to the children", async () => {
     await preloadUiSdk("Calendar", "Pagination", "Progress")
     const { container } = await draw({

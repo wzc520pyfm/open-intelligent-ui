@@ -1,0 +1,216 @@
+:root {
+  --vd-bg: #f4f4f2;
+  --vd-panel: #ffffff;
+  --vd-ink: #1a1a18;
+  --vd-dim: #6d6d67;
+  --vd-line: #e2e2dd;
+  --vd-hover: #ecece8;
+  --vd-accent: #2f8f6b;
+  color-scheme: light;
+}
+
+:root[data-scheme="dark"] {
+  --vd-bg: #0c0c0b;
+  --vd-panel: #151514;
+  --vd-ink: #ecece9;
+  --vd-dim: #9a9a93;
+  --vd-line: #2a2a27;
+  --vd-hover: #20201e;
+  --vd-accent: #5fcf9f;
+  color-scheme: dark;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--vd-bg);
+  color: var(--vd-ink);
+  font: 14px/1.5 "Inter", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.vd {
+  display: grid;
+  grid-template: auto 1fr / 250px minmax(0, 1fr) 300px;
+  height: 100%;
+}
+
+/*
+ * The demo's own rules stay off the generated surface: styles outside a
+ * cascade layer would override the renderer's layered ones.
+ */
+:where(.vd-top, .vd-side) :is(button, select) {
+  box-sizing: border-box;
+  font: inherit;
+  color: inherit;
+}
+
+.vd-top {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--vd-line);
+  background: var(--vd-panel);
+}
+
+.vd-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vd-accent) 16%, transparent);
+  color: var(--vd-accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.vd-grow {
+  flex: 1;
+}
+
+.vd-top label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--vd-dim);
+}
+
+.vd-top :is(button, select) {
+  padding: 5px 10px;
+  border: 1px solid var(--vd-line);
+  border-radius: 8px;
+  background: var(--vd-panel);
+  cursor: pointer;
+}
+
+.vd-top button:hover {
+  background: var(--vd-hover);
+}
+
+.vd-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  overflow: auto;
+  border-right: 1px solid var(--vd-line);
+  background: var(--vd-panel);
+}
+
+.vd-side button {
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vd-side button:hover,
+.vd-side button[aria-current="true"] {
+  background: var(--vd-hover);
+}
+
+.vd-side span {
+  color: var(--vd-dim);
+  font-size: 12.5px;
+}
+
+.vd-main {
+  overflow: auto;
+  padding: 28px clamp(16px, 4vw, 48px) 64px;
+}
+
+.vd-ask,
+.vd-surface {
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.vd-ask {
+  width: fit-content;
+  margin-block: 0 16px;
+  margin-right: max(0px, calc((100% - 760px) / 2));
+  padding: 9px 14px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--vd-ink);
+  color: var(--vd-bg);
+}
+
+.vd-surface {
+  box-sizing: border-box;
+  padding: 22px;
+  border: 1px solid var(--iui-color-border);
+  border-radius: 16px;
+  background: var(--iui-color-background);
+}
+
+.vd-inspect {
+  overflow: auto;
+  padding: 14px 16px;
+  border-left: 1px solid var(--vd-line);
+  background: var(--vd-panel);
+  font-size: 12.5px;
+}
+
+.vd-inspect h2 {
+  margin: 0 0 6px;
+  color: var(--vd-dim);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.vd-inspect pre {
+  margin: 0 0 18px;
+  font: 12px/1.5 "JetBrains Mono", ui-monospace, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.vd-inspect ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+.vd-inspect b {
+  color: var(--vd-accent);
+}
+
+.vd-dim {
+  margin: 0;
+  color: var(--vd-dim);
+}
+
+@media (max-width: 1000px) {
+  .vd {
+    grid-template: auto auto 1fr / minmax(0, 1fr);
+  }
+
+  .vd-side {
+    flex-direction: row;
+    border-right: 0;
+    border-bottom: 1px solid var(--vd-line);
+  }
+
+  .vd-side button {
+    flex: none;
+    width: 190px;
+  }
+
+  .vd-inspect {
+    display: none;
+  }
+}

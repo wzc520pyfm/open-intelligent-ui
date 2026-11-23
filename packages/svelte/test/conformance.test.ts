@@ -50,6 +50,7 @@ async function drawnByReact(sample: Sample): Promise<Drawn> {
         tools: corpusTools(),
         onWarning: (message: string) => warnings.push(message),
         ...(sample.initialState ? { initialState: sample.initialState } : {}),
+        ...(sample.library ? { library: sample.library } : {}),
       })
     )
   })
@@ -139,6 +140,7 @@ async function drawnBySvelte(sample: Sample): Promise<DrawnBySvelte> {
       tools: corpusTools(),
       onWarning: (message: string) => warnings.push(message),
       ...(sample.initialState ? { initialState: sample.initialState } : {}),
+      ...(sample.library ? { library: sample.library } : {}),
     },
   })
   await flush()
@@ -183,7 +185,7 @@ test.each(CORPUS.map((sample) => [sample.name, sample] as const))(
 
 // Pinned, so a sample can't start to depend on `undoUiSdkDifferences` unnoticed.
 test("what @ui-sdk/svelte draws differently is known", () => {
-  expect(CORPUS.length - differing.length).toBe(31)
+  expect(CORPUS.length - differing.length).toBe(32)
   expect(differing).toEqual([
     "demo gears",
     "demo invest",

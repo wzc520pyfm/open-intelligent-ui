@@ -124,6 +124,7 @@ export function App() {
               design={theme().source}
               scheme={scheme()}
               tools={tools}
+              library={demo().library}
               onAction={onAction}
               onTool={onTool}
               onWarning={(message) => note("warning", message)}

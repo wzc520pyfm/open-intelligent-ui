@@ -6,7 +6,7 @@ import {
   RECIPES,
   UI_SDK_CATALOG,
 } from "@open-intelligent-ui/core/prompt"
-import type { Tool } from "@open-intelligent-ui/core"
+import type { Library, Tool } from "@open-intelligent-ui/core"
 import { DEMOS } from "../../../apps/playground/src/demos"
 import { createTicketTools } from "../../../apps/playground/src/tools"
 
@@ -63,6 +63,8 @@ export interface Sample {
   source: string
   /** Snippets from the guide lean on state they don't declare. */
   initialState?: Record<string, unknown>
+  /** What the product around the sample registered. Widgets only, so every renderer can draw it. */
+  library?: Library<never>
 }
 
 /**
@@ -71,7 +73,11 @@ export interface Sample {
  * the `iui` blocks in the docs and skills.
  */
 export const CORPUS: Sample[] = [
-  ...DEMOS.map((demo) => ({ name: `demo ${demo.id}`, source: demo.source })),
+  ...DEMOS.map((demo) => ({
+    name: `demo ${demo.id}`,
+    source: demo.source,
+    ...(demo.library ? { library: demo.library } : {}),
+  })),
   ...[...fenced(LANGUAGE_GUIDE), ...fenced(PRIMITIVES_GUIDE), ...fenced(MOTION_GUIDE)].map(
     (source, index) => ({ name: `guide ${index}`, source, initialState: AMBIENT })
   ),

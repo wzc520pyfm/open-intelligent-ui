@@ -115,6 +115,7 @@
         design={theme?.source}
         {scheme}
         {tools}
+        library={demo.library}
         {onAction}
         {onTool}
         onWarning={(message) => note("warning", message)}

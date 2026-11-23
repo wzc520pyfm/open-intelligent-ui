@@ -33,6 +33,8 @@ export interface DemoCopy {
 
 export interface Copy {
   design: string
+  charts: string
+  motion: string
   width: string
   phone: string
   chat: string
@@ -98,6 +100,8 @@ export interface Copy {
 
 const en: Copy = {
   design: "Design",
+  charts: "Charts",
+  motion: "Motion",
   width: "Width",
   phone: "Phone",
   chat: "Chat",
@@ -197,11 +201,18 @@ const en: Copy = {
       caption: "A component nobody predefined: a sprint board with cards that glide",
       prompt: "Show sprint 14 as a board I can move cards on.",
     },
+    claim: {
+      title: "Your components",
+      caption: "Components a product registered, used beside ones the model invents",
+      prompt: "Mei's Tokyo expense claim is waiting for me. Should I approve it?",
+    },
   },
 }
 
 const zh: Copy = {
   design: "设计",
+  charts: "图表",
+  motion: "动效",
   width: "宽度",
   phone: "手机",
   chat: "对话",
@@ -294,6 +305,11 @@ const zh: Copy = {
       title: "发明",
       caption: "没人预定义过的组件：卡片会滑动的冲刺看板",
       prompt: "把 sprint 14 做成一个我能挪卡片的看板。",
+    },
+    claim: {
+      title: "你的组件",
+      caption: "产品注册的固定组件，和模型现场创作的组件一起用",
+      prompt: "Mei 的东京报销单在等我审批，我该批吗？",
     },
   },
 }

@@ -8,6 +8,7 @@ const NAMES = [
   "design",
   "scheme",
   "tools",
+  "library",
   "onAction",
   "onTool",
   "onWarning",

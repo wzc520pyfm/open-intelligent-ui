@@ -1,4 +1,4 @@
-import type { SurfaceAction, Tool, ToolEvent } from "@open-intelligent-ui/core"
+import type { Library, SurfaceAction, Tool, ToolEvent } from "@open-intelligent-ui/core"
 
 /** What the site gives a surface, whichever renderer draws it. */
 export interface SurfaceProps {
@@ -7,6 +7,9 @@ export interface SurfaceProps {
   design: string
   scheme: "light" | "dark"
   tools: Record<string, Tool>
+  /** The product's components and the engines chosen for charts and motion. */
+  // biome-ignore lint/suspicious/noExplicitAny: one library is handed to whichever renderer draws
+  library?: Library<any> | undefined
   onAction: (action: SurfaceAction) => undefined
   onTool: (event: ToolEvent) => void
   onWarning: (message: string) => void

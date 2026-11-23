@@ -138,6 +138,7 @@ function open(next: Demo) {
   fresh.design = themeOf(design.value)?.source
   fresh.scheme = scheme
   fresh.tools = createTicketTools()
+  fresh.library = next.library
   fresh.onAction = onAction
   fresh.addEventListener("tool", (event) => onTool((event as CustomEvent<ToolEvent>).detail))
   fresh.addEventListener("warning", (event) => note("warning", (event as CustomEvent<string>).detail))

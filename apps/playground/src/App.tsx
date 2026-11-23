@@ -1,5 +1,5 @@
 import { Button, Chip, Drawer, InputGroup, Link, Spinner, Tooltip } from "@heroui/react"
-import type { SurfaceAction, ToolEvent } from "@open-intelligent-ui/core"
+import { defineLibrary, type SurfaceAction, type ToolEvent } from "@open-intelligent-ui/core"
 import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
 import {
   ArrowUp,
@@ -17,6 +17,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { DEMOS, type Demo } from "./demos"
 import { LOCALES, readLocale, t, writeLocale, type Locale } from "./i18n"
+import { CHARTS, type ChartsId, MOTIONS, type MotionId, useEngines } from "./library/engines"
 import { type ChatMessage, type LiveSettings, providerById, streamChat, unwrapFence } from "./live"
 import { Surface } from "./surface/Surface"
 import { RENDERERS, type RendererId, type SurfaceHandle } from "./surface/types"
@@ -78,7 +79,7 @@ function readLiveSettings(): LiveSettings {
 
 /**
  * What the address asks for, so a view can be linked to:
- * `?demo=dashboard&renderer=vue&design=…&scheme=dark&speed=instant&width=wide&inspect=state&lang=zh`.
+ * `?demo=dashboard&renderer=vue&design=…&charts=echarts&motion=gsap&scheme=dark&speed=instant&width=wide&inspect=state&lang=zh`.
  */
 function readQuery() {
   const query = new URLSearchParams(window.location.search)
@@ -94,6 +95,14 @@ function readQuery() {
     renderer: pick(
       "renderer",
       RENDERERS.map((item) => item.id)
+    ),
+    charts: pick(
+      "charts",
+      CHARTS.map((item) => item.id)
+    ),
+    motion: pick(
+      "motion",
+      MOTIONS.map((item) => item.id)
     ),
     scheme: pick("scheme", ["light", "dark"] as const),
     speed: pick(
@@ -142,6 +151,8 @@ export function App() {
     () => query.scheme ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
   )
   const [renderer, setRenderer] = useState<RendererId>(query.renderer ?? "react")
+  const [chartsId, setChartsId] = useState<ChartsId>(query.charts ?? "svg")
+  const [motionId, setMotionId] = useState<MotionId>(query.motion ?? "css")
   const [speed, setSpeed] = useState<Speed>(query.speed ?? "normal")
   const [width, setWidth] = useState<Width>(query.width ?? "chat")
   const [panel, setPanel] = useState<Panel>(query.panel ?? "source")
@@ -172,13 +183,27 @@ export function App() {
   const demoCopy = (item: Demo) =>
     copy.demos[item.id] ?? { title: item.title, caption: item.caption, prompt: item.prompt }
 
+  // An engine made of one framework's components draws only in that framework's renderer.
+  const drawnBy = CHARTS.find((item) => item.id === chartsId)
+  const charts = drawnBy?.only && drawnBy.only !== renderer ? "svg" : chartsId
+  const engines = useEngines(charts, motionId)
+  // What the product adds: the demo's components and the engines chosen above.
+  // The renderer and the prompt read the same object, so neither can promise what the other lacks.
+  const product = mode === "demos" ? demo.library : undefined
+  const library = useMemo(
+    () =>
+      product || engines.charts || engines.motion ? defineLibrary({ ...product, ...engines }) : undefined,
+    [product, engines]
+  )
+
   const systemPrompt = useMemo(
     () =>
       buildSystemPrompt({
         design: theme.source,
+        ...(library ? { library } : null),
         ...(useTools ? { tools: TICKET_TOOLS } : null),
       }),
-    [theme, useTools]
+    [theme, library, useTools]
   )
 
   const record = useCallback((entry: Omit<LogEntry, "id" | "time">) => {
@@ -540,6 +565,20 @@ export function App() {
               onChange={setThemeId}
               options={THEMES.map((item) => ({ id: item.id, label: item.name }))}
             />
+            <Picker
+              label={copy.charts}
+              className="hidden sm:flex"
+              value={charts}
+              onChange={setChartsId}
+              options={CHARTS.filter((item) => !item.only || item.only === renderer)}
+            />
+            <Picker
+              label={copy.motion}
+              className="hidden sm:flex"
+              value={motionId}
+              onChange={setMotionId}
+              options={MOTIONS}
+            />
             <Segmented
               label={copy.width}
               className="hidden md:inline-flex"
@@ -636,6 +675,7 @@ export function App() {
                     design={theme.source}
                     scheme={scheme}
                     tools={tools}
+                    library={library}
                     onAction={onAction}
                     onTool={onTool}
                     onWarning={onWarning}

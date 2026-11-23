@@ -1,0 +1,53 @@
+<state stage={1} decision={null} />
+<state lines={[
+  { item: "Flights, SFO to Tokyo", category: "Travel", amount: 1240, cap: 1500 },
+  { item: "Hotel, 4 nights", category: "Lodging", amount: 1248, cap: 1120 },
+  { item: "Client dinner", category: "Meals", amount: 286, cap: 300 },
+  { item: "Trains and taxis", category: "Travel", amount: 94, cap: 200 },
+  { item: "Conference pass", category: "Events", amount: 650, cap: 800 }
+]} />
+<derive
+  total={sumBy(lines, "amount")}
+  over={lines.filter(l => l.amount > l.cap)}
+  excess={sumBy(over, l => l.amount - l.cap)}
+  stages={["Submitted", "Manager", "Finance", "Paid"]}
+/>
+
+**Mei's Tokyo claim is {currency(total)} and waiting for you.** Four of five lines are inside policy; the hotel is {currency(excess)} over the cap.
+
+<card padding={4} gap={4}>
+  <row wrap gap={3}>
+    <Person name="Mei Tanaka" role="Design · Tokyo offsite" status="online" />
+    <spacer />
+    {#if decision}
+      <badge tone={decision == "approved" ? "success" : "warning"} motion="pop">{capitalize(decision)}</badge>
+    {:else}
+      <badge tone="accent">Waiting for you</badge>
+    {/if}
+  </row>
+  <Steps items={stages} current={stage} on:select={stage = $value} />
+  <text size="sm" color="muted">
+    {stage == 0 ? "Mei submitted the claim on Monday with five receipts." : stage == 1 ? "You are the approver. Finance pays within three days of your answer." : stage == 2 ? "Finance checks receipts against the card statement." : "Paid into the account on file."}
+  </text>
+</card>
+
+<grid columns={2} min={260} gap={3}>
+  <card padding={4} gap={3}>
+    <title level={3}>Policy</title>
+    <box gap={3} stagger>
+      <PolicyCheck result="pass" label="Receipts">All five lines have one attached.</PolicyCheck>
+      <PolicyCheck result="review" label="Hotel rate">{currency(lines[1].amount / 4)} a night against a {currency(lines[1].cap / 4)} cap for Tokyo.</PolicyCheck>
+      <PolicyCheck result="pass" label="Client dinner">{currency(lines[2].amount)} for four people, under the {currency(lines[2].cap)} cap.</PolicyCheck>
+      <PolicyCheck result="pass" label="Submitted in time">Six days after the trip; the limit is thirty.</PolicyCheck>
+    </box>
+  </card>
+  <card padding={4} gap={3}>
+    <title level={3}>Spend against cap</title>
+    <Chart type="bar" data={lines} x="category" y={["amount", "cap"]} names={{ amount: "Claimed", cap: "Cap" }} colors={["chart-1", "chart-3"]} format="currency" digits={0} height={210} aria-label="Claimed amount and cap for each line" />
+  </card>
+</grid>
+
+<row gap={2} wrap>
+  <Button variant="solid" on:click={decision = "approved"; stage = 2; send("Approve Mei's claim, with the hotel overage noted", { total, excess })}>Approve {currency(total)}</Button>
+  <Button on:click={decision = "returned"; stage = 0; send("Send the claim back and ask Mei about the hotel rate")}>Ask about the hotel</Button>
+</row>

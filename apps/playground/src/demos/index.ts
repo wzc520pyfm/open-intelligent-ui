@@ -1,4 +1,7 @@
+import type { Library } from "@open-intelligent-ui/core"
+import { PRODUCT } from "../library/product"
 import board from "./board.iui?raw"
+import claim from "./claim.iui?raw"
 import dashboard from "./dashboard.iui?raw"
 import gears from "./gears.iui?raw"
 import invest from "./invest.iui?raw"
@@ -17,6 +20,8 @@ export interface Demo {
   source: string
   /** The design the demo looks best in. */
   theme?: string
+  /** The product's own components, when the reply uses them. */
+  library?: Library<never>
 }
 
 export const DEMOS: Demo[] = [
@@ -63,5 +68,13 @@ export const DEMOS: Demo[] = [
     caption: "A component nobody predefined: a sprint board with cards that glide",
     prompt: "Show sprint 14 as a board I can move cards on.",
     source: board,
+  },
+  {
+    id: "claim",
+    title: "Your components",
+    caption: "Components a product registered, used beside ones the model invents",
+    prompt: "Mei's Tokyo expense claim is waiting for me. Should I approve it?",
+    source: claim,
+    library: PRODUCT,
   },
 ]

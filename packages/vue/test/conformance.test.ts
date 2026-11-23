@@ -50,6 +50,7 @@ async function drawnByReact(sample: Sample): Promise<Drawn> {
         tools: corpusTools(),
         onWarning: (message: string) => warnings.push(message),
         ...(sample.initialState ? { initialState: sample.initialState } : {}),
+        ...(sample.library ? { library: sample.library } : {}),
       })
     )
   })
@@ -69,6 +70,7 @@ async function drawnByVue(sample: Sample): Promise<Drawn> {
       tools: corpusTools(),
       onWarning: (message: string) => warnings.push(message),
       ...(sample.initialState ? { initialState: sample.initialState } : {}),
+      ...(sample.library ? { library: sample.library } : {}),
     },
   })
   await flushPromises()

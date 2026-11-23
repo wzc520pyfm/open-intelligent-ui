@@ -115,6 +115,7 @@ onBeforeUnmount(stop)
         :design="theme.source"
         :scheme="scheme"
         :tools="tools"
+        :library="demo.library"
         :on-action="onAction"
         :on-tool="onTool"
         :on-warning="(message: string) => note('warning', message)"

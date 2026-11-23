@@ -4,7 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Agents answer with interfaces: a model writes a reply as markup, and it renders live on UI SDK components in your DESIGN.md."
+    />
     <title>Open Intelligent UI</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      // Before the first paint, so a dark page never flashes light.
+      ;(() => {
+        const asked = new URLSearchParams(location.search).get("scheme")
+        const dark = asked ? asked === "dark" : matchMedia("(prefers-color-scheme: dark)").matches
+        document.documentElement.classList.toggle("dark", dark)
+        document.documentElement.dataset.theme = dark ? "dark" : "light"
+      })()
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

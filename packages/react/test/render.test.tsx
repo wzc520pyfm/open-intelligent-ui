@@ -739,6 +739,13 @@ describe("motion hooks", () => {
     expect(card?.style.getPropertyValue("--iui-delay")).toBe("120ms")
   })
 
+  test("a bare stagger leaves the pause to the design", () => {
+    const { container } = render(<IntelligentUI source={`<row stagger><card>A</card><card>B</card></row>`} />)
+    const row = container.querySelector<HTMLElement>(".iui-row")
+    expect(row?.hasAttribute("data-iui-stagger")).toBe(true)
+    expect(row?.style.getPropertyValue("--iui-stagger")).toBe("")
+  })
+
   test("show mounts and unmounts with state", () => {
     const { container } = render(
       <IntelligentUI

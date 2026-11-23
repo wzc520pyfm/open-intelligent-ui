@@ -472,7 +472,8 @@ export function buildProps(
     if (name === "stagger") {
       if (value !== false && value !== "false") {
         props["data-iui-stagger"] = ""
-        const ms = Number(value)
+        // A bare `stagger` is `true`, which is not a number of milliseconds: the design's pause applies.
+        const ms = typeof value === "boolean" ? Number.NaN : Number(value)
         if (Number.isFinite(ms) && ms > 0) style["--iui-stagger"] = `${Math.min(ms, 1000)}ms`
       }
       return

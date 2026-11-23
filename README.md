@@ -120,6 +120,7 @@ Both packages are ESM with type declarations; the React entry is marked `"use cl
 ```
 packages/core     Markup parser, expression interpreter, state store, DESIGN.md, system prompt. No framework.
 packages/react    React renderer, primitives, presets, styles
+packages/open-intelligent-ui   The unscoped npm name; re-exports packages/core
 apps/playground   Demo site
 design/           Three DESIGN.md files: Paper, Heritage, Signal
 skills/           Agent skills: intelligent-ui and motion

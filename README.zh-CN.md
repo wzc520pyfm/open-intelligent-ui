@@ -120,6 +120,7 @@ const system = buildSystemPrompt({ design, tools: toolDescriptions })
 ```
 packages/core     标记解析、表达式解释器、状态仓库、DESIGN.md、系统提示词。不依赖框架
 packages/react    React 渲染器、原语、预置组件、样式
+packages/open-intelligent-ui   不带 scope 的 npm 包名，只重导出 packages/core
 apps/playground   演示站
 design/           三份 DESIGN.md：Paper、Heritage、Signal
 skills/           给编码智能体的两个 skill：intelligent-ui 和 motion

@@ -129,6 +129,9 @@ export const BLOCKED_PROPS = new Set([
   "formAction",
   "action",
   "is",
+  // Names a form anywhere on the page by its id, the host's included: a control
+  // would add its value to that form, and a button would submit it.
+  "form",
 ])
 
 /**
@@ -491,6 +494,14 @@ export function buildProps(
     if (lower === "src" || lower === "poster") {
       const url = checkUrl(value, "media", ctx)
       if (url !== undefined) props[lower] = url
+      return
+    }
+    // A function that returns an address holds one too: the component writes
+    // what it returns as an `href`, so that is checked when it is asked for.
+    if (lower === "gethref") {
+      if (typeof value !== "function") return
+      const address = value as (...args: unknown[]) => unknown
+      props[dialect.prop(name)] = (...args: unknown[]) => checkUrl(address(...args), "link", ctx)
       return
     }
     if (kind === "ui-sdk" && DATA_PROPS.has(name)) {

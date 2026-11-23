@@ -490,6 +490,29 @@ describe("safety", () => {
     expect(container.innerHTML).not.toContain("evil.test")
   })
 
+  test("a reply can't add to or submit a form outside it, and an address a function returns is checked", async () => {
+    await preloadUiSdk("Input", "Checkbox", "Button", "Pagination")
+    const form = document.body.appendChild(document.createElement("form"))
+    form.id = "host-form"
+    form.innerHTML = '<input name="amount" value="10">'
+    const { container } = render(<IntelligentUI source={`<state id="host-form" />
+<Input aria-label="To" form="host-form" name="to" defaultValue="someone" />
+<Checkbox aria-label="Admin" FORM="host-form" name="admin" defaultChecked />
+<Button aria-label="Go" type="submit" form="host-form" bind:form={id} {...{ form: id }}>Go</Button>
+<Pagination aria-label="Pages" pageCount={3} getHref={(page) => page == 2 ? "javascript:alert(1)" : "/list?page=" + page}>
+  <PaginationList>
+    <PaginationItem><PaginationLink page={1} /></PaginationItem>
+    <PaginationItem><PaginationLink page={2} /></PaginationItem>
+  </PaginationList>
+</Pagination>`} />)
+    await waitFor(() => expect(container.querySelectorAll('[data-slot="pagination-link"]')).toHaveLength(2))
+    const links = [...container.querySelectorAll('[data-slot="pagination-link"]')]
+    expect(links.map((link) => link.getAttribute("href"))).toEqual(["/list?page=1", null])
+    expect(container.querySelector("[form]")).toBeNull()
+    expect([...new FormData(form)]).toEqual([["amount", "10"]])
+    form.remove()
+  })
+
   test("the host can refuse URLs", () => {
     const { container } = render(
       <IntelligentUI

@@ -147,9 +147,12 @@ const BLOCKED_NAMES = new Set([...BLOCKED_PROPS].map((name) => name.toLowerCase(
 /**
  * Whether a prop is dropped whatever it holds. The DOM lowercases the
  * attributes of an HTML element, so a name is refused in any spelling.
+ * A style is only checked under the name `style`, so in another spelling it
+ * is refused too: an element would read `STYLE` as its style all the same.
  */
 function refused(name: string): boolean {
   const lower = name.toLowerCase()
+  if (lower === "style" && name !== "style") return true
   return BLOCKED_NAMES.has(lower) || UNCHECKED_URL_PROPS.has(lower) || !PROP_NAME.test(name)
 }
 

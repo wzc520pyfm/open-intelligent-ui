@@ -58,7 +58,7 @@ The layout primitives and the presets `Stat`, `Number`, `DataTable`, `CodeBlock`
 
 UI SDK components and icons load on first use, one chunk per entry point or icon. Call `preloadUiSdk()` or `preloadUiSdk("Tabs", "Dialog")`, and `preloadIcons("arrow-up", "x")`, to load them ahead of time.
 
-ESM only, and it renders in the browser: on a server, wrap it in `<ClientOnly>` (Nuxt) or mount it on the client.
+ESM only. `renderToString` produces the surface's HTML on a server, but hydrating that HTML has not been tested: in Nuxt, wrap it in `<ClientOnly>`.
 
 Tools, theming, your own components, state and the safety model are covered in the [integration guide](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/skills/intelligent-ui/references/integration.md).
 

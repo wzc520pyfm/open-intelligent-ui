@@ -39,8 +39,8 @@ All are ESM with type declarations. The React package needs React 19 and
 `"use client"`: a Next.js server component can render `<IntelligentUI>`,
 but `tools` and the callbacks are functions, so pass those from a client
 component. The Vue package needs Vue 3.5 and `@ui-sdk/vue` +
-`@ui-sdk/core`, and renders in the browser: in Nuxt, put it inside
-`<ClientOnly>`.
+`@ui-sdk/core`. Hydrating server-rendered output has not been tested: in
+Nuxt, put it inside `<ClientOnly>`.
 
 The two renderers take the same markup and the same props, and draw the
 same DOM. The examples below are React; [In Vue](#in-vue) lists what is

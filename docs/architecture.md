@@ -241,6 +241,8 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 | 加载外部资源 | CSS 里的 `@import` 和外站 `url()` 被移除；链接和媒体地址按协议过滤，宿主可用 `allowUrl` 收紧 |
 | 遮盖宿主页面 | 样式限定在界面内；`position: fixed` 改为 `absolute` |
 | 经组件改写 DOM | 组件没有声明的属性，Vue 会透传到它的根元素上，并在元素有同名属性（property）时直接赋值；`outerHTML` 能把部件换成任意 HTML，`hostname` 能改掉已经检查过的链接。Vue 渲染器对这类名字只按 HTML 属性（attribute）设置，和 React 对未知属性的处理一致；`innerHTML`、`outerHTML` 在两边都丢弃 |
+| 绕过 `allowUrl` 加载资源 | UI SDK 组件会把不认识的属性放到自己的元素上。`srcset`、`imagesrcset`、`ping`、`attributionsrc` 不论大小写一律丢弃；组件上的 `poster` 和 `src` 一样先问 `allowUrl` |
+| 借框架的钩子读到宿主 | Vue 的 `onVnodeMounted` 一类属性不是事件，调用时会拿到虚拟节点，顺着它能读到应用上下文。Vue 渲染器在标记能写到的每一处都丢弃这类名字；`ref` 在两边都丢弃 |
 | 嵌入其他文档 | `iframe`、`object`、`embed`、SVG `foreignObject` 被丢弃 |
 | 越权读写数据 | 标记只能调用宿主传入的工具。工具在读者的会话里运行，宿主应在服务端校验每一次调用 |
 

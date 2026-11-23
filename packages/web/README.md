@@ -138,6 +138,7 @@ mount(target, {
 | `@open-intelligent-ui/web/define` | Registers `<intelligent-ui>` on import |
 | `@open-intelligent-ui/web/ui-sdk` | `preloadUiSdk`, `isUiSdkComponent`, `uiSdkComponentNames` |
 | `@open-intelligent-ui/web/styles.css` | One stylesheet in two cascade layers, `ui-sdk` and `iui`, confined to the renderer's root |
+| `@open-intelligent-ui/web/elements.css` | Only the rules `styles.css` adds for the custom elements, for a page that already loads another renderer's `styles.css` |
 
 The layout primitives and the presets `Stat`, `Number`, `DataTable`, `CodeBlock` and `Skeleton` are tags a model writes in markup, not named exports.
 

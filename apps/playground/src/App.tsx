@@ -565,7 +565,6 @@ export function App() {
             ) : (
               <LiveSettingsButton
                 copy={copy}
-                locale={locale}
                 live={live}
                 onLive={setLive}
                 useTools={useTools}

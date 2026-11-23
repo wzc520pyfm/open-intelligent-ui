@@ -1,6 +1,6 @@
 import { Button, Input, Label, Popover, Switch, TextField } from "@heroui/react"
 import { Settings2 } from "lucide-react"
-import type { Copy, Locale } from "../i18n"
+import type { Copy } from "../i18n"
 import { type LiveSettings, type ProviderId, PROVIDERS, providerById } from "../live"
 import { Picker } from "./controls"
 
@@ -14,7 +14,6 @@ export function providerLabel(copy: Copy, id: ProviderId): string {
 /** Which model answers in a live session, and with what key. */
 export function LiveSettingsButton(props: {
   copy: Copy
-  locale: Locale
   live: LiveSettings
   onLive: (live: LiveSettings) => void
   useTools: boolean

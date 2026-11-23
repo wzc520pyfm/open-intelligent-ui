@@ -45,9 +45,7 @@ export interface Copy {
   renderer: string
   rendererHint: string
   docs: string
-  source: string
   modelSettings: string
-  notConnected: string
   examples: string
   agentAsked: string
   askYourself: string
@@ -111,9 +109,7 @@ const en: Copy = {
   renderer: "Renderer",
   rendererHint: "The same reply, drawn by another framework's renderer.",
   docs: "Docs",
-  source: "Source",
   modelSettings: "Model settings",
-  notConnected: "Not connected",
   examples: "Examples",
   agentAsked: "An agent was asked",
   askYourself: "Or ask one yourself",
@@ -214,9 +210,7 @@ const zh: Copy = {
   renderer: "渲染器",
   rendererHint: "同一条回复，换一个框架的渲染器来画。",
   docs: "文档",
-  source: "源码",
   modelSettings: "模型设置",
-  notConnected: "未连接",
   examples: "示例",
   agentAsked: "有人问智能体",
   askYourself: "或者自己问一句",

@@ -495,6 +495,47 @@ describe("safety", () => {
     expect(text(container)).toBe("[undefined] [] [] []")
   })
 
+  test("an SVG attribute that is CSS can't load anything", () => {
+    const { container } = render(
+      <IntelligentUI
+        source={String.raw`<svg viewBox="0 0 10 10">
+<defs><linearGradient id="g"><stop stop-color="red" /></linearGradient></defs>
+<rect id="kept" width="4" height="4" fill="url(#g)" transform="translate(1 1)" />
+<rect id="plain" width="4" height="4" fill="url(https://evil.test/a.svg#p)" />
+<rect id="escaped" width="4" height="4" fill="u\72l(https://evil.test/b.svg#p)" filter="\75rl(https://evil.test/c.svg#f)" />
+<rect id="set" width="4" height="4" cursor="image-set('https://evil.test/d.png' 1x), auto" />
+</svg>`}
+      />
+    )
+    expect(container.innerHTML).not.toContain("evil.test")
+    expect(container.querySelector("#kept")?.getAttribute("fill")).toMatch(/^url\(#/)
+    expect(container.querySelector("#kept")?.getAttribute("transform")).toBe("translate(1 1)")
+    expect(container.querySelector("#escaped")?.getAttribute("width")).toBe("4")
+  })
+
+  test("model CSS can't reach the page through the surface's own name", () => {
+    const { container } = render(
+      <IntelligentUI
+        source={String.raw`<style>
+.app:has(&) .sidebar, & + .next, ~ * { display: none }
+.card { --x: \{ } } .page { display: none }
+.card { --y: \" ; background: url(https://evil.test/a.png) ; --z: " }
+</style>
+<div class="card">Hi</div>`}
+      />
+    )
+    const id = container.querySelector(".iui-root")?.getAttribute("data-iui-id")
+    const root = `.iui-root[data-iui-id="${id}"]`
+    const guard = `:where(${root}, ${root} *)`
+    const css = [...container.querySelectorAll("style")].map((el) => el.textContent).join("\n")
+    expect(css).toContain(`.app:has(&) .sidebar${guard}, & + .next${guard}, ~ *${guard} { display: none }`)
+    expect(css).not.toContain("evil.test")
+    // The surface's rule is the only thing at the top level, and it ends last.
+    const model = css.slice(css.lastIndexOf(`${root} {\n.app`))
+    expect(model.trimEnd().endsWith("\n}")).toBe(true)
+    expect(model).not.toMatch(/\n\}\s*\S/)
+  })
+
   test("model CSS is confined to its surface", () => {
     const { container } = render(
       <IntelligentUI

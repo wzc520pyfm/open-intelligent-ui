@@ -10,6 +10,7 @@ import {
   drawNow,
   flushPromises,
   text,
+  topLevelCloses,
   type,
   until,
 } from "./helpers"
@@ -700,6 +701,47 @@ describe("safety", () => {
       source: `<text>[{typeof window}] [{constructor}] [{"a".constructor}] [{[].__proto__}]</text>`,
     })
     expect(text(container)).toBe("[undefined] [] [] []")
+  })
+
+  test("an SVG attribute that is CSS can't load anything", async () => {
+    const { container } = await draw({
+      source: String.raw`<svg viewBox="0 0 10 10">
+<defs><linearGradient id="g"><stop stop-color="red" /></linearGradient></defs>
+<rect id="kept" width="4" height="4" fill="url(#g)" transform="translate(1 1)" />
+<rect id="plain" width="4" height="4" fill="url(https://evil.test/a.svg#p)" />
+<rect id="escaped" width="4" height="4" fill="u\72l(https://evil.test/b.svg#p)" filter="\75rl(https://evil.test/c.svg#f)" />
+<rect id="set" width="4" height="4" cursor="image-set('https://evil.test/d.png' 1x), auto" />
+<rect id="image(1)" class="src(a)" aria-label="Profile image (large)" data-note="url(https://example.com/a)" width="4" height="4" />
+</svg>`,
+    })
+    expect(container.innerHTML).not.toContain("evil.test")
+    expect(container.querySelector("#kept")?.getAttribute("fill")).toMatch(/^url\(#/)
+    expect(container.querySelector("#kept")?.getAttribute("transform")).toBe("translate(1 1)")
+    expect(container.querySelector("#escaped")?.getAttribute("width")).toBe("4")
+    // A name or a label is text, not CSS, so it may spell anything.
+    const labelled = byLabel(container, "Profile image (large)")
+    expect(labelled.getAttribute("id")).toBe("image(1)")
+    expect(labelled.getAttribute("class")).toContain("src(a)")
+    expect(labelled.getAttribute("data-note")).toBe("url(https://example.com/a)")
+  })
+
+  test("model CSS can't reach the page through the surface's own name", async () => {
+    const { container } = await draw({
+      source: String.raw`<style>
+.app:has(&) .sidebar, & + .next, ~ * { display: none }
+.card { --x: \{ } } .page { display: none }
+.card { --y: \" ; background: url(https://evil.test/a.png) ; --z: " }
+</style>
+<div class="card">Hi</div>`,
+    })
+    const root = `.iui-root[data-iui-id="${container.getAttribute("data-iui-id")}"]`
+    const guard = `:where(${root}, ${root} *)`
+    const css = [...container.querySelectorAll("style")].map((el) => el.textContent).join("\n")
+    expect(css).toContain(`.app:has(&) .sidebar${guard}, & + .next${guard}, ~ *${guard} { display: none }`)
+    expect(css).not.toContain("evil.test")
+    // The surface's rule is the only thing at the top level, and it ends last.
+    const model = css.slice(css.lastIndexOf(`${root} {\n.app`)).trimEnd()
+    expect(topLevelCloses(model)).toEqual([model.length - 1])
   })
 
   test("model CSS is confined to its surface", async () => {

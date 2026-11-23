@@ -1,11 +1,14 @@
-import { createComponent, render } from "@solidjs/web"
+import { createComponent, insert, render, spread } from "@solidjs/web"
 import { flush } from "solid-js"
 import { IntelligentUI, type IntelligentUIHandle, type IntelligentUIProps } from "../src"
 import { createBag } from "../src/render/bag"
 
 export type Props = IntelligentUIProps
 
-const pause = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms))
+// Kept from before any test swaps the clock for a fake one.
+const later = globalThis.setTimeout
+
+const pause = (ms = 0) => new Promise((resolve) => later(resolve, ms))
 
 /** Lets everything that was queued run: microtasks, Solid's effects, loaders that resolved. */
 export async function flushPromises() {
@@ -22,20 +25,23 @@ export interface View {
   unmount(): void
 }
 
-export async function draw(props: Props): Promise<View> {
+/** Mounts the surface in the page without waiting for anything. */
+export function mount(props: Props): View {
   const host = document.body.appendChild(document.createElement("div"))
   let handle!: IntelligentUIHandle
-  let current: Record<string, unknown> = { ...props, ref: (given: IntelligentUIHandle) => (handle = given) }
+  let current: Record<string, unknown> = {
+    ...props,
+    ref: (given: IntelligentUIHandle) => {
+      handle = given
+    },
+  }
   const bag = createBag(current)
   const dispose = render(
     () => createComponent(IntelligentUI, bag.props as unknown as IntelligentUIProps),
     host
   )
-  await flushPromises()
   return {
-    get container() {
-      return host.firstElementChild as HTMLElement
-    },
+    container: host.firstElementChild as HTMLElement,
     handle,
     async setProps(next) {
       current = { ...current, ...next }
@@ -47,6 +53,29 @@ export async function draw(props: Props): Promise<View> {
       host.remove()
     },
   }
+}
+
+export async function draw(props: Props) {
+  const view = mount(props)
+  await flushPromises()
+  return { view, container: view.container, handle: view.handle }
+}
+
+/**
+ * An element the way compiled JSX makes one: props are spread onto it, and
+ * each child that is a function is inserted at its own marker.
+ */
+export function h(tag: string, props: object | null, ...children: unknown[]): HTMLElement {
+  const element = document.createElement(tag)
+  if (props) spread(element, props, true)
+  for (const child of children) {
+    if (typeof child === "function") {
+      insert(element, child as () => unknown, element.appendChild(document.createTextNode("")))
+    } else {
+      element.append(child as string | Node)
+    }
+  }
+  return element
 }
 
 /** The words on the surface, without its stylesheets and toasts. */

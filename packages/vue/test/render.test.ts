@@ -572,6 +572,28 @@ describe("safety", () => {
     ])
   })
 
+  test("a component's element can't be rewritten through its DOM properties", async () => {
+    await preloadUiSdk("Button", "Toolbar")
+    const Plain = defineComponent({ render: () => h("a", { href: "https://example.com/a" }, "plain") })
+    const { container } = await draw({
+      source: `<state bag={{}} html={null} />
+<button on:click={bag = { outerHTML: "<img id='pwn' src='x'>", innerHTML: "<img id='pwn' src='x'>", textContent: "gone", innerText: "gone", hostname: "evil.test", protocol: "javascript", title: "ok" }; html = "<img id='pwn' src='x'>"}>go</button>
+<Button aria-label="Kept" {...bag} bind:outerHTML={html}><icon name="x" /></Button>
+<Toolbar aria-label="Tools"><ToolbarLink href="https://example.com/a" {...bag}>link</ToolbarLink></Toolbar>
+<Plain {...bag} />`,
+      components: { Plain },
+    })
+    await click(byText(container, "go"))
+    await until(() => expect(byLabel(container, "Kept").getAttribute("title")).toBe("ok"))
+    expect(container.querySelector("#pwn")).toBeNull()
+    expect(byLabel(container, "Kept").querySelector(".iui-icon")).not.toBeNull()
+    for (const link of [byText(container, "link"), byText(container, "plain")]) {
+      expect((link as HTMLAnchorElement).href).toBe("https://example.com/a")
+      expect(link.getAttribute("title")).toBe("ok")
+    }
+    expect(container.querySelector(".iui-error")).toBeNull()
+  })
+
   test("the host can refuse URLs", async () => {
     const { container } = await draw({
       source: `<a href="https://example.com/a">link</a><image src="https://cdn.test/a.png" alt="A" />`,

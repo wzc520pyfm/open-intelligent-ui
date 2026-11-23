@@ -55,6 +55,9 @@ export interface ElementProps {
   show: boolean | undefined
 }
 
+/** Whether `name`, in lower case, is an attribute markup may put on an HTML element. */
+export const isHtmlAttribute = (name: string): boolean => HTML_ATTRIBUTES.has(name)
+
 const HTML_ATTRIBUTES = new Set([
   "id",
   "title",
@@ -118,6 +121,7 @@ export const BLOCKED_PROPS = new Set([
   "render",
   "children",
   "innerHTML",
+  "outerHTML",
   "srcdoc",
   "srcDoc",
   "formaction",

@@ -408,6 +408,20 @@ describe("safety", () => {
     expect(container.querySelector("circle")?.getAttribute("onclick")).toBeNull()
   })
 
+  test("a component's element can't be given HTML", async () => {
+    await preloadUiSdk("Button")
+    const { container } = render(
+      <IntelligentUI
+        source={`<state bag={{ outerHTML: "<img id='pwn' src='x'>", innerHTML: "<img id='pwn' src='x'>", title: "ok" }} />
+<Button aria-label="Kept" {...bag} bind:outerHTML={bag.outerHTML}>Keep</Button>`}
+      />
+    )
+    expect(screen.getByLabelText("Kept").getAttribute("title")).toBe("ok")
+    expect(screen.getByLabelText("Kept").textContent).toBe("Keep")
+    expect(container.querySelector("#pwn")).toBeNull()
+    expect(container.innerHTML).not.toContain("pwn")
+  })
+
   test("the host can refuse URLs", () => {
     const { container } = render(
       <IntelligentUI

@@ -52,6 +52,7 @@ export {
   type ElementKind,
   type ElementProps,
   evalAttr,
+  isHtmlAttribute,
   lazyRecord,
   type PropsContext,
   type PropsDialect,

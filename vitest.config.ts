@@ -23,6 +23,16 @@ export default defineConfig({
           css: false,
         },
       },
+      {
+        extends: true,
+        test: {
+          name: "vue",
+          include: ["packages/vue/test/**/*.test.ts"],
+          environment: "jsdom",
+          setupFiles: ["packages/vue/test/setup.ts"],
+          css: false,
+        },
+      },
     ],
   },
 })

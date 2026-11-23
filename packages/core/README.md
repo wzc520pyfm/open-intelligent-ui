@@ -2,7 +2,7 @@
 
 The framework-free half of [Open Intelligent UI](https://github.com/wzc520pyfm/open-intelligent-ui): the parser for IUI markup, the expression language, the state store behind a surface, the DESIGN.md reader and the system prompt builder.
 
-Use it on the server to build the prompt that teaches a model the markup, and with [`@open-intelligent-ui/react`](https://www.npmjs.com/package/@open-intelligent-ui/react) to render what comes back.
+Use it on the server to build the prompt that teaches a model the markup, and with [`@open-intelligent-ui/react`](https://www.npmjs.com/package/@open-intelligent-ui/react) or [`@open-intelligent-ui/vue`](https://www.npmjs.com/package/@open-intelligent-ui/vue) to render what comes back.
 
 ```bash
 npm install @open-intelligent-ui/core
@@ -43,9 +43,10 @@ doc.diagnostics // problems in the markup, with positions
 | `Surface` | State, `<derive>`, `<query>`, actions |
 | `parseDesign`, `designToCss` | DESIGN.md tokens to CSS variables |
 | `buildSystemPrompt` (from `/prompt`) | The prompt: language, components, design, your tools |
+| `/renderer`, `/styles.css` | What the React and Vue renderers are built from: directives, primitives, presets, charts, and the stylesheet. For writing a renderer, not for apps; it changes with the renderers |
 
 ESM only. The language is specified in [`docs/spec.md`](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/docs/spec.md).
 
 ## License
 
-MIT. The component catalog inside `/prompt` is generated from UI SDK's documentation, which is Apache-2.0; see `NOTICE`.
+MIT. The component catalog inside `/prompt` is generated from UI SDK's documentation and `styles.css` includes UI SDK's default styles; both are Apache-2.0, see `NOTICE`.

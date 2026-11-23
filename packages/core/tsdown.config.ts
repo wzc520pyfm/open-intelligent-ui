@@ -1,7 +1,11 @@
 import { defineConfig } from "tsdown"
 
 export default defineConfig({
-  entry: { index: "src/index.ts", prompt: "src/prompt/index.ts" },
+  entry: {
+    index: "src/index.ts",
+    prompt: "src/prompt/index.ts",
+    renderer: "src/renderer/index.ts",
+  },
   format: "esm",
   platform: "neutral",
   dts: true,

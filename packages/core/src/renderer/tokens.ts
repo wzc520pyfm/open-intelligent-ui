@@ -1,5 +1,7 @@
-import { safeStyleValue } from "@open-intelligent-ui/core"
-import type { CSSProperties } from "react"
+import { safeStyleValue } from "../design"
+
+/** An inline style: camelCase properties, or custom properties as written. */
+export type StyleMap = Record<string, string | number>
 
 const TOKEN_NAME = /^[A-Za-z][A-Za-z0-9-]*$/
 const NUMBER = /^-?\d+(?:\.\d+)?$/
@@ -117,7 +119,7 @@ type Props = Record<string, unknown>
  * The layout and look props shared by every primitive. Removes the props it
  * understands from `props` and returns them as a style object.
  */
-export function takeBoxStyle(props: Props): CSSProperties {
+export function takeBoxStyle(props: Props): StyleMap {
   const style: Record<string, string | number | undefined> = {}
   const take = (name: string): unknown => {
     const value = props[name]
@@ -210,11 +212,11 @@ export function takeBoxStyle(props: Props): CSSProperties {
   const z = take("zIndex")
   if (z !== undefined && Number.isInteger(Number(z))) set("zIndex", Number(z))
 
-  return style as CSSProperties
+  return style as StyleMap
 }
 
 /** Grid placement for children of `<grid>`. */
-export function takeGridItemStyle(props: Props): CSSProperties {
+export function takeGridItemStyle(props: Props): StyleMap {
   const style: Record<string, string> = {}
   const span = props.span ?? props.colSpan ?? props.columnSpan
   delete props.span
@@ -229,7 +231,7 @@ export function takeGridItemStyle(props: Props): CSSProperties {
   if (Number.isInteger(Number(rowSpan)) && Number(rowSpan) > 0) {
     style.gridRow = `span ${Number(rowSpan)}`
   }
-  return style as CSSProperties
+  return style as StyleMap
 }
 
 export function gridColumns(value: Input, minWidth: Input): string | undefined {

@@ -10,10 +10,11 @@ fit before changing code.
 | --- | --- |
 | `pnpm install` | Install. Node 22 or later. |
 | `pnpm dev` | Playground at http://localhost:5173. |
+| `pnpm dev:vue` | The same demos on the Vue renderer, at http://localhost:5174. |
 | `pnpm test` | All tests (Vitest). `npx vitest run <path>` for one file. |
 | `pnpm typecheck` | TypeScript, every package. |
 | `pnpm build` | Production build of the playground. |
-| `pnpm generate` | Rebuild the UI SDK registry, catalog and CSS from the installed `@ui-sdk` packages. |
+| `pnpm generate` | Rebuild the UI SDK registries (React and Vue), the catalog, the CSS and the Vue icon list from the installed packages. |
 | `pnpm generate:skills` | Rebuild `skills/**/references/` from the prompt guides. |
 | `pnpm design:lint` | Check `design/*.DESIGN.md` with the DESIGN.md CLI. |
 | `pnpm build:packages` | Build `packages/*` to `dist/` (ESM, type declarations, `styles.css`). |
@@ -27,11 +28,19 @@ semicolons, double quotes, two spaces.
 - `packages/core`: parser (`src/markup`), expression interpreter (`src/expr`),
   state store (`src/runtime`), DESIGN.md and CSS safety (`src/design`),
   system prompt (`src/prompt`). No framework, no DOM, no Node APIs.
-- `packages/react`: `<IntelligentUI>`, rendering (`src/render`), primitives,
-  presets, styles.
+- `packages/core/src/renderer` (`@open-intelligent-ui/core/renderer`): what
+  every renderer shares. Directives and props (`props.ts`), the tree walk
+  (`render.ts`), primitives, presets and charts as framework-neutral views
+  (`view.ts`). No framework, but it may touch the DOM. `packages/core/styles`
+  is the one stylesheet; each renderer ships a copy as its `styles.css`.
+- `packages/react`, `packages/vue`: `<IntelligentUI>` for one framework. Each
+  holds only what the framework decides: how props are named
+  (`src/render/dialect.ts`), how a view becomes an element, state, effects,
+  the error boundary and exit animations.
 - `packages/open-intelligent-ui`: the unscoped npm name. It re-exports
   `@open-intelligent-ui/core` and holds no code of its own; keep it that way.
 - `apps/playground`: the demo app. Demos are `.iui` files in `src/demos`.
+- `apps/vue-demo`: the same demos on the Vue renderer.
 - `skills/`: skills for coding agents. `docs/`: research, spec, architecture.
 
 ## Releasing
@@ -61,6 +70,12 @@ otherwise.
   guide in `packages/core/src/prompt/guide.ts` in the same commit, then run
   `pnpm generate:skills`. Tests render every example in the guides, the docs
   and the skills, and fail when a generated reference is stale.
+- **Renderers must agree.** One reply has to look and behave the same in
+  React and in Vue. Put a change in `packages/core/src/renderer` when the
+  framework doesn't decide it; when it does, change both packages.
+  `packages/vue/test/conformance.test.ts` draws every sample in the
+  repository with both renderers and fails when the DOM or the warnings
+  differ. A behavior test added to one renderer belongs in the other too.
 - **Don't edit generated files.** Anything named `*.generated.*` and
   everything under `skills/**/references/` except `integration.md` comes
   from a script.
@@ -79,7 +94,8 @@ otherwise.
   skip UI SDK parts (`:not([data-slot])`).
 - **Look at it.** jsdom tests don't cover layout, paint or motion. After a
   visual change, open the playground in a browser at phone, chat and wide
-  widths, in light and dark, with each design. For motion, capture frames
+  widths, in light and dark, with each design, and open the Vue demo next
+  to it. For motion, capture frames
   with `skills/motion/scripts/capture.mjs`.
 
 ## Writing a demo or an example

@@ -1,5 +1,6 @@
 /*
- * Styles for @open-intelligent-ui/react. Import once, anywhere:
+ * Styles for Open Intelligent UI, shared by every renderer. Import once,
+ * anywhere, from the renderer you use:
  *
  *   import "@open-intelligent-ui/react/styles.css"
  *

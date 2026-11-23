@@ -19,7 +19,10 @@ const system = buildSystemPrompt({ design: parseDesign(designMarkdown), tools: [
 To put an interface on screen you need a renderer, which is a separate package:
 
 ```bash
+# React
 npm install @open-intelligent-ui/react @open-intelligent-ui/core @ui-sdk/react @ui-sdk/core
+# Vue
+npm install @open-intelligent-ui/vue @open-intelligent-ui/core @ui-sdk/vue @ui-sdk/core
 ```
 
 Packages published under the `@open-intelligent-ui` scope and this one are the only official ones.

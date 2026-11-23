@@ -10,7 +10,7 @@ import {
   safeStyleValue,
   safeUrl,
   styleKey,
-} from "@open-intelligent-ui/core"
+} from "../index"
 
 export type ElementKind = "html" | "svg" | "primitive" | "component" | "ui-sdk"
 
@@ -25,12 +25,38 @@ export interface PropsContext {
   allowUrl?: ((url: string, kind: "link" | "media") => boolean) | undefined
 }
 
+/**
+ * How one framework names things. Everything else about turning attributes
+ * into props, including what is refused, is the same for every renderer.
+ */
+export interface PropsDialect {
+  /** The prop that carries class names: `className` in React, `class` elsewhere. */
+  className: string
+  /** Names an HTML attribute. `lower` is the attribute in lower case, `written` as the markup has it. */
+  html(lower: string, written: string): string
+  /** Names an SVG attribute. */
+  svg(lower: string, written: string): string
+  /** Names a prop handed to a component or a primitive. */
+  prop(name: string): string
+  /** The prop for `on:name` on an element of this kind. */
+  event(name: string, kind: ElementKind, tag: string): string
+  /** The prop for a handler written as `onName={...}`. */
+  handler(name: string, kind: ElementKind, tag: string): string
+  /** The event prop through which a native element reports a `bind:` change. */
+  bindEvent(tag: string, argument: string): string
+  /** The props through which a component reports a `bind:` change. */
+  bindProps(argument: string, kind: ElementKind): string[]
+}
+
 export interface ElementProps {
   props: Record<string, unknown>
   key: string | undefined
   /** `show={cond}`: false hides the element, with its exit animation. */
   show: boolean | undefined
 }
+
+/** Whether `name`, in lower case, is an attribute markup may put on an HTML element. */
+export const isHtmlAttribute = (name: string): boolean => HTML_ATTRIBUTES.has(name)
 
 const HTML_ATTRIBUTES = new Set([
   "id",
@@ -89,31 +115,13 @@ const HTML_ATTRIBUTES = new Set([
   "defaultchecked",
 ])
 
-const REACT_NAMES: Record<string, string> = {
-  class: "className",
-  for: "htmlFor",
-  tabindex: "tabIndex",
-  readonly: "readOnly",
-  minlength: "minLength",
-  maxlength: "maxLength",
-  inputmode: "inputMode",
-  autocomplete: "autoComplete",
-  spellcheck: "spellCheck",
-  datetime: "dateTime",
-  colspan: "colSpan",
-  rowspan: "rowSpan",
-  defaultvalue: "defaultValue",
-  defaultchecked: "defaultChecked",
-  viewbox: "viewBox",
-  "xlink:href": "href",
-}
-
-const BLOCKED_PROPS = new Set([
+export const BLOCKED_PROPS = new Set([
   "dangerouslySetInnerHTML",
   "ref",
   "render",
   "children",
   "innerHTML",
+  "outerHTML",
   "srcdoc",
   "srcDoc",
   "formaction",
@@ -122,54 +130,33 @@ const BLOCKED_PROPS = new Set([
   "is",
 ])
 
-/** DOM event names whose React prop isn't just the capitalized name. */
-const EVENT_NAMES: Record<string, string> = {
-  dblclick: "onDoubleClick",
-  doubleclick: "onDoubleClick",
-  keydown: "onKeyDown",
-  keyup: "onKeyUp",
-  keypress: "onKeyPress",
-  mousedown: "onMouseDown",
-  mouseup: "onMouseUp",
-  mouseenter: "onMouseEnter",
-  mouseleave: "onMouseLeave",
-  mousemove: "onMouseMove",
-  mouseover: "onMouseOver",
-  mouseout: "onMouseOut",
-  pointerdown: "onPointerDown",
-  pointerup: "onPointerUp",
-  pointerenter: "onPointerEnter",
-  pointerleave: "onPointerLeave",
-  pointermove: "onPointerMove",
-  pointercancel: "onPointerCancel",
-  touchstart: "onTouchStart",
-  touchend: "onTouchEnd",
-  touchmove: "onTouchMove",
-  contextmenu: "onContextMenu",
-  dragstart: "onDragStart",
-  dragend: "onDragEnd",
-  dragover: "onDragOver",
-  dragenter: "onDragEnter",
-  dragleave: "onDragLeave",
-  animationend: "onAnimationEnd",
-  transitionend: "onTransitionEnd",
-}
+/**
+ * Attributes that make the browser fetch or report to a URL, and that hold more than
+ * one URL or none the host could be asked about. A component passes what it doesn't
+ * know to its element, so these are dropped however they are spelled.
+ */
+const UNCHECKED_URL_PROPS = new Set(["srcset", "imagesrcset", "ping", "attributionsrc"])
+const PROP_NAME = /^[A-Za-z_][\w:-]*$/
 
-function eventProp(name: string, dom: boolean): string {
-  if (dom && Object.hasOwn(EVENT_NAMES, name.toLowerCase())) {
-    return EVENT_NAMES[name.toLowerCase()] as string
-  }
-  return `on${capitalize(camel(name))}`
+const BLOCKED_NAMES = new Set([...BLOCKED_PROPS].map((name) => name.toLowerCase()))
+
+/**
+ * Whether a prop is dropped whatever it holds. The DOM lowercases the
+ * attributes of an HTML element, so a name is refused in any spelling.
+ */
+function refused(name: string): boolean {
+  const lower = name.toLowerCase()
+  return BLOCKED_NAMES.has(lower) || UNCHECKED_URL_PROPS.has(lower) || !PROP_NAME.test(name)
 }
 
 const DATA_PROPS = new Set(["variant", "size", "tone"])
 const MOTION_ATTRIBUTE = /^[a-z]+(?:-[a-z]+)*$/
 
-function camel(name: string): string {
+export function camel(name: string): string {
   return name.replace(/[-:]([a-z])/g, (_match, letter: string) => letter.toUpperCase())
 }
 
-function capitalize(name: string): string {
+export function capitalize(name: string): string {
   return name.charAt(0).toUpperCase() + name.slice(1)
 }
 
@@ -177,6 +164,39 @@ function isPlain(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== "object") return false
   const proto = Object.getPrototypeOf(value)
   return proto === Object.prototype || proto === null
+}
+
+const lazyRecords = new WeakSet<object>()
+
+/**
+ * Plain data whose fields are fetched when an expression reads them. Some
+ * components hand over state that only knows a field once it is asked for,
+ * and that notes what was asked so it can say when that changes; copying
+ * such state up front would read nothing. `read` is called with each field
+ * name and what it returns is made plain like any other argument.
+ */
+export function lazyRecord(read: (name: string) => unknown): Record<string, unknown> {
+  const field = (name: string | symbol) =>
+    typeof name === "string" ? plainArg(read(name)) : undefined
+  const record = new Proxy<Record<string, unknown>>(
+    {},
+    {
+      get: (_, name) => field(name),
+      has: (_, name) => field(name) !== undefined,
+      getOwnPropertyDescriptor: (_, name) => {
+        const value = field(name)
+        return value === undefined
+          ? undefined
+          : { value, enumerable: true, configurable: true, writable: false }
+      },
+      // A write lands nowhere, as it would on a copy of the state.
+      set: () => true,
+      defineProperty: () => false,
+      deleteProperty: () => true,
+    }
+  )
+  lazyRecords.add(record)
+  return record
 }
 
 /**
@@ -189,6 +209,7 @@ export function plainArg(value: unknown, depth = 0): unknown {
   const type = typeof value
   if (type === "string" || type === "number" || type === "boolean") return value
   if (type !== "object" || depth > 6) return undefined
+  if (lazyRecords.has(value as object)) return value
   if (value instanceof Date) return value.toISOString()
   if (Array.isArray(value)) return value.map((item) => plainArg(item, depth + 1))
   const record = value as Record<string, unknown>
@@ -318,7 +339,7 @@ function checkUrl(
 }
 
 /**
- * Evaluates an element's attributes into React props.
+ * Evaluates an element's attributes into props for the framework `dialect` names.
  *
  * - `bind:value={path}` reads and writes state.
  * - `on:click={...}` (or `onClick={...}`) runs an action.
@@ -330,7 +351,8 @@ function checkUrl(
 export function buildProps(
   node: ElementNode,
   kind: ElementKind,
-  ctx: PropsContext
+  ctx: PropsContext,
+  dialect: PropsDialect
 ): ElementProps {
   const props: Record<string, unknown> = {}
   const classes: string[] = []
@@ -348,7 +370,7 @@ export function buildProps(
   }
 
   const assign = (name: string, value: unknown, fromStatic: boolean) => {
-    if (BLOCKED_PROPS.has(name)) return
+    if (refused(name)) return
     if (name === "key") {
       if (value !== undefined && value !== null) key = String(value)
       return
@@ -397,7 +419,7 @@ export function buildProps(
       }
       return
     }
-    if (/^on/i.test(name) && typeof value !== "function") return
+    if (/^on/i.test(name) && (typeof value !== "function" || !/^on[A-Z]/.test(name))) return
     if (name.startsWith("aria-") || name.startsWith("data-")) {
       if (name.startsWith("data-iui-")) return
       props[name] = value
@@ -430,7 +452,7 @@ export function buildProps(
         return
       }
       if (lower === "type" && tag === "input" && value === "file") return
-      props[REACT_NAMES[lower] ?? name] = fromStatic ? coerceStatic(value) : value
+      props[dialect.html(lower, name)] = fromStatic ? coerceStatic(value) : value
       return
     }
 
@@ -450,29 +472,28 @@ export function buildProps(
       }
       if (lower === "xmlns" || lower.startsWith("xmlns:")) return
       if (typeof value === "string" && /url\s*\(\s*(?!["']?#)/i.test(value)) return
-      const reactName =
-        REACT_NAMES[lower] ?? (name.includes("-") || name.includes(":") ? camel(name) : name)
-      props[reactName] = value
+      props[dialect.svg(lower, name)] = value
       return
     }
 
-    // Components and primitives take their props as written.
-    if (name === "href") {
+    // Components and primitives take their props as written, except the ones
+    // that hold a URL: a component may hand those to an element as they are.
+    const lower = name.toLowerCase()
+    if (lower === "href" || lower === "xlink:href") {
       const url = checkUrl(value, "link", ctx)
       if (url !== undefined) props.href = url
       return
     }
-    if (name === "src") {
+    if (lower === "src" || lower === "poster") {
       const url = checkUrl(value, "media", ctx)
-      if (url !== undefined) props.src = url
+      if (url !== undefined) props[lower] = url
       return
     }
     if (kind === "ui-sdk" && DATA_PROPS.has(name)) {
       if (typeof value === "string") props[`data-${name}`] = value
       return
     }
-    const reactName = name === "for" ? "htmlFor" : name
-    props[reactName] = fromStatic && kind !== "primitive" ? coerceStatic(value) : value
+    props[dialect.prop(name)] = fromStatic && kind !== "primitive" ? coerceStatic(value) : value
   }
 
   for (const attr of node.attrs) {
@@ -494,33 +515,41 @@ export function buildProps(
 
     if (directive === "on" || (/^on[A-Z]/.test(name) && value.kind === "expr")) {
       if (value.kind !== "expr") continue
-      const event = directive === "on" ? eventProp(argument, kind !== "component") : name
+      const event =
+        directive === "on"
+          ? dialect.event(argument, kind, tag)
+          : dialect.handler(name, kind, tag)
       handlers[event] = chain(handlers[event], handler(value.expr, ctx))
       continue
     }
 
     if (directive === "bind") {
-      if (value.kind !== "expr" || BLOCKED_PROPS.has(argument)) continue
+      if (value.kind !== "expr" || refused(argument)) continue
       if (native && argument !== "value" && argument !== "checked" && argument !== "open") {
         continue
       }
       const set = setter(value.expr, ctx)
       const current = evalAttr(value, ctx)
       if (native) {
-        const checkbox = argument === "checked"
-        props[argument] = current ?? (checkbox ? false : "")
+        props[argument] = current ?? (argument === "value" ? "" : false)
         if (set) {
-          handlers.onChange = chain(handlers.onChange, (event) => {
-            const target = (event as { target?: Partial<HTMLInputElement> })?.target
+          const event = dialect.bindEvent(tag, argument)
+          handlers[event] = chain(handlers[event], (change) => {
+            const target = (change as { target?: Partial<HTMLInputElement & HTMLDetailsElement> })
+              ?.target
             if (!target) return
-            set(checkbox ? Boolean(target.checked) : inputValue(target))
+            if (argument === "checked") set(Boolean(target.checked))
+            else if (argument === "open") set(Boolean(target.open))
+            else set(inputValue(target))
           })
         }
       } else {
-        props[argument] = current
+        // A bound value is held to what a written one is.
+        assign(argument, current, false)
         if (set) {
-          const event = `on${capitalize(argument)}Change`
-          handlers[event] = chain(handlers[event], (next) => set(plainArg(next)))
+          for (const event of dialect.bindProps(argument, kind)) {
+            handlers[event] = chain(handlers[event], (next) => set(plainArg(next)))
+          }
         }
       }
       continue
@@ -548,7 +577,7 @@ export function buildProps(
         ? chain(fn, existing as (...args: unknown[]) => unknown)
         : fn
   }
-  if (classes.length) props.className = classes.join(" ")
+  if (classes.length) props[dialect.className] = classes.join(" ")
   if (Object.keys(style).length) props.style = style
   return { props, key, show }
 }

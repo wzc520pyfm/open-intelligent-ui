@@ -35,7 +35,7 @@ function Reply({ text, streaming }: { text: string; streaming: boolean }) {
 - `tools` are the functions markup reads with `<query>` and writes with `call()`.
 - `onAction` receives what the reader decided, to send back to the model.
 
-The prompt that teaches a model the markup comes from `buildSystemPrompt` in [`@open-intelligent-ui/core/prompt`](https://www.npmjs.com/package/@open-intelligent-ui/core).
+The same markup renders to the same DOM in Vue with [`@open-intelligent-ui/vue`](https://www.npmjs.com/package/@open-intelligent-ui/vue). The prompt that teaches a model the markup comes from `buildSystemPrompt` in [`@open-intelligent-ui/core/prompt`](https://www.npmjs.com/package/@open-intelligent-ui/core).
 
 ## What ships
 

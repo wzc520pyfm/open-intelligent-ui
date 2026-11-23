@@ -1,7 +1,7 @@
 {
   "name": "@open-intelligent-ui/core",
-  "version": "0.1.0",
-  "description": "Framework-free core of Open Intelligent UI: the IUI markup parser, safe expression language, surface store, DESIGN.md loader and system prompt builder.",
+  "version": "0.2.0",
+  "description": "Framework-free core of Open Intelligent UI: the IUI markup parser, safe expression language, surface store, DESIGN.md loader, system prompt builder, and what the renderers share.",
   "keywords": [
     "generative-ui",
     "intelligent-ui",
@@ -20,10 +20,14 @@
   },
   "license": "MIT",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
     ".": "./src/index.ts",
-    "./prompt": "./src/prompt/index.ts"
+    "./prompt": "./src/prompt/index.ts",
+    "./renderer": "./src/renderer/index.ts",
+    "./styles.css": "./styles/index.css"
   },
   "files": [
     "dist",
@@ -39,11 +43,16 @@
       "./prompt": {
         "types": "./dist/prompt.d.ts",
         "default": "./dist/prompt.js"
-      }
+      },
+      "./renderer": {
+        "types": "./dist/renderer.d.ts",
+        "default": "./dist/renderer.js"
+      },
+      "./styles.css": "./dist/styles.css"
     }
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && node ../../scripts/build-css.mjs",
     "prepack": "pnpm run build && node ../../scripts/copy-license.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

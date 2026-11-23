@@ -1,9 +1,10 @@
+import { exitAnimations } from "@open-intelligent-ui/core/renderer"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 
 /**
  * Keeps its child on screen while the exit animation plays. The child gets
  * `data-iui-exit` on its wrapper during that time, and is removed once every
- * animation inside has finished.
+ * animation inside that ends has finished.
  */
 export function Presence({ show, children }: { show: boolean; children: ReactNode }) {
   const [mounted, setMounted] = useState(show)
@@ -22,13 +23,13 @@ export function Presence({ show, children }: { show: boolean; children: ReactNod
       setMounted(false)
       setExiting(false)
     }
-    const animations = ref.current?.getAnimations?.({ subtree: true }) ?? []
-    if (animations.length === 0) {
+    const exit = exitAnimations(ref.current)
+    if (!exit) {
       done()
       return
     }
     let cancelled = false
-    void Promise.allSettled(animations.map((animation) => animation.finished)).then(() => {
+    void exit.then(() => {
       if (!cancelled) done()
     })
     return () => {

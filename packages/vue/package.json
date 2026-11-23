@@ -1,0 +1,73 @@
+{
+  "name": "@open-intelligent-ui/vue",
+  "version": "0.2.0",
+  "description": "Vue renderer for Open Intelligent UI: turns IUI markup written by a model into a live, stateful, animated interface built on UI SDK.",
+  "keywords": [
+    "generative-ui",
+    "intelligent-ui",
+    "agent",
+    "llm",
+    "vue",
+    "ui-sdk",
+    "design-md"
+  ],
+  "homepage": "https://github.com/wzc520pyfm/open-intelligent-ui#readme",
+  "bugs": "https://github.com/wzc520pyfm/open-intelligent-ui/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wzc520pyfm/open-intelligent-ui.git",
+    "directory": "packages/vue"
+  },
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./ui-sdk": "./src/registry/ui-sdk.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "files": [
+    "dist",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./ui-sdk": {
+        "types": "./dist/ui-sdk.d.ts",
+        "default": "./dist/ui-sdk.js"
+      },
+      "./styles.css": "./dist/styles.css"
+    }
+  },
+  "scripts": {
+    "build": "tsdown && node ../../scripts/build-css.mjs",
+    "prepack": "pnpm run build && node ../../scripts/copy-license.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@lucide/vue": "1.77.0",
+    "@open-intelligent-ui/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@ui-sdk/core": "^0.1.0-beta.13",
+    "@ui-sdk/vue": "^0.1.0-beta.13",
+    "vue": ">=3.5"
+  },
+  "devDependencies": {
+    "@open-intelligent-ui/react": "workspace:*",
+    "@ui-sdk/core": "0.1.0-beta.13",
+    "@ui-sdk/react": "0.1.0-beta.13",
+    "@ui-sdk/vue": "0.1.0-beta.13",
+    "@vue/test-utils": "^2.6.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "vue": "^3.5.46"
+  }
+}

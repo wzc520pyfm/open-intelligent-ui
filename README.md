@@ -84,7 +84,7 @@ Open <http://localhost:5173> (or the [deployed playground](https://open-intellig
 pnpm test
 pnpm typecheck
 pnpm design:lint      # DESIGN.md CLI on design/
-pnpm check:packages   # build both packages and check the tarballs npm would get
+pnpm check:packages   # build the packages and check the tarballs npm would get
 ```
 
 ## Integrate
@@ -113,15 +113,43 @@ const system = buildSystemPrompt({ design, tools: toolDescriptions })
 />
 ```
 
-Both packages are ESM with type declarations; the React entry is marked `"use client"`. Tools, theming, host components, state and the safety model: [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md).
+On Vue it is the same component with the same props:
+
+```bash
+npm install @open-intelligent-ui/vue @open-intelligent-ui/core @ui-sdk/vue @ui-sdk/core
+```
+
+```vue
+<script setup lang="ts">
+import { IntelligentUI } from "@open-intelligent-ui/vue"
+import "@open-intelligent-ui/vue/styles.css"
+</script>
+
+<template>
+  <IntelligentUI
+    :source="replySoFar"
+    :streaming="isStreaming"
+    :design="design"
+    :tools="{ listTickets, updateTicket }"
+    :on-action="onAction"
+  />
+</template>
+```
+
+A model writes the same markup for both, and both draw it to the same DOM. `pnpm dev:vue` runs the six demos on the Vue renderer at <http://localhost:5174>.
+
+The packages are ESM with type declarations; the React entry is marked `"use client"`. Tools, theming, host components, state and the safety model: [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md).
 
 ## Layout
 
 ```
 packages/core     Markup parser, expression interpreter, state store, DESIGN.md, system prompt. No framework.
-packages/react    React renderer, primitives, presets, styles
+packages/core/src/renderer   What every renderer shares: directives, primitives, presets, charts. packages/core/styles is the stylesheet.
+packages/react    React renderer, on @ui-sdk/react
+packages/vue      Vue renderer, on @ui-sdk/vue
 packages/open-intelligent-ui   The unscoped npm name; re-exports packages/core
-apps/playground   Demo site
+apps/playground   Demo site (React)
+apps/vue-demo     The same demos on the Vue renderer
 design/           Three DESIGN.md files: Paper, Heritage, Signal
 skills/           Agent skills: intelligent-ui and motion
 docs/             Research, language spec, architecture
@@ -144,7 +172,7 @@ A working prototype, not a product.
 
 - **Not validated against a real model.** Demos are handwritten. Every example in the system prompt is rendered by tests; how a model writes against that prompt, and at what token cost, is unknown.
 - **UI SDK is beta** (0.1.0-beta.13). After upgrading, run `pnpm generate`; tests will flag drift.
-- **React renderer only**, React 19+. UI SDK also ships Vue, Svelte, Solid and web-component packages with the same component names, and `packages/core` and the stylesheet do not depend on a framework, but no other renderer has been written. See [`docs/research.md`](docs/research.md#其他框架).
+- **Two renderers, React 19+ and Vue 3.5+.** A test draws every sample in this repository with both and compares the DOM and the warnings. The Vue renderer is new: beyond those tests it has been compared with React in desktop Chrome on the six demos, and has not been used in a product. Svelte, Solid and web components have no renderer. See [`docs/research.md`](docs/research.md#其他框架).
 - **Visual checks only in desktop Chrome.** Layout morphing needs View Transitions; unsupported browsers swap instantly.
 - **Safety model has not been audited externally.** Markup is never executed as code; authorizing tool calls is the host's job.
 - **Unlayered host CSS can override the surface.** Put resets in a cascade layer when integrating.

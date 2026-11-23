@@ -1,8 +1,8 @@
 name: Release
 
-# Publishes @open-intelligent-ui/core and @open-intelligent-ui/react to npm.
+# Publishes every package under packages/ to npm.
 # Runs when a tag like v0.1.0 or v0.2.0-beta.1 is pushed, or by hand from the Actions tab.
-# Needs the repository secret NPM_TOKEN: an npm token allowed to publish to the @open-intelligent-ui scope.
+# Needs the repository secret NPM_TOKEN: an npm token allowed to publish to the @open-intelligent-ui scope and the open-intelligent-ui name.
 
 on:
   push:

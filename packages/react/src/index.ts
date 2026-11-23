@@ -4,7 +4,7 @@ export {
   type IntelligentUIProps,
 } from "./IntelligentUI"
 export { Chart, type ChartProps } from "./presets/Chart"
-export { formatValue } from "./presets/format"
+export { formatValue } from "@open-intelligent-ui/core/renderer"
 export { PRESET_NAMES, PRESETS } from "./presets/presets"
 export { Icon, PRIMITIVES } from "./primitives/primitives"
 export {

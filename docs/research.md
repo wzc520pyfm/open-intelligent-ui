@@ -38,10 +38,10 @@
 | 流式渲染 | 支持 | 支持 | 支持，靠流式编译器 | 支持，半截标签会被暂缓 |
 | 视觉来源 | 宿主组件自带 | 宿主组件自带 | 组件库自带 | DESIGN.md：令牌变 CSS 变量，正文进提示词 |
 | 动效 | 由组件决定 | 由组件决定 | 由组件决定 | 设计系统里的动效令牌，加标记属性 |
-| 跨端 | React、Lit、Angular、Flutter、SwiftUI、Compose | React、Vue、Svelte、Angular 等 | ChatGPT 网页与移动端 | 目前只有 React 渲染器；UI SDK 自身还有 Vue、Svelte、Solid、Web Components |
+| 跨端 | React、Lit、Angular、Flutter、SwiftUI、Compose | React、Vue、Svelte、Angular 等 | ChatGPT 网页与移动端 | React 和 Vue 两个渲染器；UI SDK 自身还有 Svelte、Solid、Web Components |
 | 安全边界 | 声明式数据，不执行代码 | 声明式语言 | 未公开 | 声明式标记；表达式在解释器里运行，CSS 被限定作用域 |
 
-这张表里本方案最弱的两项是跨端和成熟度：只有 React 渲染器，UI SDK 自身还在 beta。最强的一项是第三行。
+这张表里本方案最弱的两项是跨端和成熟度：只有 React 和 Vue 两个渲染器，而且 Vue 的是新写的；UI SDK 自身还在 beta。最强的一项是第三行。
 
 ## A2UI
 
@@ -246,17 +246,17 @@ UI SDK 的 55 个入口几乎全是交互。回答问题最常用的“内容”
 
 **组件名对得上。** 把 React 注册表里的 367 个组件名，和 Vue、Svelte、Solid 三个包各入口实际导出的名字逐一比对，367 个全部都有；三个包各多一个 `OverlayHost`，Svelte 另多一个 `Part`。只比了名字，每个组件的属性是否逐一相同没有核对。`@ui-sdk/web` 不一样：它是 361 个自定义元素（`<ui-tabs>`、`<ui-tabs-tab>`），结构也略有出入，例如 `ui-tabs-tab` 里要再放一个原生 `<button>`。
 
-**所以没有技术卡点。** 只支持 React 的原因是第一版只写了一个渲染器，而不是别的框架做不了。现在的代码按是否依赖框架分成两半：
+**所以没有技术卡点。** 只支持 React 的原因是第一版只写了一个渲染器，而不是别的框架做不了。当时的代码按是否依赖框架分成两半：
 
 | 部分 | 手写代码量 | 依赖框架吗 |
 | --- | --- | --- |
 | `packages/core`：解析器、表达式解释器、状态仓库、DESIGN.md、系统提示词 | 约 6300 行 | 不依赖 |
-| `packages/react/src/styles`：原语、Markdown、预置组件、动效的样式 | 约 2000 行 CSS | 不依赖，但现在放在 React 包里 |
+| `packages/react/src/styles`：原语、Markdown、预置组件、动效的样式 | 约 2000 行 CSS | 不依赖，但当时放在 React 包里 |
 | `packages/react`：树到元素的渲染和指令（约 1300 行）、15 个原语、6 个预置组件、`<IntelligentUI>` | 约 3500 行 | 依赖 React |
 
 换一个框架要重写的是第三行。其中最容易出偏差的是指令：`bind:value` 在 React 和 Solid 里是 `value` 加 `onValueChange`，在 Vue 里是 `v-model:value`，在 Svelte 里是 `bind:value`，进出场和 `morph` 的时机也各不相同。
 
-**三条路线。** 都没有实现，下面是判断，不是结果。
+**三条路线。** 第 1 条的 Vue 已经做了，结果见下面的“Vue 渲染器”；其余的没有实现，是判断，不是结果。
 
 1. **每个框架写一个原生渲染器**，建在对应的 `@ui-sdk/*` 包上。模型写的标记、系统提示词、组件目录都不用变，宿主组件可以直接传框架自己的组件。代价是每个框架重写上表第三行，而且需要一套不依赖框架的一致性测试（同一段标记，各渲染器产出相同的 DOM），否则几个渲染器会慢慢走样。
 2. **写一个 Web Components 渲染器** `<intelligent-ui>`，建在 `@ui-sdk/web` 上，一次实现到处可用。问题在于它的元素结构和 React 版不同，由 React 文档生成的组件目录和提示词示例不能直接用，要么另生成一份，要么在渲染器里做转换；宿主组件也只能以自定义元素的形式传入。
@@ -266,11 +266,42 @@ UI SDK 的 55 个入口几乎全是交互。回答问题最常用的“内容”
 
 来源：npm 包 `@ui-sdk/vue`、`@ui-sdk/svelte`、`@ui-sdk/solid`、`@ui-sdk/web` 0.1.0-beta.13 的 `package.json`、导出文件和包内 `docs/`。
 
+### Vue 渲染器
+
+按上面的倾向做了：`@open-intelligent-ui/vue`，建在 `@ui-sdk/vue` 上。
+
+**先把共用的部分挪出来。** 原来 React 包里约 3500 行，其中绝大部分其实不取决于框架：属性和指令怎么解释、原语和预置组件画成什么、图表的几何、数字格式。这些现在在 `packages/core/src/renderer`（约 3300 行），样式表在 `packages/core/styles`。挪完之后两个框架包各剩约一千行：
+
+| 部分 | 手写代码量 |
+| --- | --- |
+| `packages/core/src/renderer`：共用的渲染层 | 约 3300 行 |
+| `packages/react/src` | 约 900 行 |
+| `packages/vue/src` | 约 1100 行 |
+
+挪动前后，用仓库里的 53 个示例各渲染一遍 React 的输出，HTML 逐字节相同。
+
+**一致性测试。** `packages/vue/test/conformance.test.ts` 把这 53 个示例（六个演示、提示词里的全部示例、文档和 skill 里的 `iui` 代码块）分别交给两个渲染器，比较归一化后的 DOM 和报出的警告，要求完全相同。另外在桌面版 Chrome 里对六个演示做了同样的事，比较每个元素的位置、尺寸、颜色和字号，并在两边执行同一串操作（滑块、分段控件、表格排序、下拉选择、对话框、移动卡片等 30 步）后再比，结果一致。
+
+**做的过程中遇到的差异**，都是调研时没预料到的：
+
+| 差异 | 处理 |
+| --- | --- |
+| Vue 把 `onKeyDown` 读成事件 `key-down`，DOM 事件必须写成 `onKeydown` | 每个框架一份命名规则（`PropsDialect`） |
+| 标记里的 `on:change` 按 React 的意思是“每次编辑”，DOM 的 `change` 是“提交时” | Vue 里原生元素的 `change` 落到 `input` 事件 |
+| React 的部件把一个值传给函数子节点；Vue 的部件把 `{ state }` 传给插槽，而且 `state` 是只能按字段读取的代理，复制它会得到空对象 | `let:` 在 Vue 里按字段惰性读取（`lazyRecord`） |
+| `lucide-react` 有按名字懒加载的入口，`@lucide/vue` 没有 | 生成一张图标名到单个文件的表，自己画同样的 `<svg>` |
+| Vue 的宿主组件习惯用 `update:value` 而不是 `onValueChange` | `bind:value` 在 Vue 里两个都监听 |
+| 组件没声明的属性，Vue 会在根元素上按 property 赋值，`outerHTML`、`hostname` 因此可以被标记利用；`onVnodeMounted` 一类钩子能拿到虚拟节点；按 attribute 设置的 `onclick` 字符串是内联事件处理器 | 这类名字只按 attribute 设置，钩子和 `on` 开头的字符串一律丢弃；见架构文档的安全模型 |
+
+最后一行是安全问题，是在对照 React 逐项检查 Vue 的属性通道时发现的，一致性测试本身发现不了它。合并前的代码评审又在共用层里指出了几处：被禁的属性名换成大写、或者改用 `bind:` 绑定，就能绕过检查。这些在两个渲染器里都存在，已经一并修掉并补了测试。换下一个框架时，同样需要单独过一遍“这个框架会把属性名变成什么”。
+
+**没有做的。** 没有在真实的 Vue 应用或 Nuxt 里用过；服务端用 `renderToString` 能输出 HTML，但水合（hydration）没有测过；演示站的 Live 模式（接真实模型）只有 React 版；Svelte、Solid、Web Components 没有动。
+
 ## 没有验证的部分
 
 - **没有用真实模型跑过。** 环境里没有模型密钥。提示词里的每个示例都由测试渲染过，六个演示是手写的 IUI 标记；模型在这份提示词下实际写得怎么样，没有数据。演示站的 Live 模式可以接任意 OpenAI 兼容端点，SSE 客户端只对着假端点测过。
 - **token 成本没有量过。** 默认系统提示词约 3.4 万字符。标记比 JSON 省多少、比 OpenUI Lang 多多少，没有做基准。
 - **OpenAI 的语法是从一段对话里看到的**，不是规范，文中标了“观察所得”的都属于这一类。
-- **只有 React。** 核心包不依赖框架，但其他框架的渲染器没有写，“[其他框架](#其他框架)”里的三条路线都没有动手验证过。
+- **Vue 渲染器是新的。** 它和 React 的一致性由测试和 Chrome 里的对比守着，但没有在真实的 Vue 应用里用过，服务端渲染后的水合也没有测过。Svelte、Solid、Web Components 的渲染器没有写，“[其他框架](#其他框架)”里的另外两条路线没有动手验证过。
 - **UI SDK 是 beta。** 以上结论对应 0.1.0-beta.13。
 - **浏览器。** 目测检查只在桌面版 Chrome 里做过；`morph` 依赖 View Transitions API，不支持的浏览器会直接切换。

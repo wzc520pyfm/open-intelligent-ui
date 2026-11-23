@@ -12,6 +12,7 @@ which the interface reaches your product.
 - [Theme it](#theme-it)
 - [Add your own components](#add-your-own-components)
 - [Read and write its state](#read-and-write-its-state)
+- [In Vue](#in-vue)
 - [CSS and your page](#css-and-your-page)
 - [What markup can and can't do](#what-markup-can-and-cant-do)
 - [Let an agent operate it](#let-an-agent-operate-it)
@@ -22,18 +23,28 @@ which the interface reaches your product.
 | --- | --- |
 | `@open-intelligent-ui/core` | The markup parser, the expression language, the state store, the DESIGN.md reader. No framework. |
 | `@open-intelligent-ui/core/prompt` | `buildSystemPrompt`, `describeComponent`, the guides and the UI SDK catalog. Import it on the server. |
-| `@open-intelligent-ui/react` | `<IntelligentUI>`, the primitives, the preset widgets and the stylesheet. |
+| `@open-intelligent-ui/react` | `<IntelligentUI>` for React, with the primitives, the preset widgets and the stylesheet. |
+| `@open-intelligent-ui/vue` | The same for Vue. |
 | `open-intelligent-ui` | The unscoped name. Re-exports `@open-intelligent-ui/core`, with `/prompt`. |
 
 ```bash
+# React
 npm install @open-intelligent-ui/react @open-intelligent-ui/core @ui-sdk/react @ui-sdk/core
+# Vue
+npm install @open-intelligent-ui/vue @open-intelligent-ui/core @ui-sdk/vue @ui-sdk/core
 ```
 
-Both are ESM with type declarations. The React package needs React 19 and
+All are ESM with type declarations. The React package needs React 19 and
 `@ui-sdk/react` + `@ui-sdk/core` as peers, and its entry is marked
 `"use client"`: a Next.js server component can render `<IntelligentUI>`,
 but `tools` and the callbacks are functions, so pass those from a client
-component.
+component. The Vue package needs Vue 3.5 and `@ui-sdk/vue` +
+`@ui-sdk/core`. Hydrating server-rendered output has not been tested: in
+Nuxt, put it inside `<ClientOnly>`.
+
+The two renderers take the same markup and the same props, and draw the
+same DOM. The examples below are React; [In Vue](#in-vue) lists what is
+written differently.
 
 ## Render a reply
 
@@ -223,6 +234,51 @@ surface.current?.refetch("tickets")
 `<state persist>` values are kept in `storage` under `storageKey` when you
 pass both (for example `localStorage` and the message id).
 
+## In Vue
+
+```vue
+<script setup lang="ts">
+import { IntelligentUI, type IntelligentUIHandle } from "@open-intelligent-ui/vue"
+import "@open-intelligent-ui/vue/styles.css"
+import { ref } from "vue"
+import SeatMap from "./SeatMap.vue"
+
+const surface = ref<IntelligentUIHandle | null>(null)
+
+function onAction(action) {
+  if (action.type === "send") sendUserMessage(action.text, action.data, action.state)
+}
+</script>
+
+<template>
+  <IntelligentUI
+    ref="surface"
+    :source="text"
+    :streaming="streaming"
+    :design="design"
+    :tools="tools"
+    :components="{ SeatMap }"
+    :on-action="onAction"
+    :on-state-change="save"
+  />
+</template>
+```
+
+- Every prop on this page exists under the same name. The callbacks
+  (`onAction`, `onTool`, `onWarning`, `onStateChange`, `onDiagnostics`) are
+  props that take a function, not emitted events, because `onAction`'s
+  return value matters: write `:on-action="fn"`, not `@action="fn"`.
+- A template ref is the handle: `surface.value?.getState()`, `setState`,
+  `reset`, `refetch`.
+- `components` takes Vue components. Markup attributes arrive as props,
+  `on:select` calls the listener for the `select` event, and
+  `bind:selected` passes `selected` and listens for both
+  `update:selected` and `selectedChange`, so a component written for
+  `v-model:selected` works as it is.
+- `let:name` reads what a component passes to its default slot, where
+  React reads what it passes to a function child.
+- `class` and `style` on `<IntelligentUI>` land on the surface's root.
+
 ## CSS and your page
 
 The stylesheet uses two cascade layers, `ui-sdk` then `iui`, and everything
@@ -271,6 +327,7 @@ message, and keep consequential writes behind tools you control.
 
 Because the controls are UI SDK components, UI SDK's agent bridge can read
 and drive a generated surface: `createAgent()` from `@ui-sdk/react/agent`
+(or `@ui-sdk/vue/agent`)
 returns a snapshot of the controls with their labels and values, and can
 act on them (for example `setValue`). An agent can therefore use an interface
 another agent wrote. `packages/react/test/ui-sdk.test.tsx` shows it.

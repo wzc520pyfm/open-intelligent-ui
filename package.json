@@ -1,5 +1,5 @@
 {
-  "name": "open-intelligent-ui",
+  "name": "open-intelligent-ui-workspace",
   "private": true,
   "version": "0.1.0",
   "description": "Open Intelligent UI: let agents author real interfaces from behaviors (UI SDK), a design system (DESIGN.md) and motion rules.",
@@ -12,13 +12,17 @@
   "scripts": {
     "dev": "pnpm --filter @open-intelligent-ui/playground dev",
     "build": "pnpm --filter @open-intelligent-ui/playground build",
+    "build:packages": "pnpm -r --filter \"./packages/*\" build",
+    "check:packages": "node scripts/check-packages.mjs",
     "preview": "pnpm --filter @open-intelligent-ui/playground preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "pnpm -r typecheck",
     "generate": "node scripts/generate-ui-sdk.mjs",
     "generate:skills": "node scripts/generate-skills.mjs",
-    "design:lint": "node scripts/lint-design.mjs"
+    "design:lint": "node scripts/lint-design.mjs",
+    "version:set": "node scripts/set-version.mjs",
+    "release": "pnpm test && pnpm typecheck && pnpm check:packages && node scripts/publish-packages.mjs"
   },
   "devDependencies": {
     "@google/design.md": "^0.4.0",
@@ -29,6 +33,7 @@
     "@vitejs/plugin-react": "^6.3.0",
     "jsdom": "^31.0.1",
     "playwright-core": "^1.65.1",
+    "tsdown": "^0.23.7",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.1"

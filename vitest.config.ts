@@ -9,7 +9,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: "core",
-          include: ["packages/core/test/**/*.test.ts"],
+          include: ["packages/core/test/**/*.test.ts", "packages/open-intelligent-ui/test/**/*.test.ts"],
           environment: "node",
         },
       },

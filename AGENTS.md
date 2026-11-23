@@ -16,6 +16,8 @@ fit before changing code.
 | `pnpm generate` | Rebuild the UI SDK registry, catalog and CSS from the installed `@ui-sdk` packages. |
 | `pnpm generate:skills` | Rebuild `skills/**/references/` from the prompt guides. |
 | `pnpm design:lint` | Check `design/*.DESIGN.md` with the DESIGN.md CLI. |
+| `pnpm build:packages` | Build `packages/*` to `dist/` (ESM, type declarations, `styles.css`). |
+| `pnpm check:packages` | Pack every package as `pnpm publish` would and check the tarballs. |
 
 There is no linter or formatter configured. Match the surrounding code: no
 semicolons, double quotes, two spaces.
@@ -27,8 +29,30 @@ semicolons, double quotes, two spaces.
   system prompt (`src/prompt`). No framework, no DOM, no Node APIs.
 - `packages/react`: `<IntelligentUI>`, rendering (`src/render`), primitives,
   presets, styles.
+- `packages/open-intelligent-ui`: the unscoped npm name. It re-exports
+  `@open-intelligent-ui/core` and holds no code of its own; keep it that way.
 - `apps/playground`: the demo app. Demos are `.iui` files in `src/demos`.
 - `skills/`: skills for coding agents. `docs/`: research, spec, architecture.
+
+## Releasing
+
+Everything under `packages/` is released together, at one version.
+
+1. `pnpm version:set 0.2.0`, commit, merge to `main`.
+2. Either push the tag `v0.2.0`, which runs `.github/workflows/release.yml`
+   (it needs the repository secret `NPM_TOKEN`), or run `pnpm release` on
+   `main` after `npm login`.
+
+Both paths take the npm dist-tag from the version: `0.2.0` is published as
+`latest`, `0.2.0-beta.1` as `beta`, `0.2.0-rc.1` as `rc`. A prerelease
+never becomes what `npm install` picks by default.
+
+In the workspace the packages export `src/`, so the playground and the
+tests never need a build. `publishConfig.exports` replaces those with
+`dist/` when a package is packed. A new entry point needs both, plus an
+`entry` in the package's `tsdown.config.ts`. Anything the built code
+imports must be in `dependencies` or `peerDependencies`; the build fails
+otherwise.
 
 ## Rules that keep the project honest
 

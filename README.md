@@ -83,10 +83,17 @@ Open <http://localhost:5173> (or the [deployed playground](https://open-intellig
 ```bash
 pnpm test
 pnpm typecheck
-pnpm design:lint   # DESIGN.md CLI on design/
+pnpm design:lint      # DESIGN.md CLI on design/
+pnpm check:packages   # build both packages and check the tarballs npm would get
 ```
 
 ## Integrate
+
+```bash
+npm install @open-intelligent-ui/react @open-intelligent-ui/core @ui-sdk/react @ui-sdk/core
+```
+
+`open-intelligent-ui`, without a scope, is the same project: it re-exports `@open-intelligent-ui/core`.
 
 ```tsx
 import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
@@ -106,13 +113,14 @@ const system = buildSystemPrompt({ design, tools: toolDescriptions })
 />
 ```
 
-Both packages are workspace-only for now (TypeScript source, not on npm). Tools, theming, host components, state and the safety model: [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md).
+Both packages are ESM with type declarations; the React entry is marked `"use client"`. Tools, theming, host components, state and the safety model: [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md).
 
 ## Layout
 
 ```
 packages/core     Markup parser, expression interpreter, state store, DESIGN.md, system prompt. No framework.
 packages/react    React renderer, primitives, presets, styles
+packages/open-intelligent-ui   The unscoped npm name; re-exports packages/core
 apps/playground   Demo site
 design/           Three DESIGN.md files: Paper, Heritage, Signal
 skills/           Agent skills: intelligent-ui and motion
@@ -136,8 +144,7 @@ A working prototype, not a product.
 
 - **Not validated against a real model.** Demos are handwritten. Every example in the system prompt is rendered by tests; how a model writes against that prompt, and at what token cost, is unknown.
 - **UI SDK is beta** (0.1.0-beta.13). After upgrading, run `pnpm generate`; tests will flag drift.
-- **React renderer only**, React 19+.
-- **Not published to npm**, no build artifacts for the packages.
+- **React renderer only**, React 19+. UI SDK also ships Vue, Svelte, Solid and web-component packages with the same component names, and `packages/core` and the stylesheet do not depend on a framework, but no other renderer has been written. See [`docs/research.md`](docs/research.md#其他框架).
 - **Visual checks only in desktop Chrome.** Layout morphing needs View Transitions; unsupported browsers swap instantly.
 - **Safety model has not been audited externally.** Markup is never executed as code; authorizing tool calls is the host's job.
 - **Unlayered host CSS can override the surface.** Put resets in a cascade layer when integrating.

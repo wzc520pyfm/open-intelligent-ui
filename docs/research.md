@@ -13,6 +13,7 @@
 - [UI SDK 兼容性：实测](#ui-sdk-兼容性实测)
 - [预置小组件：借了什么，和 UI SDK 冲突吗](#预置小组件借了什么和-ui-sdk-冲突吗)
 - [状态语法：三家怎么存数据，我们怎么选](#状态语法三家怎么存数据我们怎么选)
+- [其他框架](#其他框架)
 - [没有验证的部分](#没有验证的部分)
 
 ## 结论
@@ -37,7 +38,7 @@
 | 流式渲染 | 支持 | 支持 | 支持，靠流式编译器 | 支持，半截标签会被暂缓 |
 | 视觉来源 | 宿主组件自带 | 宿主组件自带 | 组件库自带 | DESIGN.md：令牌变 CSS 变量，正文进提示词 |
 | 动效 | 由组件决定 | 由组件决定 | 由组件决定 | 设计系统里的动效令牌，加标记属性 |
-| 跨端 | React、Lit、Angular、Flutter、SwiftUI、Compose | React、Vue、Svelte、Angular 等 | ChatGPT 网页与移动端 | 目前只有 React |
+| 跨端 | React、Lit、Angular、Flutter、SwiftUI、Compose | React、Vue、Svelte、Angular 等 | ChatGPT 网页与移动端 | 目前只有 React 渲染器；UI SDK 自身还有 Vue、Svelte、Solid、Web Components |
 | 安全边界 | 声明式数据，不执行代码 | 声明式语言 | 未公开 | 声明式标记；表达式在解释器里运行，CSS 被限定作用域 |
 
 这张表里本方案最弱的两项是跨端和成熟度：只有 React 渲染器，UI SDK 自身还在 beta。最强的一项是第三行。
@@ -96,7 +97,7 @@ Thesys 维护的开源方案，核心是 OpenUI Lang。
 
 ## UI SDK
 
-Vercel 的 `@ui-sdk/core` 与 `@ui-sdk/react`，调研版本 0.1.0-beta.13，自述是“A library of behaviors to build your components. Made for agents.”
+Vercel 的 `@ui-sdk/core` 加上各框架的包，调研版本 0.1.0-beta.13，自述是“A library of behaviors to build your components. Made for agents.”框架包有五个：`@ui-sdk/react`、`@ui-sdk/vue`（含 Nuxt）、`@ui-sdk/svelte`、`@ui-sdk/solid` 和 `@ui-sdk/web`（Web Components）。本方案目前只接了 React 那一个，下面几条按它来写；其余几个见“[其他框架](#其他框架)”。
 
 - **形态。** 无样式组件，按部件组合：`Popover` 持有状态，`PopoverTrigger` 打开它，`PopoverContent` 显示内容。部件通过上下文找到自己的根。
 - **状态约定。** 统一的受控写法：`value`/`onValueChange`、`open`/`onOpenChange`、`checked`/`onCheckedChange`、`pressed`/`onPressedChange`，以及对应的 `defaultValue` 等非受控写法。
@@ -104,7 +105,7 @@ Vercel 的 `@ui-sdk/core` 与 `@ui-sdk/react`，调研版本 0.1.0-beta.13，自
 - **可选的默认样式。** `@ui-sdk/core/web.css` 给每个组件一个朴素的外观，读 `--ui-*` 变量。
 - **弹层。** 用浏览器的 Popover API 进入顶层，不受滚动容器裁剪。
 - **面向智能体。** 文档以 Markdown 随包发布（`docs/`、`llms.txt`），带一个 skill；`@ui-sdk/react/agent` 的 `createAgent()` 能给出界面快照并代为操作。
-- **要求。** React 19 以上。
+- **要求。** React 包要求 React 19 以上。
 
 来源：npm 包 `@ui-sdk/react@0.1.0-beta.13` 内的 `docs/`，<https://ui-sdk.dev/docs>。
 
@@ -229,11 +230,47 @@ UI SDK 的 55 个入口几乎全是交互。回答问题最常用的“内容”
 
 代价是要自己实现标记解析器、表达式解释器和状态仓库，合计约四千五百行，在 `packages/core`。
 
+## 其他框架
+
+这份调研的第一版只看了 `@ui-sdk/react`，把 React 包的要求写成了 UI SDK 的要求，这是遗漏。UI SDK 是多框架的，下面是 2026-11-23 补查的结果。
+
+**UI SDK 提供了什么。** 都在 npm 上，版本同为 0.1.0-beta.13。
+
+| 包 | 面向 | 要求 | 受控写法 |
+| --- | --- | --- | --- |
+| `@ui-sdk/react` | React | React 19 以上 | `value` 加 `onValueChange` |
+| `@ui-sdk/vue` | Vue、Nuxt | Vue 3.5 以上 | `v-model:value`，事件 `@value-change` |
+| `@ui-sdk/svelte` | Svelte | Svelte 5.33 以上 | `bind:value` |
+| `@ui-sdk/solid` | Solid | solid-js 2 | `value` 加 `onValueChange` |
+| `@ui-sdk/web` | 任何页面 | 无框架 | 自定义元素，属性加 DOM 事件（如 `valuechange`） |
+
+**组件名对得上。** 把 React 注册表里的 367 个组件名，和 Vue、Svelte、Solid 三个包各入口实际导出的名字逐一比对，367 个全部都有；三个包各多一个 `OverlayHost`，Svelte 另多一个 `Part`。只比了名字，每个组件的属性是否逐一相同没有核对。`@ui-sdk/web` 不一样：它是 361 个自定义元素（`<ui-tabs>`、`<ui-tabs-tab>`），结构也略有出入，例如 `ui-tabs-tab` 里要再放一个原生 `<button>`。
+
+**所以没有技术卡点。** 只支持 React 的原因是第一版只写了一个渲染器，而不是别的框架做不了。现在的代码按是否依赖框架分成两半：
+
+| 部分 | 手写代码量 | 依赖框架吗 |
+| --- | --- | --- |
+| `packages/core`：解析器、表达式解释器、状态仓库、DESIGN.md、系统提示词 | 约 6300 行 | 不依赖 |
+| `packages/react/src/styles`：原语、Markdown、预置组件、动效的样式 | 约 2000 行 CSS | 不依赖，但现在放在 React 包里 |
+| `packages/react`：树到元素的渲染和指令（约 1300 行）、15 个原语、6 个预置组件、`<IntelligentUI>` | 约 3500 行 | 依赖 React |
+
+换一个框架要重写的是第三行。其中最容易出偏差的是指令：`bind:value` 在 React 和 Solid 里是 `value` 加 `onValueChange`，在 Vue 里是 `v-model:value`，在 Svelte 里是 `bind:value`，进出场和 `morph` 的时机也各不相同。
+
+**三条路线。** 都没有实现，下面是判断，不是结果。
+
+1. **每个框架写一个原生渲染器**，建在对应的 `@ui-sdk/*` 包上。模型写的标记、系统提示词、组件目录都不用变，宿主组件可以直接传框架自己的组件。代价是每个框架重写上表第三行，而且需要一套不依赖框架的一致性测试（同一段标记，各渲染器产出相同的 DOM），否则几个渲染器会慢慢走样。
+2. **写一个 Web Components 渲染器** `<intelligent-ui>`，建在 `@ui-sdk/web` 上，一次实现到处可用。问题在于它的元素结构和 React 版不同，由 React 文档生成的组件目录和提示词示例不能直接用，要么另生成一份，要么在渲染器里做转换；宿主组件也只能以自定义元素的形式传入。
+3. **把现有 React 渲染器包成自定义元素。** 最省事，任何框架今天就能用；代价是页面要带上 React 和 react-dom，宿主组件同样受限。
+
+**倾向。** 先做第 1 条里的 Vue：组件名一致，目录和提示词原样复用，模型写出的标记在各框架下完全相同，这一点是整个方案最值得守住的不变量。动手前先把样式表和预置组件里与框架无关的部分（数值格式化、图表的几何计算）挪到共享的位置，再用一致性测试约束两个渲染器。如果有人现在就要在非 React 页面里用，第 3 条可以先顶上。
+
+来源：npm 包 `@ui-sdk/vue`、`@ui-sdk/svelte`、`@ui-sdk/solid`、`@ui-sdk/web` 0.1.0-beta.13 的 `package.json`、导出文件和包内 `docs/`。
+
 ## 没有验证的部分
 
 - **没有用真实模型跑过。** 环境里没有模型密钥。提示词里的每个示例都由测试渲染过，六个演示是手写的 IUI 标记；模型在这份提示词下实际写得怎么样，没有数据。演示站的 Live 模式可以接任意 OpenAI 兼容端点，SSE 客户端只对着假端点测过。
 - **token 成本没有量过。** 默认系统提示词约 3.4 万字符。标记比 JSON 省多少、比 OpenUI Lang 多多少，没有做基准。
 - **OpenAI 的语法是从一段对话里看到的**，不是规范，文中标了“观察所得”的都属于这一类。
-- **只有 React。** 核心包不依赖框架，但其他框架的渲染器没有写。
+- **只有 React。** 核心包不依赖框架，但其他框架的渲染器没有写，“[其他框架](#其他框架)”里的三条路线都没有动手验证过。
 - **UI SDK 是 beta。** 以上结论对应 0.1.0-beta.13。
 - **浏览器。** 目测检查只在桌面版 Chrome 里做过；`morph` 依赖 View Transitions API，不支持的浏览器会直接切换。

@@ -408,6 +408,50 @@ function redraw(mounted: Mounted) {
   })
 }
 
+let reports: { error: unknown }[] | null = null
+
+function report(event: ErrorEvent) {
+  if (!reports) return
+  reports.push({ error: event.error ?? new Error(event.message) })
+  event.preventDefault()
+}
+
+/**
+ * A custom element that fails in one of its own callbacks doesn't throw at
+ * whoever put it on the page: the browser reports the error to the window.
+ * While `work` runs those reports can only come from what it draws, so the
+ * first of them is thrown once it's done.
+ */
+function reported(work: () => void) {
+  const view = typeof window === "undefined" ? null : window
+  const outer = reports
+  const own: { error: unknown }[] = []
+  reports = own
+  if (!outer) view?.addEventListener("error", report)
+  try {
+    work()
+  } finally {
+    reports = outer
+    if (!outer) view?.removeEventListener("error", report)
+  }
+  if (own[0]) {
+    aftermath(view)
+    throw own[0].error
+  }
+}
+
+/**
+ * An element that failed can have left work queued that fails in turn, after
+ * it's off the page. That is the same failure, so it's heard here until the
+ * work queued so far has run, rather than reaching the page as a second one.
+ */
+function aftermath(view: Window | null) {
+  if (!view) return
+  const hear = (event: ErrorEvent) => event.preventDefault()
+  view.addEventListener("error", hear)
+  queueMicrotask(() => view.removeEventListener("error", hear))
+}
+
 /**
  * Runs `work` for a component that catches failures. If it throws, whatever
  * the component had on the page or had begun to put there is taken away, the
@@ -419,7 +463,7 @@ function contain(mounted: Mounted, work: () => void) {
   const own: Journal = { inserted: [], started: [] }
   journal = own
   try {
-    work()
+    reported(work)
   } catch (error) {
     discard(mounted, own)
     journal = outer
@@ -475,12 +519,96 @@ function place(parent: Node, children: Mounted[], end: Node | null = null) {
     }
     // Next to the one before it, so what a custom element appended for itself stays last.
     const before: Node | null = last ? last.nextSibling : (pointer ?? end)
-    if (before !== node) parent.insertBefore(node, before)
+    if (before !== node) {
+      const catcher = arrive(parent, node, before)
+      if (catcher) {
+        place(parent, children, end)
+        return
+      }
+    }
     if (pointer === node) pointer = node.nextSibling
     last = node
     placed.add(node)
     record(node)
   }
+}
+
+/**
+ * Puts a node among its siblings. This is where a custom element first meets
+ * the page, so one that fails on arrival is a failure of the component around
+ * it that catches them, which is returned once it has drawn again.
+ *
+ * When the node arrives with such components inside it, as a whole surface
+ * does the first time, the report doesn't say which of them failed. The node
+ * is then taken off again and put back without them, and they follow one at a
+ * time.
+ */
+function arrive(parent: Node, node: Node, before: Node | null): Mounted | null {
+  if (reports || !parent.isConnected) {
+    parent.insertBefore(node, before)
+    return null
+  }
+  try {
+    reported(() => parent.insertBefore(node, before))
+    return null
+  } catch (error) {
+    const mounted = drawn.get(node as Element)
+    let around = mounted ?? null
+    while (around && !around.state?.catches) around = around.parent
+    if (around) {
+      fail(around, error)
+      return around
+    }
+    const inside = mounted ? catchersIn(mounted) : []
+    if (inside.length === 0) {
+      console.error(error)
+      return null
+    }
+    parent.removeChild(node)
+    const held = inside.map((catcher) => {
+      const own = domOf(catcher.children)
+      const marker = document.createComment("")
+      own[0]?.parentNode?.insertBefore(marker, own[0])
+      for (const dom of own) dom.parentNode?.removeChild(dom)
+      return { catcher, own, marker }
+    })
+    try {
+      reported(() => parent.insertBefore(node, before))
+    } catch (outside) {
+      console.error(outside)
+    }
+    for (const { catcher, own, marker } of held) {
+      const put = (list: Node[]) => {
+        for (const dom of list) marker.parentNode?.insertBefore(dom, marker)
+      }
+      try {
+        reported(() => put(own))
+      } catch (failure) {
+        fail(catcher, failure)
+        const drawnAgain = domOf(catcher.children)
+        put(drawnAgain)
+        for (const dom of drawnAgain) placed.add(dom)
+      }
+      marker.parentNode?.removeChild(marker)
+    }
+    return null
+  }
+}
+
+/** The components under a node that catch failures, not looking inside one. */
+function catchersIn(mounted: Mounted, into: Mounted[] = []): Mounted[] {
+  for (const child of mounted.children) {
+    if (child.state?.catches) into.push(child)
+    else catchersIn(child, into)
+  }
+  return into
+}
+
+function fail(catcher: Mounted, error: unknown) {
+  const state = catcher.state as ComponentState
+  discard(catcher, { inserted: [], started: [] })
+  state.catches?.(error)
+  catcher.children = nodes(state.draw()).map((child) => create(child, catcher, catcher.svg))
 }
 
 /** The element whose children a mounted node's DOM sits among. */
@@ -556,7 +684,7 @@ function within(mounted: Mounted, work: () => void): Mounted {
   const own: Journal = { inserted: [], started: [] }
   journal = own
   try {
-    work()
+    reported(work)
   } catch (error) {
     discard(catcher, own)
     state.catches?.(error)

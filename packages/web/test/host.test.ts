@@ -115,6 +115,60 @@ describe("components of the host application", () => {
     expect(container.querySelector(".iui-error")?.textContent).toContain("no luck")
   })
 
+  test("a custom element that fails in its own callbacks becomes an error block, and the rest stays", async () => {
+    class Fragile extends HTMLElement {
+      connectedCallback() {
+        if (this.getAttribute("limit") === "none") throw new Error("no limit to work with")
+      }
+    }
+    if (!customElements.get("host-fragile")) customElements.define("host-fragile", Fragile)
+    const reported = vi.fn()
+    window.addEventListener("error", reported)
+    const onWarning = vi.fn()
+    const { container } = await draw({
+      source: `before\n\n<card><Fragile limit="none">inside</Fragile></card>\n\n<Fragile limit="3">fine</Fragile>\n\nafter`,
+      components: { Fragile: "host-fragile" },
+      onWarning,
+    })
+    window.removeEventListener("error", reported)
+    expect(text(container)).toContain("before")
+    expect(text(container)).toContain("fine")
+    expect(text(container)).toContain("after")
+    expect(container.querySelectorAll(".iui-error")).toHaveLength(1)
+    expect(container.querySelector(".iui-error")?.textContent).toContain("no limit to work with")
+    expect(container.querySelectorAll("host-fragile")).toHaveLength(1)
+    expect(onWarning).toHaveBeenCalledWith("no limit to work with")
+    expect(reported.mock.calls.every(([event]) => (event as Event).defaultPrevented)).toBe(true)
+  })
+
+  test("a custom element that fails as a stream brings it in stays quiet until the stream ends", async () => {
+    class Brittle extends HTMLElement {
+      connectedCallback() {
+        throw new Error("nothing to hold on to")
+      }
+    }
+    if (!customElements.get("host-brittle")) customElements.define("host-brittle", Brittle)
+    const reported = vi.fn()
+    window.addEventListener("error", reported)
+    const full = `<p id="first">before</p>\n\n<card><Brittle>inside</Brittle></card>\n\n<p>after</p>`
+    const components = { Brittle: "host-brittle" }
+    const { container, view } = await draw({ source: full.slice(0, 26), streaming: true, components })
+    const first = container.querySelector("#first")
+    view.update({ source: full.slice(0, full.indexOf("</card>") + 7), streaming: true })
+    await flushPromises()
+    expect(container.querySelector("#first")).toBe(first)
+    expect(container.querySelector(".iui-error, host-brittle")).toBeNull()
+    expect(text(container)).toBe("before")
+    view.update({ source: full, streaming: false })
+    await flushPromises()
+    window.removeEventListener("error", reported)
+    expect(container.querySelector("#first")).toBe(first)
+    expect(container.querySelector(".iui-error")?.textContent).toContain("nothing to hold on to")
+    expect(text(container)).toContain("after")
+    expect(reported).toHaveBeenCalled()
+    expect(reported.mock.calls.every(([event]) => (event as Event).defaultPrevented)).toBe(true)
+  })
+
   test("a host component wins over a UI SDK component and a preset of the same name", async () => {
     const { container } = await draw({
       source: `<Button>one</Button><Stat label="two" value={1} />`,

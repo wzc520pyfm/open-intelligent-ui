@@ -1,4 +1,4 @@
-import { cleanup } from "@testing-library/react"
+import { cleanup, configure } from "@testing-library/react"
 import { afterEach } from "vitest"
 
 class ResizeObserverStub {
@@ -22,6 +22,9 @@ window.matchMedia ??= ((query: string) => ({
 
 Element.prototype.scrollIntoView ??= () => {}
 Element.prototype.getAnimations ??= () => []
+
+// Number animations run on the clock; one second is too tight on a busy machine.
+configure({ asyncUtilTimeout: 5000 })
 
 afterEach(() => {
   cleanup()

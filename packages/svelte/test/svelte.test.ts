@@ -483,6 +483,64 @@ ${tags
     expect(await operate(container, flushPromises)).toEqual(react)
     expect(container.querySelector(".iui-error")).toBeNull()
   })
+
+  test("leave what the reader picked in a select where React leaves it", async () => {
+    const options = `<option value="s">S</option><option value="m">M</option><option value="l">L</option>`
+    const source = `<state size="m" n={0} />
+<select aria-label="value" value="m">${options}</select>
+<select aria-label="bound" bind:value={size}>${options}</select>
+<select aria-label="default" defaultvalue="l">${options}</select>
+<select aria-label="option"><option value="s">S</option><option value="m" selected>M</option></select>
+<select aria-label="free">${options}</select>
+<select aria-label="many" multiple value={["s", "l"]}>${options}</select>
+<select aria-label="many default" multiple defaultvalue={["s", "l"]}>${options}</select>
+<button on:click={n += 1}>Again</button>
+<text>{size} {n}</text>`
+    const read = (container: HTMLElement) =>
+      [...container.querySelectorAll("select")].map((select) => [
+        select.getAttribute("aria-label"),
+        [...select.selectedOptions].map((option) => option.value),
+      ])
+    const marked = (container: HTMLElement) =>
+      [...container.querySelectorAll("select")].map((select) =>
+        [...select.options].map((option) => option.hasAttribute("selected"))
+      )
+    const operate = async (container: HTMLElement, settle: () => Promise<void>) => {
+      const attributes = marked(container)
+      for (const select of container.querySelectorAll("select")) {
+        for (const option of select.options) option.selected = option.value === "s"
+        select.dispatchEvent(new Event("input", { bubbles: true }))
+        select.dispatchEvent(new Event("change", { bubbles: true }))
+        await settle()
+      }
+      const picked = read(container)
+      byText(container, "Again").dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      await settle()
+      return {
+        attributes,
+        picked,
+        after: read(container),
+        attributesAfter: marked(container),
+        state: container.querySelector(".iui-text")?.textContent,
+      }
+    }
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {})
+    const react = await withReact({ source }, operate)
+    errors.mockRestore()
+    const { container } = await draw({ source })
+    const svelte = await operate(container, flushPromises)
+    expect(svelte).toEqual(react)
+    expect(svelte.after).toEqual([
+      ["value", ["m"]],
+      ["bound", ["s"]],
+      ["default", ["s"]],
+      ["option", ["s"]],
+      ["free", ["s"]],
+      ["many", ["s", "l"]],
+      ["many default", ["s"]],
+    ])
+    expect(svelte.state).toBe("s 1")
+  })
 })
 
 /** Draws nodes as the renderer draws them, without the shared layer in front. */

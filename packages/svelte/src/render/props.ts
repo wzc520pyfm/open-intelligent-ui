@@ -201,24 +201,27 @@ export interface SelectOption {
  * What a `<select>` is given. Svelte picks the options by `value`, a list
  * for one that takes several. Where nothing matches it would pick none;
  * React leaves the first option that can be picked, and so does this.
- * `defaultvalue` is where the select starts, which is all `value` is to
- * Svelte, since it sets it again only when it changes.
+ * `defaultvalue` is where the select starts: Svelte reads it under
+ * `defaultValue`, picks those options once and leaves the reader's pick.
  */
 export function selectProps(
   props: Record<string, unknown>,
   options: readonly SelectOption[]
 ): Record<string | symbol, unknown> {
-  const { value = props.defaultvalue, defaultvalue: _, ...rest } = props
+  const { value, defaultvalue: start, ...rest } = props
   const out = nativeProps(rest, "select")
-  if (value === undefined || value === null) return out
+  const held = value !== undefined && value !== null
+  const wanted = held ? value : start
+  if (wanted === undefined || wanted === null) return out
+  const name = held ? "value" : "defaultValue"
   if (out.multiple === true) {
-    if (Array.isArray(value)) out.value = value.map((item) => attributeText(item) ?? "")
+    if (Array.isArray(wanted)) out[name] = wanted.map((item) => attributeText(item) ?? "")
     return out
   }
-  const text = attributeText(value)
+  const text = attributeText(wanted)
   if (text === undefined) return out
   const first = options.find((option) => !option.disabled)
-  out.value = options.some((option) => option.value === text) || !first ? text : first.value
+  out[name] = !held || options.some((option) => option.value === text) || !first ? text : first.value
   return out
 }
 

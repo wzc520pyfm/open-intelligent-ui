@@ -465,7 +465,12 @@ export class Surface {
         }
       }
     }
+    const declared = this.defaults.size
     visit(doc.children)
+    // State a later piece of the stream declared is a change like any other.
+    // This runs while a renderer draws, so nobody is told from here: the
+    // renderer reads the version again once it has drawn.
+    if (this.defaults.size !== declared) this.version++
 
     this.derived = derived
     this.templates = templates

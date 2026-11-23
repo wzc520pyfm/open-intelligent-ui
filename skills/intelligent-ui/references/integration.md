@@ -312,7 +312,11 @@ JavaScript.
   (`onclick="…"`) are dropped.
 - Links accept `http`, `https`, `mailto`, `tel` and relative URLs. Images
   and video accept `http`, `https`, `blob:` and image `data:` URLs.
-  `allowUrl` lets you narrow that, for example to your own domains.
+  `allowUrl` lets you narrow that, for example to your own domains. It is
+  asked about the `open(url)` action too, and about each address a
+  `Pagination`'s `getHref` returns.
+- The `form` attribute is dropped everywhere, so a control can't join a
+  form of yours by its id, and a button can't submit one.
 - `<style>` is scoped to its surface. `@import`, `url()` to other sites and
   unknown at-rules are removed, and `position: fixed` becomes `absolute`,
   so a surface can't draw over your page. The scope holds across the page,

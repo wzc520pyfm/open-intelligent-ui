@@ -283,7 +283,15 @@ export function tableView(props: ViewProps, state: TableState): View {
     ? sorted.slice(current * pageSize, (current + 1) * pageSize)
     : sorted
 
-  const head = columns.map((column) => {
+  // Two rows can carry one id, and a column can be listed twice. Keys that
+  // repeat make a framework lose track of which cell is which.
+  const columnKeys = columns.map((column, index) =>
+    columns.findIndex((other) => other.key === column.key) === index
+      ? column.key
+      : `${column.key}:${index}`
+  )
+
+  const head = columns.map((column, at) => {
     const active = sort?.key === column.key
     const numeric = typeof rows[0]?.[column.key] === "number"
     const width = size(column.width)
@@ -292,7 +300,7 @@ export function tableView(props: ViewProps, state: TableState): View {
     return view(
       "th",
       {
-        key: column.key,
+        key: columnKeys[at],
         style,
         "aria-sort": active ? (sort?.desc ? "descending" : "ascending") : undefined,
       },
@@ -326,13 +334,17 @@ export function tableView(props: ViewProps, state: TableState): View {
     )
   })
 
+  const rowKeys = new Set<string>()
   const body = visible.map((row, index) => {
     const id = row[selectedKey]
+    let key = typeof id === "string" || typeof id === "number" ? `id:${id}` : `at:${index}`
+    if (rowKeys.has(key)) key = `at:${index}`
+    rowKeys.add(key)
     const selected = props.selected !== undefined && props.selected === id
     return view(
       "tr",
       {
-        key: typeof id === "string" || typeof id === "number" ? id : `row-${index}`,
+        key,
         "data-selected": selected ? "" : undefined,
         "data-interactive": select ? "" : undefined,
         tabindex: select ? 0 : undefined,
@@ -346,7 +358,7 @@ export function tableView(props: ViewProps, state: TableState): View {
         },
       },
       [
-        columns.map((column) => {
+        columns.map((column, at) => {
           const value = row[column.key]
           const numeric = typeof value === "number"
           const tone = column.badge?.[String(value)]
@@ -354,7 +366,7 @@ export function tableView(props: ViewProps, state: TableState): View {
           return view(
             "td",
             {
-              key: column.key,
+              key: columnKeys[at],
               style: { textAlign: column.align ?? (numeric ? "right" : "left") },
               "data-numeric": numeric ? "" : undefined,
               "data-short":

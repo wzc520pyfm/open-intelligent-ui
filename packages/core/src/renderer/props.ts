@@ -129,6 +129,9 @@ export const BLOCKED_PROPS = new Set([
   "formAction",
   "action",
   "is",
+  // Names a form anywhere on the page by its id, the host's included: a control
+  // would add its value to that form, and a button would submit it.
+  "form",
 ])
 
 /**
@@ -267,20 +270,27 @@ export function evalAttr(value: AttrValue, ctx: PropsContext): unknown {
   }
 }
 
-/** Builds the function React calls for an `on:` handler. */
+/**
+ * Builds the function a framework calls for an `on:` handler. What the
+ * handler is given is read here, while the event is being dispatched: the
+ * action may run later, inside a view transition, and by then the browser
+ * has cleared the event's `currentTarget`.
+ */
 function handler(expr: Expr, ctx: PropsContext): (...args: unknown[]) => unknown {
   const { scope, surface } = ctx
   if (expr.type === "Arrow") {
-    return (...args) =>
-      ctx.invoke(() => {
+    return (...args) => {
+      const values = args.map((arg) => plainArg(arg))
+      return ctx.invoke(() => {
         const fn = run(expr, scope, surface.host) as (...values: unknown[]) => unknown
-        return fn(...args.map((arg) => plainArg(arg)))
+        return fn(...values)
       })
+    }
   }
-  return (...args) =>
-    ctx.invoke(() => {
+  return (...args) => {
+    const event = plainArg(args[0])
+    return ctx.invoke(() => {
       const local = scope.child()
-      const event = plainArg(args[0])
       local.declare("$event", event)
       local.declare(
         "$value",
@@ -288,6 +298,7 @@ function handler(expr: Expr, ctx: PropsContext): (...args: unknown[]) => unknown
       )
       return run(expr, local, surface.host)
     })
+  }
 }
 
 /** Builds the setter for `bind:name={path}`. */
@@ -491,6 +502,14 @@ export function buildProps(
     if (lower === "src" || lower === "poster") {
       const url = checkUrl(value, "media", ctx)
       if (url !== undefined) props[lower] = url
+      return
+    }
+    // A function that returns an address holds one too: the component writes
+    // what it returns as an `href`, so that is checked when it is asked for.
+    if (lower === "gethref") {
+      if (typeof value !== "function") return
+      const address = value as (...args: unknown[]) => unknown
+      props[dialect.prop(name)] = (...args: unknown[]) => checkUrl(address(...args), "link", ctx)
       return
     }
     if (kind === "ui-sdk" && DATA_PROPS.has(name)) {

@@ -35,11 +35,17 @@ export function modelCss(styles: readonly string[], id: string): string {
     .join("\n")
 }
 
-/** What the built-in handling does with a link the surface asks to open. */
-export function openUrl(url: string): void {
-  if (/^(https?:|mailto:|tel:)/i.test(url)) {
-    window.open(url, "_blank", "noopener,noreferrer")
-  }
+/**
+ * What the built-in handling does with a link the surface asks to open.
+ * `allow` is the host's `allowUrl`: a link it refuses is not opened either.
+ */
+export function openUrl(
+  url: string,
+  allow?: ((url: string, kind: "link" | "media") => boolean) | undefined
+): void {
+  if (typeof url !== "string" || !/^(https?:|mailto:|tel:)/i.test(url)) return
+  if (allow && !allow(url, "link")) return
+  window.open(url, "_blank", "noopener,noreferrer")
 }
 
 export function copyText(text: string): void {

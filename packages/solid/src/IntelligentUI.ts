@@ -164,7 +164,7 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
       if (latest("onAction")?.(action) === true) return
       if (action.type === "toast") showToast(action.message, action.tone)
       else if (action.type === "copy") copyText(action.text)
-      else if (action.type === "open") openUrl(action.url)
+      else if (action.type === "open") openUrl(action.url, latest("allowUrl"))
     },
     onTool: (event) => latest("onTool")?.(event),
     onWarning: (message) => report(message),
@@ -373,6 +373,8 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
     if (reparse) {
       // Queries written later in the stream exist only after a re-parse.
       surface.start()
+      // State the new piece declared changed the surface without a notice.
+      announce()
       latest("onDiagnostics")?.(doc.diagnostics)
     }
   })

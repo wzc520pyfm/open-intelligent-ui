@@ -1,7 +1,7 @@
 /*
  * This file comes first, so the order of every cascade layer is settled here:
  * the site's layers (Tailwind and HeroUI), then the renderer's. The site's
- * rules are also kept out of generated surfaces altogether; see vite.config.ts.
+ * rules are also kept out of generated surfaces; see build/outside-surfaces.ts.
  */
 @layer theme, base, components, utilities, ui-sdk, iui;
 
@@ -52,6 +52,9 @@ body {
 
 /* The frame a host gives a surface. Unlayered, so it holds over the renderer's layers. */
 .pg-surface {
+  /* Tailwind sets these on the page, and they would be inherited. */
+  tab-size: initial;
+  -webkit-tap-highlight-color: initial;
   box-sizing: border-box;
   padding: 22px;
   border: 1px solid var(--iui-color-border);

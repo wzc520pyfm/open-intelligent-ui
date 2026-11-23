@@ -41,9 +41,11 @@ The prompt that teaches a model the markup comes from `buildSystemPrompt` in [`@
 
 | Import | Contents |
 | --- | --- |
-| `@open-intelligent-ui/react` | `IntelligentUI`, the layout primitives, the presets (`Chart`, `Stat`, `Number`, `DataTable`, `CodeBlock`, `Skeleton`), `Icon` |
+| `@open-intelligent-ui/react` | `IntelligentUI`, `Chart`, `Icon`, `formatValue`, the registries `PRIMITIVES`, `PRESETS` and `PRESET_NAMES`, and the three functions below |
 | `@open-intelligent-ui/react/ui-sdk` | `preloadUiSdk`, `isUiSdkComponent`, `uiSdkComponentNames` |
 | `@open-intelligent-ui/react/styles.css` | One stylesheet in two cascade layers, `ui-sdk` and `iui`, confined to the renderer's root |
+
+The layout primitives and the presets `Stat`, `Number`, `DataTable`, `CodeBlock` and `Skeleton` are tags a model writes in markup, not named exports. Of the presets, only `Chart` can be imported on its own; the rest are reachable through `PRESETS`.
 
 UI SDK components load on first use, one chunk per entry point. Call `preloadUiSdk()` or `preloadUiSdk("Tabs", "Dialog")` to load them ahead of time.
 

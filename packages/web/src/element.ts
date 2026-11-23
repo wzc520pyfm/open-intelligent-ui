@@ -191,36 +191,41 @@ export class IntelligentUIElement extends Base implements IntelligentUIHandle {
     this.#set("storageKey", value)
   }
 
+  /** Applies options set since the last draw, so a method called right after sees them. */
+  #sync(): MountedUI | null {
+    if (this.#queued) {
+      this.#queued = false
+      this.#mounted?.update(this.#resolved())
+    }
+    return this.#mounted
+  }
+
   getState(): Record<string, unknown> {
-    return this.#mounted?.getState() ?? {}
+    return this.#sync()?.getState() ?? {}
   }
 
   setState(values: Record<string, unknown>): void {
-    this.#mounted?.setState(values)
+    this.#sync()?.setState(values)
   }
 
   reset(...names: string[]): void {
-    this.#mounted?.reset(...names)
+    this.#sync()?.reset(...names)
   }
 
   refetch(...ids: string[]): void {
-    this.#mounted?.refetch(...ids)
+    this.#sync()?.refetch(...ids)
   }
 
   /** The surface behind the element. It exists while the element is on the page. */
   get surface(): Surface {
-    const mounted = this.#mounted
+    const mounted = this.#sync()
     if (!mounted) throw new Error("<intelligent-ui> has no surface until it is on the page")
     return mounted.surface
   }
 
   /** Draws now whatever is waiting to be drawn. */
   flush(): void {
-    if (this.#queued) {
-      this.#queued = false
-      this.#mounted?.update(this.#resolved())
-    }
-    this.#mounted?.flush()
+    this.#sync()?.flush()
   }
 
   /** Reads and writes a property-only option. */

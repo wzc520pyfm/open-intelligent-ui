@@ -62,6 +62,12 @@ Both paths take the npm dist-tag from the version: `0.2.0` is published as
 `latest`, `0.2.0-beta.1` as `beta`, `0.2.0-rc.1` as `rc`. A prerelease
 never becomes what `npm install` picks by default.
 
+To warn people off a version that is already published, add it to
+`scripts/deprecated-versions.json` with the message `npm install` should
+show, and merge to `main`. `.github/workflows/deprecate.yml` then marks it
+on every package that published it. Nothing is removed from npm.
+`node scripts/deprecate-versions.mjs --dry-run` prints what it would do.
+
 In the workspace the packages export `src/`, so the playground and the
 tests never need a build. `publishConfig.exports` replaces those with
 `dist/` when a package is packed. A new entry point needs both, plus an

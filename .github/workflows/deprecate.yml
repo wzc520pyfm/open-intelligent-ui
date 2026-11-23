@@ -1,0 +1,27 @@
+name: Deprecate versions
+
+# Marks the versions listed in scripts/deprecated-versions.json as deprecated on npm.
+# Runs when that list changes on main, or by hand from the Actions tab.
+# Needs the repository secret NPM_TOKEN, as the release does.
+
+on:
+  push:
+    branches: [main]
+    paths: ["scripts/deprecated-versions.json"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deprecate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: node scripts/deprecate-versions.mjs
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

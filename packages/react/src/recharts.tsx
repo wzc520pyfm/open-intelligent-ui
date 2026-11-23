@@ -57,6 +57,17 @@ interface TipItem {
   payload?: { fill?: string }
 }
 
+interface Slice {
+  cx: number
+  cy: number
+  x: number
+  y: number
+  index: number
+  textAnchor: string
+  name: string
+  value: number
+}
+
 type ChartProps = Record<string, unknown> & { className?: string; style?: CSSProperties }
 
 /**
@@ -161,6 +172,7 @@ export function rechartsCharts(
       value: first?.values[index] ?? 0,
       fill: chart.palette[index],
     }))
+    const total = slices.reduce((all, slice) => all + Math.max(0, slice.value), 0)
     if (type === "funnel" && FunnelChart && Funnel && LabelList) {
       drawn = (
         <FunnelChart margin={{ top: 4, right: 8, bottom: 0, left: 8 }}>
@@ -281,18 +293,33 @@ export function rechartsCharts(
             stroke="none"
             isAnimationActive={animate}
             label={
-              chart.valueLabels
-                ? (slice: { x: number; y: number; textAnchor: string; name: string; value: number }) => (
-                    <text
-                      x={slice.x}
-                      y={slice.y}
-                      textAnchor={slice.textAnchor as "start" | "middle" | "end"}
-                      dominantBaseline="central"
-                      fill={MUTED}
-                      fontSize={12}
-                    >
-                      {slice.name} {chart.format(slice.value)}
-                    </text>
+              chart.valueLabels || type === "donut"
+                ? (slice: Slice) => (
+                    <g>
+                      {/* The total in the middle of a donut, as the built-in chart has it: drawn once, with the first slice. */}
+                      {type === "donut" && slice.index === 0 ? (
+                        <text x={slice.cx} y={slice.cy} textAnchor="middle" stroke="none">
+                          <tspan x={slice.cx} dy="-0.1em" fill="var(--iui-color-foreground)" fontSize={20} fontWeight={650}>
+                            {chart.format(Math.round(total * 100) / 100)}
+                          </tspan>
+                          <tspan x={slice.cx} dy="1.5em" fill={MUTED} fontSize={12}>
+                            Total
+                          </tspan>
+                        </text>
+                      ) : null}
+                      {chart.valueLabels ? (
+                        <text
+                          x={slice.x}
+                          y={slice.y}
+                          textAnchor={slice.textAnchor as "start" | "middle" | "end"}
+                          dominantBaseline="central"
+                          fill={MUTED}
+                          fontSize={12}
+                        >
+                          {slice.name} {chart.format(slice.value)}
+                        </text>
+                      ) : null}
+                    </g>
                   )
                 : false
             }

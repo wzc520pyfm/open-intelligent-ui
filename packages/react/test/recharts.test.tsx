@@ -1,7 +1,7 @@
 import { defineLibrary } from "@open-intelligent-ui/core"
 import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
 import { act, cleanup, render } from "@testing-library/react"
-import type { ComponentType, ReactNode } from "react"
+import type { ComponentType, ReactElement, ReactNode } from "react"
 import { afterEach, describe, expect, test } from "vitest"
 import { IntelligentUI } from "../src"
 import { type RechartsLike, rechartsCharts } from "../src/recharts"
@@ -138,6 +138,11 @@ describe("rechartsCharts", () => {
       rechartsCharts(fake.recharts)
     )
     expect(fake.last("Pie")).toMatchObject({ startAngle: 90, endAngle: -270, innerRadius: "58%" })
+    // The total goes in the middle, once: with the first slice.
+    const label = fake.last("Pie").label as (slice: Record<string, unknown>) => ReactElement
+    const slice = { cx: 100, cy: 80, x: 0, y: 0, textAnchor: "start", name: "Jan", value: 120 }
+    expect(render(<svg>{label({ ...slice, index: 0 })}</svg>).container.textContent).toBe("270Total")
+    expect(render(<svg>{label({ ...slice, index: 1 })}</svg>).container.textContent).toBe("")
     expect(fake.all("Cell").slice(-2).map((cell) => cell.fill)).toEqual([
       "var(--iui-color-chart-1)",
       "var(--iui-color-chart-2)",

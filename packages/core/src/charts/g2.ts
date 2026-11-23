@@ -159,20 +159,42 @@ function buildOptions(spec: ChartSpec, context: ChartContext, doc: Document): Op
     : []
 
   if (type === "donut" || type === "pie") {
+    const sum = slices.reduce((all, slice) => all + Math.max(0, slice.value), 0)
+    const words = { x: "50%", y: "50%", textAlign: "center", textBaseline: "middle", fontFamily: theme.fontFamily }
     return {
       ...base,
-      type: "interval",
-      data: slices,
-      encode: { y: "value", color: "label" },
-      transform: [{ type: "stackY" }],
+      type: "view",
       coordinate: { type: "theta", innerRadius: type === "donut" ? 0.62 : 0, outerRadius: 0.92 },
-      scale: { color: { domain: spec.labels, range: spec.palette } },
-      style: { stroke: theme.surface, lineWidth: type === "donut" ? 2 : 1, radius: type === "donut" ? 4 : 0 },
-      legend: legend("color"),
-      tooltip: tooltip(false),
-      labels: spec.valueLabels
-        ? [{ text: (datum: Datum) => `${datum.label} ${spec.format(datum.value)}`, position: "outside", fill: theme.muted, fontSize: theme.fontSize }]
-        : [],
+      children: [
+        {
+          type: "interval",
+          data: slices,
+          encode: { y: "value", color: "label" },
+          transform: [{ type: "stackY" }],
+          scale: { color: { domain: spec.labels, range: spec.palette } },
+          style: { stroke: theme.surface, lineWidth: type === "donut" ? 2 : 1, radius: type === "donut" ? 4 : 0 },
+          legend: legend("color"),
+          tooltip: tooltip(false),
+          labels: spec.valueLabels
+            ? [{ text: (datum: Datum) => `${datum.label} ${spec.format(datum.value)}`, position: "outside", fill: theme.muted, fontSize: theme.fontSize }]
+            : [],
+        },
+        // The total in the middle of a donut, as the built-in chart has it.
+        ...(type === "donut"
+          ? [
+              {
+                type: "text",
+                style: { ...words, text: spec.format(Math.round(sum * 100) / 100), dy: -8, fontSize: 20, fontWeight: 650, fill: theme.foreground },
+                tooltip: false,
+              },
+              {
+                type: "text",
+                style: { ...words, text: "Total", dy: 12, fontSize: 12, fill: theme.muted },
+                tooltip: false,
+              },
+            ]
+          : []),
+      ],
     }
   }
 

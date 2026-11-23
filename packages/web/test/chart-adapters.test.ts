@@ -74,6 +74,9 @@ describe("echartsCharts", () => {
     const donut = fake.options[1]
     expect(donut.series[0]).toMatchObject({ type: "pie", radius: ["58%", "82%"] })
     expect(donut.series[0].data.map((item: Loose) => item.value)).toEqual([120, 150])
+    // A donut has its total in the middle, as the built-in chart does; a bar chart has no title.
+    expect(donut.title).toMatchObject({ text: "270", subtext: "Total", textAlign: "center" })
+    expect(bar.title).toBeUndefined()
   })
 
   test("a tooltip is built from elements: what a model named is never HTML", async () => {
@@ -212,6 +215,23 @@ describe("g2Charts", () => {
     expect(container.querySelector(".picked")?.textContent).toBe("Jan")
     view.unmount()
     expect(fake.log.at(-1)).toBe("destroy")
+  })
+
+  test("a donut has its total in the middle, and a pie doesn't", async () => {
+    const fake = fakeG2()
+    await draw({
+      source: `<state rows={[{ month: "Jan", web: 120 }, { month: "Feb", web: 150 }]} />
+
+<Chart type="donut" data={rows} x="month" y="web" />
+
+<Chart type="pie" data={rows} x="month" y="web" />`,
+      library: defineLibrary({ charts: g2Charts(() => fake.library) }),
+    })
+    await flushPromises()
+    const words = (options: Loose) =>
+      options.children.filter((mark: Loose) => mark.type === "text").map((mark: Loose) => mark.style.text)
+    expect(fake.options.map(words)).toEqual([["270", "Total"], []])
+    expect(fake.options[0].children[0]).toMatchObject({ type: "interval", encode: { y: "value", color: "label" } })
   })
 
   test("its tooltip is built from elements too, and a product edits the options", async () => {

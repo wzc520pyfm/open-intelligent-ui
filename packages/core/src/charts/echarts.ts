@@ -129,10 +129,29 @@ function buildOption(spec: ChartSpec, context: ChartContext, doc: Document): Opt
       formatter: (item: Item) => `${item.name ?? ""} ${number(item.value)}`,
     }
     const space = spec.legend ? 32 : 4
+    const middle = spec.legend ? 0.44 : 0.5
+    const sum = data.reduce((all, item) => all + Math.max(0, item.value), 0)
     return {
       ...base,
       tooltip: tooltip("item"),
       legend,
+      // The total in the middle of a donut, as the built-in chart has it.
+      ...(type === "donut"
+        ? {
+            title: {
+              text: spec.format(Math.round(sum * 100) / 100),
+              subtext: "Total",
+              left: "50%",
+              // The number sits on this line and the word under it; together they are centered.
+              top: Math.round(spec.height * middle) - 8,
+              textAlign: "center",
+              textVerticalAlign: "middle",
+              itemGap: 4,
+              textStyle: { color: theme.foreground, fontSize: 20, fontWeight: 650, fontFamily: theme.fontFamily },
+              subtextStyle: { color: theme.muted, fontSize: 12, fontFamily: theme.fontFamily },
+            },
+          }
+        : {}),
       series: [
         type === "funnel"
           ? {
@@ -152,7 +171,7 @@ function buildOption(spec: ChartSpec, context: ChartContext, doc: Document): Opt
               type: "pie",
               data,
               radius: type === "donut" ? ["58%", "82%"] : [0, "82%"],
-              center: ["50%", spec.legend ? "44%" : "50%"],
+              center: ["50%", `${middle * 100}%`],
               padAngle: type === "donut" ? 2 : 0,
               itemStyle: { borderRadius: type === "donut" ? 4 : 0 },
               label: words,

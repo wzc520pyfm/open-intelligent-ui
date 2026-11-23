@@ -196,6 +196,18 @@ describe("what the prompt promises", () => {
     rect.mockRestore()
   })
 
+  test("a handler that runs inside a view transition still reads what was pressed", async () => {
+    // As in a browser, the update runs once the event has been dispatched.
+    const start = vi.fn((update: () => unknown) => ({ finished: Promise.resolve().then(update) }))
+    Object.defineProperty(document, "startViewTransition", { value: start, configurable: true })
+    const { container } = render(<IntelligentUI source={`<state picked="none" />
+<card morph="hero">{picked}</card>
+<button name="save" value="draft" on:click={picked = $event.name + " " + $event.value}><span>Save</span></button>`} />)
+    fireEvent.click(screen.getByText("Save"))
+    expect(start).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(container.querySelector(".iui-card")?.textContent).toBe("save draft"))
+  })
+
   test("without morph, handlers run directly", () => {
     const start = vi.fn()
     Object.defineProperty(document, "startViewTransition", { value: start, configurable: true })

@@ -2,8 +2,10 @@ import { describe, expect, test } from "vitest"
 import {
   describeDesignTokens,
   designToCss,
+  loadsNothing,
   parseDesign,
   parseInlineStyle,
+  safeStyleValue,
   safeUrl,
   scopeCss,
 } from "../src/design"
@@ -178,6 +180,20 @@ describe("DESIGN.md", () => {
     )
     expect(unsafe.colors).toEqual({ ok: "oklch(60% 0.2 250)" })
     expect(unsafe.issues).toHaveLength(2)
+    const loading = parseDesign(
+      "---\ncolors:\n  primary: \"image-set('https://x.dev/a.png' 1x)\"\n  ok: \"#fff\"\n---"
+    )
+    expect(loading.colors).toEqual({ ok: "#fff" })
+  })
+
+  test("a quoted font name may say anything a declaration can hold", () => {
+    const design = parseDesign(
+      `---\ntypography:\n  body:\n    fontFamily: '"Image (Text)", "Src (Pro)", sans-serif'\n  open:\n    fontFamily: '"Inter, url(https://x.dev/a.woff)'\n  call:\n    fontFamily: '"Inter", url(https://x.dev/a.woff)'\n---`
+    )
+    expect(design.typography.body?.fontFamily).toBe('"Image (Text)", "Src (Pro)", sans-serif')
+    expect(design.typography.open?.fontFamily).toBeUndefined()
+    expect(design.typography.call?.fontFamily).toBeUndefined()
+    expect(design.issues).toHaveLength(2)
   })
 
   test("tokens may also live in yaml blocks in the body", () => {
@@ -193,6 +209,54 @@ describe("DESIGN.md", () => {
     )
   })
 })
+
+/**
+ * Reads CSS the way a browser's tokenizer does, written apart from the code
+ * under test: the text outside strings, the address of every `url()`, and
+ * where the nesting returns to the top level.
+ */
+function asBrowser(css: string): { code: string; addresses: string[]; closes: number[] } {
+  let code = ""
+  const addresses: string[] = []
+  const closes: number[] = []
+  let depth = 0
+  let i = 0
+  const string = (): string => {
+    const quote = css[i]
+    let text = ""
+    for (i++; i < css.length && css[i] !== quote && css[i] !== "\n"; i++) {
+      if (css[i] === "\\") text += css[++i] ?? ""
+      else text += css[i]
+    }
+    i++
+    return text
+  }
+  while (i < css.length) {
+    const ch = css[i] as string
+    if (ch === "\\") {
+      code += css.slice(i, i + 2)
+      i += 2
+    } else if (ch === '"' || ch === "'") {
+      string()
+    } else if (/^url\($/i.test(css.slice(i, i + 4)) && !/[\w-]/.test(css[i - 1] ?? "")) {
+      i += 4
+      while (/[ \t\n\f\r]/.test(css[i] ?? "")) i++
+      if (css[i] === '"' || css[i] === "'") {
+        addresses.push(string())
+      } else {
+        const end = css.indexOf(")", i)
+        addresses.push(css.slice(i, end === -1 ? css.length : end).replace(/[ \t\n\f\r]+$/, ""))
+        i = end === -1 ? css.length : end + 1
+      }
+    } else {
+      if (ch === "{") depth++
+      else if (ch === "}" && --depth === 0) closes.push(i)
+      code += ch
+      i++
+    }
+  }
+  return { code, addresses, closes }
+}
 
 describe("scoped CSS", () => {
   test("rules are nested under the surface", () => {
@@ -244,11 +308,222 @@ describe("scoped CSS", () => {
     expect(css).toContain(".a { background: none; mask: url(#m); position: absolute }")
     expect(css).toContain('.b { background: url("data:image/png;base64,AAAA") }')
     expect(css).not.toContain(".d")
-    expect(dropped).toEqual(['@import url("https://x.dev/a.css")', "@font-face"])
+    expect(dropped).toEqual(["@import none", "@font-face"])
     const opens = css.split("{").length
     const closes = css.split("}").length
     expect(opens).toBe(closes)
     expect(css.startsWith(".s {")).toBe(true)
+  })
+
+  test("a name spelled with escapes is read as the browser reads it", () => {
+    const { css } = scopeCss(
+      String.raw`.a { position: f\69xed; pos\69tion: fixed; POSITION: f\000069 xed }
+.b { background: u\72l(https://x.dev/a.png); mask: \75rl(https://x.dev/b.png); cursor: \url(https://x.dev/c.png) }
+.c { background: \69mage-set("https://x.dev/d.png" 1x) }
+.sm\:flex { content: "\201C u\72l(" }`,
+      ".s"
+    )
+    expect(css).not.toMatch(/fixed/i)
+    expect(css).toContain(".a { position: absolute; position: absolute; POSITION: absolute }")
+    expect(css).toContain(".b { background: none; mask: none; cursor: none }")
+    expect(css).toContain('.c { background: none("https://x.dev/d.png" 1x) }')
+    expect(css).toContain(String.raw`.sm\:flex { content: "\201C u\72l(" }`)
+  })
+
+  test("position takes a keyword, since var() and attr() can stand for fixed", () => {
+    const { css } = scopeCss(
+      `.a { --p: fixed; position: var(--p) }
+.b { position: attr(data-p type(*)) }
+.c { position: fixed !important; background-position: center }
+.d { position: sticky; top: 0 }
+.e { position:relative }
+@supports (position: sticky) { .f { position: absolute } }`,
+      ".s"
+    )
+    expect(css).toContain(".a { --p: fixed; position: absolute }")
+    expect(css).toContain(".b { position: absolute }")
+    expect(css).toContain(".c { position: absolute !important; background-position: center }")
+    expect(css).toContain(".d { position: sticky; top: 0 }")
+    expect(css).toContain(".e { position:relative }")
+    expect(css).toContain("@supports (position: sticky) {\n.f { position: absolute }\n}")
+  })
+
+  test("a position is replaced whole, and only where it styles something", () => {
+    const scoped = (css: string) => scopeCss(css, ".s").css
+    expect(scoped(".a { position: var(--p, fixed) !important; top: 0 }")).toContain(
+      ".a { position: absolute !important; top: 0 }"
+    )
+    // The brackets still pair up, so the rest of the sheet is read.
+    expect(scoped(".a { width: calc(position: fixed); color: red }")).toContain(
+      ".a { width: calc(position: absolute); color: red }"
+    )
+    // A condition asks; it doesn't style. Rewriting it would turn an unsupported value into a supported one.
+    expect(scoped("@supports (position: anchor) { .a { position: fixed } }")).toContain(
+      "@supports (position: anchor) {\n.a { position: absolute }\n}"
+    )
+    expect(scoped("@container style(position: fixed) { .a { color: red } }")).toContain(
+      "@container style(position: fixed) {"
+    )
+  })
+
+  test("an at-rule inside a rule is dropped whether or not the rule nests another", () => {
+    const leaf = scopeCss(".a { @layer x; color: red; @import 'https://x.dev/a.css'; margin: 0 }", ".s")
+    expect(leaf.css).toBe(".s {\n.a { color: red; margin: 0 }\n}")
+    expect(leaf.dropped).toEqual(["@layer x", "@import 'https://x.dev/a.css'"])
+    const nested = scopeCss(".a { @layer x; color: red; .b { margin: 0 } }", ".s")
+    expect(nested.css).not.toContain("@layer")
+    expect(nested.dropped).toEqual(["@layer x"])
+  })
+
+  test("a name that needs its escape keeps it", () => {
+    const scoped = (css: string) => scopeCss(css, ".s").css
+    // `.\31 23` is the class "123"; `.123` is not a selector at all.
+    expect(scoped(String.raw`.\31 23 { color: red }`)).toContain(String.raw`.\31 23 { color: red }`)
+    expect(scoped(String.raw`.\32xl\:grid { color: red }`)).toContain(String.raw`.\32 xl\:grid { color: red }`)
+    expect(scoped(String.raw`.\-1 { color: red } .-\31 { margin: 0 }`)).toContain(
+      String.raw`.\2d 1 { color: red }` + "\n" + String.raw`.-\31 { margin: 0 }`
+    )
+    // Further into a name a digit needs no escape, and a name the checks look for is still spelled out.
+    expect(scoped(String.raw`.a\31 { p\6fsition: f\69xed; background: image\2d set("https://x.dev/a.png" 1x) }`)).toContain(
+      '.a1 { position: absolute; background: none("https://x.dev/a.png" 1x) }'
+    )
+  })
+
+  test("white space in an address is what CSS calls white space", () => {
+    // A no-break space is part of the address: this asks the page's own server for a path.
+    for (const space of ["\u00A0", "\uFEFF", "\u2028", "\u3000"]) {
+      const { css } = scopeCss(`.a { background: url(${space}#a); mask: url(#b${space}) }`, ".s")
+      // After the `#` it is only part of a fragment.
+      expect(asBrowser(css).addresses, JSON.stringify(space)).toEqual([`#b${space}`])
+      expect(loadsNothing(`url(${space}#a)`), JSON.stringify(space)).toBe(false)
+    }
+    expect(asBrowser(scopeCss(".a { fill: url( \t\n#a\f ) }", ".s").css).addresses).toEqual(["#a"])
+  })
+
+  test("a quoted string keeps what it says", () => {
+    const scoped = (css: string) => scopeCss(css, ".s").css
+    const shown = (css: string) => {
+      const quoted = /content: ("[^\n]*")/.exec(css)?.[1] as string
+      // What the browser shows for the string: each escape is the character it spells.
+      return quoted
+        .slice(1, -1)
+        .replace(/\\([0-9a-f]{1,6}) ?|\\(.)/gi, (_match, hex: string, ch: string) =>
+          hex ? String.fromCodePoint(Number.parseInt(hex, 16)) : ch
+        )
+    }
+    for (const label of ["/* note */", "<div>", "a </style> b", "<!-- x -->", "1 < 2", String.raw`\</style>`, String.raw`/\* x`, String.raw`\/* x`]) {
+      const css = scoped(`.a::before { content: "${label}" } /* gone */ .b { color: red }`)
+      expect(shown(css), label).toBe(label.replace(/\\(.)/g, "$1"))
+      expect(css, label).not.toMatch(/\/\*|<[/!a-z]|gone/i)
+      expect(css, label).toContain(".b { color: red }")
+    }
+  })
+
+  test("a selector that names the surface or starts from a sibling stays inside it", () => {
+    const guard = ":where(.s, .s *)"
+    const scoped = (css: string) => scopeCss(css, ".s").css
+    expect(scoped(".app:has(&) .sidebar { display: none }")).toBe(
+      `.s {\n.app:has(&) .sidebar${guard} { display: none }\n}`
+    )
+    expect(scoped("body:has(&) .sidebar { display: none }")).toBe(
+      `.s {\n&:has(&) .sidebar${guard} { display: none }\n}`
+    )
+    expect(scoped("+ .next, & ~ *, :not(&) { color: red }")).toBe(
+      `.s {\n+ .next${guard}, & ~ *${guard}, :not(&)${guard} { color: red }\n}`
+    )
+    expect(scoped("& + .next::before, .a + .b:before { content: 'x' }")).toBe(
+      `.s {\n& + .next${guard}::before, .a + .b${guard}:before { content: 'x' }\n}`
+    )
+    expect(scoped(":scope .page { color: red }")).toBe(`.s {\n:scope .page${guard} { color: red }\n}`)
+    // What already means "inside the surface" is left as written.
+    expect(scoped("&, & .a, &:hover > b, .a .b::after, .a:has(> img) { color: red }")).toBe(
+      ".s {\n&, & .a, &:hover > b, .a .b::after, .a:has(> img) { color: red }\n}"
+    )
+  })
+
+  test("rules nested in a rule are held to the surface as well", () => {
+    const { css, dropped } = scopeCss(
+      `.card { color: red; body:has(&) #app { display: none } &:hover { color: blue } + .next { margin: 0 }
+  @media (width > 600px) { & ~ * { opacity: 0 } gap: 4px }
+  @scope (body) { .page { display: none } }
+  background: url(https://x.dev/a.png) }`,
+      ".s"
+    )
+    const guard = ":where(.s, .s *)"
+    expect(css).toBe(
+      [
+        ".s {",
+        ".card {",
+        "color: red;",
+        `body:has(&) #app${guard} { display: none }`,
+        "&:hover { color: blue }",
+        `+ .next${guard} { margin: 0 }`,
+        "@media (width > 600px) {",
+        `& ~ *${guard} { opacity: 0 }`,
+        "gap: 4px;",
+        "}",
+        "background: none;",
+        "}",
+        "}",
+      ].join("\n")
+    )
+    expect(dropped).toEqual(["@scope (body)"])
+  })
+
+  test("a brace the browser doesn't count can't end the surface's rule", () => {
+    const cases = [
+      String.raw`.a { --x: \{ } } .page { display: none }`,
+      String.raw`.a { color: red\} } .page { display: none }`,
+      `.a { background: url(x"y) } } .page { display: none } .b { --z: " }`,
+      ".a { background: url(#a } .x { .y { --y: ) } } .page { display: none }",
+      ".a { --x: url(#a{) } .page { display: none } }",
+      '.a { --x: "a\r } } .page { display: none } .b { --y: " }',
+      ".a { } } } .page { display: none }",
+    ]
+    for (const input of cases) {
+      const { css } = scopeCss(input, ".s")
+      const { closes } = asBrowser(css)
+      expect(closes, input).toEqual([css.length - 1])
+    }
+  })
+
+  test("a string the browser doesn't see can't hide an address", () => {
+    const cases = [
+      String.raw`.a { --x: \" ; background: url(https://x.dev/1) ; --y: " }`,
+      '.a { --x: "a\\\r\n" ; background: url(https://x.dev/2) ; --y: "" }',
+      `.a { content: /${"/*"}*/* " */ ; background: url(https://x.dev/3) ; --x: /${"/*"}*/* " */ }`,
+      '.a { background: url("https://x.dev/4)b") }',
+      `.a { background: url('https://x.dev/5"b') }`,
+      '.a { background: url("#x\\");background:url(https://x.dev/6") }',
+      '.a { background: url("https://x.dev/7" fallback) }',
+      ".a { background: url(https://x.dev/8",
+      '.a { background: src("https://x.dev/9"), image("https://x.dev/10"), -webkit-image-set("https://x.dev/11" 1x) }',
+      ".a { background: url(https://x.dev/12) } .b { mask: url(#m) }",
+    ]
+    for (const input of cases) {
+      const { code, addresses } = asBrowser(scopeCss(input, ".s").css)
+      for (const address of addresses) expect(address, input).toMatch(/^#/)
+      expect(code, input).not.toMatch(/x\.dev|(?:src|image|image-set)\(/)
+    }
+    expect(scopeCss(".a { mask: url(data:image/png;base64,AA==) }", ".s").css).toBe(
+      '.s {\n.a { mask: url("data:image/png;base64,AA==") }\n}'
+    )
+    expect(scopeCss('.a::before { content: "url(x) { ; }" }', ".s").css).toBe(
+      '.s {\n.a::before { content: "url(x) { ; }" }\n}'
+    )
+  })
+
+  test("text can't be put back together into a comment or a closing tag", () => {
+    expect(scopeCss(`.a { color: red } /${"/*"}*/* .b { } */`, ".s").css).not.toContain("/*")
+    expect(scopeCss(".a { color: red } </sty<style>le> .b { margin: 0 }", ".s").css).not.toMatch(
+      /<\/?style/i
+    )
+    expect(scopeCss(String.raw`.a { color: red } </st\79le> .b { margin: 0 }`, ".s").css).not.toMatch(
+      /<\/?style/i
+    )
+    expect(scopeCss("@media (400px <= width) { .a { margin: 0 } }", ".s").css).toContain(
+      "@media (400px <= width)"
+    )
   })
 
   test("a closing style tag can't end the stylesheet early", () => {
@@ -269,6 +544,55 @@ describe("inline styles and URLs", () => {
       "--gap": "calc(1px * (2 + 1))",
       position: "absolute",
     })
+  })
+
+  test("an inline style can't hide a name behind escapes, cssText or var()", () => {
+    expect(
+      parseInlineStyle(
+        String.raw`position: f\69xed; background: u\72l(https://x.dev/a.png); background-image: image-set("https://x.dev/b.png" 1x); color: r\65 d; top: 0`
+      )
+    ).toEqual({ position: "absolute", color: "red", top: "0" })
+    expect(parseInlineStyle("--p: fixed; position: var(--p); position: sticky !important")).toEqual({
+      "--p": "fixed",
+      position: "sticky !important",
+    })
+    expect(parseInlineStyle("position: var(--p)")).toEqual({ position: "absolute" })
+    expect(safeStyleValue("cssText", "position: fixed; inset: 0")).toBeNull()
+    expect(safeStyleValue("css-text", "position: fixed")).toBeNull()
+    expect(safeStyleValue("position", "relative")).toBe("relative")
+    expect(safeStyleValue("content", String.raw`"\201C"`)).toBe(String.raw`"\201C"`)
+  })
+
+  test("an inline value can't end its declaration and start another", () => {
+    expect(safeStyleValue("color", "red;position:fixed;inset:0")).toBeNull()
+    expect(safeStyleValue("--gap", "4px; position: fixed")).toBeNull()
+    expect(safeStyleValue("content", '"a;b"')).toBe('"a;b"')
+    expect(safeStyleValue("content", '"url(x)"')).toBe('"url(x)"')
+    expect(parseInlineStyle('content: "a;b"; color: red')).toEqual({ content: '"a;b"', color: "red" })
+    expect(parseInlineStyle(String.raw`--x: \"; position: fixed; --y: \"`)).toEqual({
+      "--x": String.raw`\"`,
+      position: "absolute",
+      "--y": String.raw`\"`,
+    })
+    expect(parseInlineStyle('background: url("https://x.dev/a)b"); mask: url(#m)')).toEqual({
+      mask: "url(#m)",
+    })
+    expect(parseInlineStyle('background: src("https://x.dev/a.png")')).toEqual({})
+  })
+
+  test("a value is checked for what it loads the way a browser reads it", () => {
+    expect(loadsNothing("url(#paint)")).toBe(true)
+    expect(loadsNothing('url("#a") , url( #b )')).toBe(true)
+    expect(loadsNothing("translate(4 8) rotate(45)")).toBe(true)
+    expect(loadsNothing("M0 0 L10 10")).toBe(true)
+    expect(loadsNothing('"url(https://x.dev/a.png)"')).toBe(true)
+    expect(loadsNothing("url(https://x.dev/a.svg#paint)")).toBe(false)
+    expect(loadsNothing(String.raw`u\72l(https://x.dev/a.svg#paint)`)).toBe(false)
+    expect(loadsNothing(String.raw`\75 rl(https://x.dev/a.svg#paint)`)).toBe(false)
+    expect(loadsNothing('url("#a) url(https://x.dev/b.svg#p")')).toBe(true)
+    expect(loadsNothing('url("#a") url(https://x.dev/b.svg#p)')).toBe(false)
+    expect(loadsNothing("image-set('https://x.dev/c.png' 1x), auto")).toBe(false)
+    expect(loadsNothing("url(#a")).toBe(false)
   })
 
   test("only safe URLs pass", () => {

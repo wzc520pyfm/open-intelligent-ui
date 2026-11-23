@@ -3,6 +3,7 @@ import {
   type ElementNode,
   type Expr,
   evaluate,
+  loadsNothing,
   parseInlineStyle,
   run,
   type Scope,
@@ -471,7 +472,10 @@ export function buildProps(
         return
       }
       if (lower === "xmlns" || lower.startsWith("xmlns:")) return
-      if (typeof value === "string" && /url\s*\(\s*(?!["']?#)/i.test(value)) return
+      // A presentation attribute like `fill` or `cursor` is CSS, and CSS can
+      // load. A name or a label is only text, whatever it spells.
+      const text = /^(?:id|class|role|lang|tabindex|aria-[\w-]+|data-[\w-]+)$/.test(lower)
+      if (!text && typeof value === "string" && !loadsNothing(value)) return
       props[dialect.svg(lower, name)] = value
       return
     }

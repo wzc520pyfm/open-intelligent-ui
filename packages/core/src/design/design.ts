@@ -49,7 +49,9 @@ const TOKEN_KEYS = [
   "components",
 ]
 const REFERENCE = /^\{([A-Za-z0-9_.-]+)\}$/
-const UNSAFE_VALUE = /[;{}<>\\]|url\s*\(|@import|expression\s*\(|\/\*/i
+const UNSAFE_VALUE = /[;{}<>\\]|@import|\/\*/i
+const CALL = /(?:url|image-set|image|src|expression)\s*\(/i
+const QUOTED = /"[^"\n]*"|'[^'\n]*'/g
 
 function isTree(value: unknown): value is Tree {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -65,7 +67,11 @@ function merge(target: Tree, source: Tree): void {
 
 /** Whether a token value is safe to write into a stylesheet. */
 export function isSafeCssValue(value: string): boolean {
-  return value.length <= 300 && !UNSAFE_VALUE.test(value)
+  if (value.length > 300 || UNSAFE_VALUE.test(value)) return false
+  // A quoted name like "Image (Text)" is only text. A quote left open would
+  // take in whatever the stylesheet says after the value.
+  const code = value.replace(QUOTED, " ")
+  return !/["']/.test(code) && !CALL.test(code)
 }
 
 const VARIABLE_GROUPS: Record<string, string> = {

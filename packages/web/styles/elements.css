@@ -6,6 +6,10 @@
  * Each rule matches with one class less than the rule it repeats (`:where(.iui-root)`), which puts
  * it where the original sits in the cascade: whatever outweighs the original outweighs it too.
  */
+
+/* The order the shared stylesheet sets, so it holds whichever of the two a page loads first. */
+@layer ui-sdk, iui;
+
 @layer ui-sdk {
   /* What the browser gives a <button> before any stylesheet. */
   :where(.iui-root)

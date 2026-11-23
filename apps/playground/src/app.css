@@ -269,9 +269,20 @@ body {
   border-bottom: 1px solid var(--pg-line);
 }
 
+.pg-field input:read-only {
+  opacity: 0.72;
+  cursor: default;
+}
+
+.pg-endpoint {
+  flex: 1.4;
+  min-width: 180px;
+}
+
 .pg-live {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr auto;
+  grid-template-columns: auto 1.6fr 1fr 1fr auto;
+  align-items: end;
 }
 
 .pg-check {
@@ -587,7 +598,7 @@ textarea.pg-code:focus {
     display: none;
   }
 
-  .pg-controls .pg-seg {
+  .pg-controls .pg-widths {
     display: none;
   }
 

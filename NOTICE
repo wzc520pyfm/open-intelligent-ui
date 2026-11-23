@@ -1,6 +1,9 @@
 Open Intelligent UI
+Copyright (c) 2026 Open Intelligent UI contributors
 
-This repository includes files generated from UI SDK
+Licensed under the MIT License. See LICENSE.
+
+This repository also includes files generated from UI SDK
 (@ui-sdk/core and @ui-sdk/react, https://ui-sdk.dev), which is
 Copyright 2026 Vercel, Inc. and licensed under the Apache License,
 Version 2.0:

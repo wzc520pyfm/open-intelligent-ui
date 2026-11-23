@@ -1,32 +1,34 @@
 # Open Intelligent UI
 
-让智能体不是从组件库里挑选界面，而是创作界面。
+[English](README.md) · [中文](README.zh-CN.md)
 
-模型写 Markdown 加标签的标记，渲染器边流边把它变成可以操作的界面。交互行为来自 [UI SDK](https://ui-sdk.dev/docs)，视觉来自一份 [DESIGN.md](https://github.com/google-labs-code/design.md)，动效来自设计系统里的动效令牌和一个 motion skill。状态、数据读写和把决定交还给模型，都由标记里的几种语法完成。
+Let agents author interfaces, not pick them from a component library.
+
+The model writes Markdown mixed with tags. The renderer turns that stream into a live interface: behaviors from [UI SDK](https://ui-sdk.dev/docs), look from a [DESIGN.md](https://github.com/google-labs-code/design.md), motion from design-system tokens and a motion skill. State, data I/O, and handing decisions back to the model are all expressed in the markup.
 
 | | |
 | --- | --- |
-| <img src="docs/images/dashboard.png" alt="模型生成的销售看板：指标卡、柱状图、环形图和可排序的表格" width="420"> | <img src="docs/images/workbench.png" alt="模型生成的工单工作台：筛选、表格、详情和写操作" width="420"> |
-| <img src="docs/images/board.png" alt="模型用原语和 CSS 现场定义的冲刺看板" width="420"> | <img src="docs/images/gears.png" alt="由滑块驱动的 SVG 齿轮示意图" width="420"> |
+| <img src="docs/images/dashboard.png" alt="Sales dashboard: stats, charts and a sortable table" width="420"> | <img src="docs/images/workbench.png" alt="Support workbench: filters, table, detail pane and writes" width="420"> |
+| <img src="docs/images/board.png" alt="Sprint board defined in markup with primitives and CSS" width="420"> | <img src="docs/images/gears.png" alt="SVG gear diagram driven by sliders" width="420"> |
 
-这四个界面都是一段标记，没有一个是预先写好的组件。它们在 `apps/playground/src/demos/` 里，是手写的示例标记，不是模型的输出；本仓库还没有用真实模型跑过，见[现状与限制](#现状与限制)。
+None of these four is a pre-built component. They live as handwritten IUI markup under `apps/playground/src/demos/` — not model output. This repository has not been run against a real model yet; see [Status](#status).
 
-## 为什么
+## Why
 
-A2UI、OpenUI 和 OpenAI 的智能界面都让模型在一个预先定义的组件库里选择和组合。库里有什么，界面就只能是什么。
+A2UI, OpenUI and OpenAI's Intelligent UI all let the model choose and compose from a predefined component catalog. What the catalog has is what the interface can be.
 
-UI SDK 提供的是另一种东西：组件的行为（焦点、键盘、选中、弹层、无障碍），不带样子。把它交给模型，模型拿到的是积木的关节，外形可以自己决定。缺的两块是“怎样才好看”和“怎样动才对”，分别由 DESIGN.md 和动效规则补上。
+UI SDK is different: it ships component *behaviors* (focus, keyboard, selection, popovers, accessibility) with no look. Hand that to a model and it gets the joints of the building blocks; the shape is up to it. What it still needs is “how it should look” and “how it should move” — DESIGN.md and motion rules fill those gaps.
 
-| 地基 | 提供什么 | 在这个仓库里 |
+| Foundation | What it gives | In this repo |
 | --- | --- | --- |
-| UI SDK | 55 个入口、367 个部件的交互行为 | 按名字懒加载，标记里直接写 `<Tabs>`、`<Dialog>`、`<Select>` |
-| DESIGN.md | 颜色、字体、圆角、间距、动效令牌，以及怎么用它们的说明 | 令牌变成 CSS 变量，正文进系统提示词。`design/` 里有三份 |
-| 动效 skill | 什么变化配什么动效，以及在浏览器里逐帧检查的方法 | `skills/motion/`，标记属性 `motion`、`show`、`stagger`、`morph` |
-| 少量预置 | UI SDK 没有的内容类组件 | 15 个布局原语，`Chart`、`Stat`、`Number`、`DataTable`、`CodeBlock`、`Skeleton` |
+| UI SDK | Behaviors for 55 entry points, 367 parts | Lazy-loaded by name; write `<Tabs>`, `<Dialog>`, `<Select>` in markup |
+| DESIGN.md | Color, type, radius, spacing, motion tokens, plus prose on how to use them | Tokens become CSS variables; prose goes into the system prompt. Three designs under `design/` |
+| Motion skill | Which change gets which motion, and a way to review it frame by frame | `skills/motion/`; markup attributes `motion`, `show`, `stagger`, `morph` |
+| Small presets | Content widgets UI SDK does not have | 15 layout primitives; `Chart`, `Stat`, `Number`, `DataTable`, `CodeBlock`, `Skeleton` |
 
-调研过程和取舍依据在 [`docs/research.md`](docs/research.md)，包括 UI SDK 兼容性的实测结果。
+Research and trade-offs, including UI SDK compatibility results, are in [`docs/research.md`](docs/research.md).
 
-## 标记长什么样
+## What the markup looks like
 
 ```iui
 <state saved={1800} goal={12000} monthly={400} />
@@ -59,32 +61,32 @@ UI SDK 提供的是另一种东西：组件的行为（焦点、键盘、选中�
 </style>
 ```
 
-- `<state>` 和 `<derive>` 是界面记住的东西和由它算出来的东西。
-- `<Slider>` 是 UI SDK 的行为，`bind:value` 把它接到状态上。拖动时句子、圆环和按钮文字一起变，不经过模型。
-- 圆环不是组件，是模型自己画的 SVG，颜色和过渡时间取自设计系统的变量。
-- `send()` 把读者的决定连同数据交还给模型，开始下一轮对话。
-- 接上工具之后，`<query>` 读数据，`call()` 写数据，界面就成了一个可读可写的工作台，同样不需要模型在场。
+- `<state>` and `<derive>` are what the interface remembers and what it computes from that.
+- `<Slider>` is a UI SDK behavior; `bind:value` wires it to state. Dragging updates the sentence, the ring and the button label with no model call.
+- The ring is not a component — SVG the model drew, colored and timed from design tokens.
+- `send()` hands the reader's decision and data back to the model for the next turn.
+- With tools wired up, `<query>` reads and `call()` writes, so the surface becomes a read/write workbench without the model in the loop.
 
-完整的语言定义在 [`docs/spec.md`](docs/spec.md)。
+Full language: [`docs/spec.md`](docs/spec.md).
 
-## 试一试
+## Try it
 
-需要 Node 22 以上和 pnpm。
+Node 22+ and pnpm.
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-打开 <http://localhost:5173>。左边有六个示例，可以调流式速度、切换三套设计、明暗和宽度；Inspect 面板里能直接改标记、看状态、看发给模型的系统提示词。要接真实模型，选左边的 Live，填一个 OpenAI 兼容的端点；密钥只留在当前标签页里。
+Open <http://localhost:5173> (or the [deployed playground](https://open-intelligent-ui-one.vercel.app)). Six demos on the left; switch streaming speed, design, light/dark and width. Inspect shows markup, state and the system prompt. For a real model, pick **Live** and choose OpenAI, Anthropic, DeepSeek or a custom OpenAI-compatible endpoint — the key stays in this tab.
 
 ```bash
-pnpm test          # 232 个测试
+pnpm test
 pnpm typecheck
-pnpm design:lint   # 用 DESIGN.md 官方 CLI 检查 design/ 下的三份设计
+pnpm design:lint   # DESIGN.md CLI on design/
 ```
 
-## 接入
+## Integrate
 
 ```tsx
 import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
@@ -104,42 +106,42 @@ const system = buildSystemPrompt({ design, tools: toolDescriptions })
 />
 ```
 
-两个包目前只在这个工作区里，导出的是 TypeScript 源码，还没有发布到 npm。工具、主题、宿主组件、状态读写和安全边界的说明在 [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md)。
+Both packages are workspace-only for now (TypeScript source, not on npm). Tools, theming, host components, state and the safety model: [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md).
 
-## 仓库结构
+## Layout
 
 ```
-packages/core     标记解析、表达式解释器、状态仓库、DESIGN.md、系统提示词。不依赖框架
-packages/react    React 渲染器、原语、预置组件、样式
-apps/playground   演示站
-design/           三份 DESIGN.md：Paper、Heritage、Signal
-skills/           给编码智能体的两个 skill：intelligent-ui 和 motion
-docs/             调研、语言规范、架构
-scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设计
+packages/core     Markup parser, expression interpreter, state store, DESIGN.md, system prompt. No framework.
+packages/react    React renderer, primitives, presets, styles
+apps/playground   Demo site
+design/           Three DESIGN.md files: Paper, Heritage, Signal
+skills/           Agent skills: intelligent-ui and motion
+docs/             Research, language spec, architecture
+scripts/          UI SDK catalog generation, skill references, design lint
 ```
 
-## 文档
+## Docs
 
-| 文档 | 内容 |
+| Doc | Contents |
 | --- | --- |
-| [`docs/research.md`](docs/research.md) | A2UI、OpenUI、OpenAI 智能界面、UI SDK、DESIGN.md 的调研；UI SDK 兼容性实测；预置组件和状态语法的取舍 |
-| [`docs/spec.md`](docs/spec.md) | IUI 标记规范 |
-| [`docs/architecture.md`](docs/architecture.md) | 各部分的分工、数据流、安全模型、测试覆盖 |
-| [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | 给智能体：怎么写界面、怎么接入 |
-| [`skills/motion/SKILL.md`](skills/motion/SKILL.md) | 给智能体：怎么设计和检查动效 |
+| [`docs/research.md`](docs/research.md) | A2UI, OpenUI, OpenAI Intelligent UI, UI SDK, DESIGN.md; compatibility tests; presets and state syntax |
+| [`docs/spec.md`](docs/spec.md) | IUI markup language |
+| [`docs/architecture.md`](docs/architecture.md) | How the pieces fit, data flow, safety model, tests |
+| [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | For agents: writing and integrating interfaces |
+| [`skills/motion/SKILL.md`](skills/motion/SKILL.md) | For agents: designing and reviewing motion |
 
-## 现状与限制
+## Status
 
-这是一个可以运行的原型，不是可以直接上线的产品。
+A working prototype, not a product.
 
-- **没有用真实模型验证过。** 示例是手写的标记。系统提示词里的每个示例都经过测试渲染，但模型按这份提示词实际写得怎么样、token 成本如何，没有数据。
-- **UI SDK 是 beta**（0.1.0-beta.13）。升级后运行 `pnpm generate`，测试会指出变化。
-- **只有 React 渲染器**，需要 React 19。
-- **没有发布到 npm**，也没有构建产物。
-- **目测只在桌面版 Chrome 里做过。** 位置过渡依赖 View Transitions API，不支持的浏览器会直接切换。
-- **安全模型没有经过外部审计。** 标记不会被当作代码执行，但工具调用的权限检查是宿主的责任。
-- **宿主页面不分层的全局 CSS 会影响界面内部**，接入时需要把 reset 放进层叠层。
+- **Not validated against a real model.** Demos are handwritten. Every example in the system prompt is rendered by tests; how a model writes against that prompt, and at what token cost, is unknown.
+- **UI SDK is beta** (0.1.0-beta.13). After upgrading, run `pnpm generate`; tests will flag drift.
+- **React renderer only**, React 19+.
+- **Not published to npm**, no build artifacts for the packages.
+- **Visual checks only in desktop Chrome.** Layout morphing needs View Transitions; unsupported browsers swap instantly.
+- **Safety model has not been audited externally.** Markup is never executed as code; authorizing tool calls is the host's job.
+- **Unlayered host CSS can override the surface.** Put resets in a cascade layer when integrating.
 
-## 许可
+## License
 
-Apache-2.0。来自 UI SDK 的生成文件见 [`NOTICE`](NOTICE)。
+MIT. Files generated from UI SDK remain Apache-2.0; see [`NOTICE`](NOTICE).

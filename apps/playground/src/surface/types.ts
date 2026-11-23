@@ -25,11 +25,12 @@ export interface Mounted extends SurfaceHandle {
 
 export type Mount = (target: HTMLElement, props: SurfaceProps) => Mounted
 
-export type RendererId = "react" | "vue" | "svelte" | "solid"
+export type RendererId = "react" | "vue" | "svelte" | "solid" | "web"
 
 export const RENDERERS: { id: RendererId; label: string }[] = [
   { id: "react", label: "React" },
   { id: "vue", label: "Vue" },
   { id: "svelte", label: "Svelte" },
   { id: "solid", label: "Solid" },
+  { id: "web", label: "Web Components" },
 ]

@@ -42,14 +42,26 @@ export interface RenderHost<N, C> {
   fragment(children: N[], key: string): N
   /** An HTML or SVG element. `children` is null for void elements. */
   element(tag: string, props: Record<string, unknown>, key: string, children: N[] | null): N
-  component(type: C, props: Record<string, unknown>, key: string, children: N[]): N
+  /**
+   * `open` is true while the source is still arriving and the component's
+   * closing tag hasn't: more children can follow. A host whose components
+   * take children at any time has no use for it.
+   */
+  component(
+    type: C,
+    props: Record<string, unknown>,
+    key: string,
+    children: N[],
+    open: boolean
+  ): N
   /** A component whose children are drawn from what it passes them (`let:`). */
   scoped(
     type: C,
     props: Record<string, unknown>,
     key: string,
     lets: LetBinding[],
-    render: (values: unknown[]) => N[]
+    render: (values: unknown[]) => N[],
+    open: boolean
   ): N
   /** Keeps `child` on screen while its exit animation plays. */
   presence(child: N, show: boolean, key: string): N
@@ -71,6 +83,8 @@ export interface RenderOptions<C = unknown> {
 interface Slot<C> {
   nodes: Node[]
   ctx: RenderContext<C>
+  /** True while the element the children were written in is still open. */
+  open?: boolean
 }
 
 export interface RenderContext<C = unknown> {
@@ -172,6 +186,11 @@ export function createRenderer<N, C>(
       ctx.options.report(error instanceof Error ? error.message : String(error))
       return undefined
     }
+  }
+
+  /** Whether more can still arrive inside `node`, or inside the template it is part of. */
+  function isOpen(node: ElementNode, ctx: Ctx): boolean {
+    return ctx.options.streaming && (!node.closed || ctx.slot?.open === true)
   }
 
   function renderNodes(nodes: Node[], ctx: Ctx): N[] {
@@ -283,7 +302,7 @@ export function createRenderer<N, C>(
       renderNodes(template.children, {
         ...ctx,
         scope,
-        slot: { nodes: node.children, ctx },
+        slot: { nodes: node.children, ctx, open: isOpen(node, ctx) },
         templateDepth: ctx.templateDepth + 1,
       }),
       key
@@ -373,7 +392,11 @@ export function createRenderer<N, C>(
         })
         return renderNodes(node.children, { ...ctx, scope })
       }
-      return wrap(host.scoped(component, props, nodeKey, lets, render), show, nodeKey)
+      return wrap(
+        host.scoped(component, props, nodeKey, lets, render, isOpen(node, ctx)),
+        show,
+        nodeKey
+      )
     }
 
     const children = renderNodes(node.children, ctx)
@@ -381,7 +404,11 @@ export function createRenderer<N, C>(
     if (kind === "component" && name === "CodeBlock" && children.length) {
       props.code ??= children.filter((child) => typeof child === "string").join("")
     }
-    return wrap(host.component(component, props, nodeKey, children), show, nodeKey)
+    return wrap(
+      host.component(component, props, nodeKey, children, isOpen(node, ctx)),
+      show,
+      nodeKey
+    )
   }
 
   function renderHtml(
@@ -404,7 +431,8 @@ export function createRenderer<N, C>(
             ctx.options.invoke(() => ctx.surface.host.actions?.copy?.(code)),
         },
         key,
-        []
+        [],
+        false
       )
     }
     if (name === "img") {

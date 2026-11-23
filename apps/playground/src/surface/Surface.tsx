@@ -7,6 +7,7 @@ const LOADERS: Record<Exclude<RendererId, "react">, () => Promise<Mount>> = {
   vue: () => import("./vue").then((module) => module.mount),
   svelte: () => import("./svelte.svelte").then((module) => module.mount),
   solid: () => import("./solid").then((module) => module.mount),
+  web: () => import("./web").then((module) => module.mount),
 }
 
 interface Shared {

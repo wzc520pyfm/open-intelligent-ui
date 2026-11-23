@@ -688,6 +688,34 @@ describe("safety", () => {
     form.remove()
   })
 
+  test("a drop zone can't be told to take the files dropped on or pasted into the page around it", async () => {
+    await preloadUiSdk("FileInput")
+    const composer = document.body.appendChild(document.createElement("textarea"))
+    composer.id = "composer"
+    const { container } = await draw({
+      source: `<state where="document" n={0} />
+<FileInput aria-label="Files" on:valueChange={n = n + 1}>
+  <FileInputDropzone aria-label="Zone" target="document" TARGET="document" pasteTarget="document" paste-target="#composer" PASTETARGET="document" bind:target={where} bind:pasteTarget={where} {...{ target: where, pasteTarget: where }}>Drop here</FileInputDropzone>
+</FileInput>
+<p>got {n}</p>`,
+    })
+    const zone = byLabel(container, "Zone")
+    const file = new File(["secret"], "passport.png", { type: "image/png" })
+    const carry = (type: string, field: string) => {
+      const event = new Event(type, { bubbles: true, cancelable: true })
+      Object.defineProperty(event, field, { value: { types: ["Files"], files: [file], items: [] } })
+      return event
+    }
+    const paste = carry("paste", "clipboardData")
+    composer.dispatchEvent(paste)
+    document.body.dispatchEvent(carry("drop", "dataTransfer"))
+    await until(() => expect(text(container)).toContain("got 0"))
+    expect(paste.defaultPrevented).toBe(false)
+    zone.dispatchEvent(carry("paste", "clipboardData"))
+    await until(() => expect(text(container)).toContain("got 1"))
+    composer.remove()
+  })
+
   test("a component that loads later still gets its props, and nothing more", async () => {
     const Picker = (props: { items?: string[] }) =>
       h("a", { href: "https://example.com/a" }, () => `items: ${(props.items ?? []).join(", ")}`)

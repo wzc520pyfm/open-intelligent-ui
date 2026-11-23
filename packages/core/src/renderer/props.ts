@@ -157,6 +157,19 @@ function refused(name: string): boolean {
 }
 
 /**
+ * Options of a UI SDK component that say where on the page it listens. A drop
+ * zone told "document", or given a selector, takes the files a reader drops
+ * on or pastes into the page around the surface.
+ */
+const PAGE_WIDE_PROPS: Record<string, Set<string>> = {
+  FileInputDropzone: new Set(["target", "pastetarget", "paste-target"]),
+}
+
+function listensToPage(tag: string, name: string): boolean {
+  return Object.hasOwn(PAGE_WIDE_PROPS, tag) && (PAGE_WIDE_PROPS[tag] as Set<string>).has(name.toLowerCase())
+}
+
+/**
  * Whether a browser would take `value` for the `file` type of an input. It
  * reads the type in any case, and a renderer writes a value that isn't text
  * as the text it makes.
@@ -397,8 +410,10 @@ export function buildProps(
     if (safe !== null) style[styleKey(name)] = safe
   }
 
+  const dropped = (name: string) => refused(name) || (kind === "ui-sdk" && listensToPage(tag, name))
+
   const assign = (name: string, value: unknown, fromStatic: boolean) => {
-    if (refused(name)) return
+    if (dropped(name)) return
     if (name === "key") {
       if (value !== undefined && value !== null) key = String(value)
       return
@@ -563,7 +578,7 @@ export function buildProps(
     }
 
     if (directive === "bind") {
-      if (value.kind !== "expr" || refused(argument)) continue
+      if (value.kind !== "expr" || dropped(argument)) continue
       if (native && argument !== "value" && argument !== "checked" && argument !== "open") {
         continue
       }

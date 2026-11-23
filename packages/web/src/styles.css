@@ -1,0 +1,4 @@
+/* The stylesheet lives in @open-intelligent-ui/core and is shared by every renderer. */
+@import "../../core/styles/index.css";
+/* What the custom elements need on top of it. */
+@import "../styles/elements.css";

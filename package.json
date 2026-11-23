@@ -14,6 +14,7 @@
     "dev:vue": "pnpm --filter @open-intelligent-ui/vue-demo dev",
     "dev:solid": "pnpm --filter @open-intelligent-ui/solid-demo dev",
     "dev:svelte": "pnpm --filter @open-intelligent-ui/svelte-demo dev",
+    "dev:web": "pnpm --filter @open-intelligent-ui/web-demo dev",
     "build": "pnpm --filter @open-intelligent-ui/playground build",
     "build:packages": "pnpm -r --filter \"./packages/*\" build",
     "check:packages": "node scripts/check-packages.mjs",

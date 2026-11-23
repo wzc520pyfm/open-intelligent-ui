@@ -47,6 +47,16 @@ export default defineConfig({
         },
       },
       "packages/svelte/vitest.config.ts",
+      {
+        extends: true,
+        test: {
+          name: "web",
+          include: ["packages/web/test/**/*.test.ts"],
+          environment: "jsdom",
+          setupFiles: ["packages/web/test/setup.ts"],
+          css: false,
+        },
+      },
     ],
   },
 })

@@ -1,4 +1,4 @@
-import { afterEach } from "vitest"
+import { afterEach, vi } from "vitest"
 
 class ResizeObserverStub {
   observe(): void {}
@@ -46,4 +46,7 @@ if (typeof ElementInternals !== "undefined") {
 afterEach(async () => {
   const { unmountAll } = await import("./helpers")
   unmountAll()
+  // What a test replaced is put back after a failure too.
+  vi.restoreAllMocks()
+  Reflect.deleteProperty(document, "startViewTransition")
 })

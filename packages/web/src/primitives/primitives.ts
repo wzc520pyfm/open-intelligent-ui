@@ -118,9 +118,9 @@ const Icon: Component<ViewProps> = (instance) => {
 PARTS.icon = Icon
 
 const Image: Component<ViewProps> = (instance) => {
-  let failed = false
-  const onError = () => {
-    failed = true
+  let failed: string | null = null
+  const onError = (src: string) => {
+    failed = src
     instance.invalidate()
   }
   return () => fromView(imageView(instance.props, { failed, onError }), PARTS)

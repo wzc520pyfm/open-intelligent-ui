@@ -81,6 +81,8 @@ export interface Instance<P = Record<string, unknown>> {
   /** The props of the latest render. */
   props: P
   children: Child[]
+  /** Whether the component sits inside an `<svg>`, where elements are shapes. */
+  svg: boolean
   /** Asks for the component to be drawn again. */
   invalidate(): void
   /** Runs once the component's nodes are on the page. */

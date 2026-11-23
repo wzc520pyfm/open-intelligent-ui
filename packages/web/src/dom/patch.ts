@@ -247,6 +247,7 @@ function setup(mounted: Mounted, vnode: ComponentVNode) {
   const instance: Instance = {
     props: vnode.props as Record<string, unknown>,
     children: vnode.children,
+    svg: mounted.svg,
     invalidate: () => invalidate(mounted),
     onMounted: (work) => state.mounted.push(work),
     onUpdated: (work) => state.updated.push(work),
@@ -790,14 +791,14 @@ export interface Root {
   unmount(): void
 }
 
-export function createRoot(container: Node, end: Node | null = null): Root {
+export function createRoot(container: Node, end: Node | null = null, svg = false): Root {
   const top: Mounted = {
     vnode: { kind: "fragment", key: undefined, children: [] },
     parent: null,
     dom: container,
     children: [],
     state: null,
-    svg: false,
+    svg,
     end,
   }
   let waiting: (() => Child) | null = null
@@ -807,7 +808,7 @@ export function createRoot(container: Node, end: Node | null = null): Root {
       waiting = null
       root.pending = false
       perform(() => {
-        top.children = reconcile(top, top.children, nodes(children), false)
+        top.children = reconcile(top, top.children, nodes(children), svg)
         place(top.dom as Node, top.children, top.end)
       })
     },

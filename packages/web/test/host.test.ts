@@ -56,6 +56,28 @@ describe("components of the host application", () => {
     expect(text(container)).toContain("score 30")
   })
 
+  test("shapes inside a host's part are still shapes", async () => {
+    const Group: HostFunction = (_props, children) => {
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("data-group", "")
+      group.append(...children)
+      return group
+    }
+    const { container } = await draw({
+      source: `<state r={2} />
+<svg viewBox="0 0 10 10"><Group><circle cx="5" cy="5" r={r} /></Group></svg>
+<Group><text>plain</text></Group>
+<button on:click={r = 3}>grow</button>`,
+      components: { Group },
+    })
+    const circle = container.querySelector("[data-group] circle")
+    expect(circle?.namespaceURI).toBe("http://www.w3.org/2000/svg")
+    expect(byText(container, "plain").namespaceURI).toBe("http://www.w3.org/1999/xhtml")
+    await click(byText(container, "grow"))
+    expect(container.querySelector("[data-group] circle")).toBe(circle)
+    expect(circle?.getAttribute("r")).toBe("3")
+  })
+
   test("a function builds the DOM, is called again when its props change, and keeps its children live", async () => {
     const calls = vi.fn()
     const Panel: HostFunction = (props, children) => {

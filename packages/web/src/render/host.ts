@@ -113,7 +113,8 @@ export const HostFunctionComponent: Component<HostFunctionProps> = (instance) =>
   const holder = document.createDocumentFragment()
   const marker = document.createTextNode("")
   holder.appendChild(marker)
-  let inner: Root | null = createRoot(holder, marker)
+  // Inside a drawing, what markup put in the component is shapes too.
+  let inner: Root | null = createRoot(holder, marker, instance.svg)
 
   // Handlers change with every render; the function keeps the ones it was first given.
   const handlers: Record<string, (...args: unknown[]) => unknown> = {}

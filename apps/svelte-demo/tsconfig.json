@@ -1,0 +1,4 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src", "../../packages/svelte/src/primitives/lucide.d.ts"]
+}

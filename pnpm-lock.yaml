@@ -134,6 +134,34 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1(@solidjs/web@2.0.3(solid-js@2.0.3))(solid-js@2.0.3)(vite@8.3.8(@types/node@22.20.5)(jiti@2.7.0)(yaml@2.9.1))
 
+  apps/svelte-demo:
+    dependencies:
+      '@open-intelligent-ui/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@open-intelligent-ui/svelte':
+        specifier: workspace:*
+        version: link:../../packages/svelte
+      '@ui-sdk/core':
+        specifier: 0.1.0-beta.13
+        version: 0.1.0-beta.13
+      '@ui-sdk/svelte':
+        specifier: 0.1.0-beta.13
+        version: 0.1.0-beta.13(@ui-sdk/core@0.1.0-beta.13)(svelte@5.59.1)
+      svelte:
+        specifier: ^5.59.1
+        version: 5.59.1
+    devDependencies:
+      '@sveltejs/vite-plugin-svelte':
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.59.1)(vite@8.3.8(@types/node@22.20.5)(jiti@2.7.0)(yaml@2.9.1))
+      svelte-check:
+        specifier: ^4.7.8
+        version: 4.7.8(picomatch@4.0.7)(svelte@5.59.1)(typescript@6.0.3)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
   apps/vue-demo:
     dependencies:
       '@open-intelligent-ui/core':

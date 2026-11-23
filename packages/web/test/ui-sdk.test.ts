@@ -90,6 +90,46 @@ describe("UI SDK coverage", () => {
   }, 60_000)
 })
 
+describe("where the custom elements are put together differently from the React components", () => {
+  test("a field set is a native fieldset named by its legend", async () => {
+    await preloadUiSdk("FieldSet", "Input")
+    const { container } = await draw({
+      source: `<FieldSet disabled class="mine">
+  <FieldLegend>Address</FieldLegend>
+  <Field name="street"><FieldLabel>Street</FieldLabel><Input /></Field>
+</FieldSet>`,
+    })
+    const set = container.querySelector("ui-field-set > fieldset") as HTMLFieldSetElement
+    expect(set.className).toBe("mine")
+    expect(set.firstElementChild?.localName).toBe("legend")
+    expect(set.firstElementChild?.textContent).toBe("Address")
+    expect(set.disabled).toBe(true)
+    expect(container.querySelector("input")?.matches(":disabled")).toBe(true)
+  })
+
+  test("a root React draws nothing for makes no box and takes no attributes", async () => {
+    await preloadUiSdk("Dialog", "Popover", "Tooltip", "Menu")
+    const { container } = await draw({
+      source: `<state n={0} />
+<Dialog class="mine" aria-label="x" style="color: red" on:click={n += 1}><DialogTrigger>Open</DialogTrigger></Dialog>
+<Popover><PopoverTrigger>More</PopoverTrigger></Popover>
+<Tooltip><TooltipTrigger>Tip</TooltipTrigger></Tooltip>
+<Menu><MenuTrigger>Menu</MenuTrigger></Menu>
+<text>n={n}</text>`,
+    })
+    for (const tag of ["ui-dialog", "ui-popover", "ui-tooltip", "ui-menu"]) {
+      const root = container.querySelector(tag) as HTMLElement
+      expect(root.style.display).toBe("contents")
+      expect(root.hasAttribute("class")).toBe(false)
+      expect(root.hasAttribute("aria-label")).toBe(false)
+      expect(root.style.color).toBe("")
+    }
+    ;(container.querySelector("ui-dialog button") as HTMLElement).click()
+    await flushPromises()
+    expect(text(container)).toContain("n=0")
+  })
+})
+
 describe("agent bridge", () => {
   test("an agent can read and operate a generated surface", async () => {
     await preloadUiSdk("Input", "Switch", "Field")

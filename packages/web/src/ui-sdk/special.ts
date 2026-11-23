@@ -81,6 +81,10 @@ export const SPECIALS: Record<string, Special> = {
   },
 
   AvatarImage: native("img"),
+  // A field set is named by a native <legend>, the first thing in its <fieldset>.
+  FieldLegend: {
+    draw: (props, key, children) => nativeElement("legend", withoutFunctions(props), key, children),
+  },
   PasswordInputControl: native("input"),
   FieldControl: native("input"),
 

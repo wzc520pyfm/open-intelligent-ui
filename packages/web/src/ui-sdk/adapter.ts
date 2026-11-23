@@ -127,6 +127,8 @@ export function drawElement(
       }
       continue
     }
+    // React draws no element here, so there is nothing for a class, a style or a listener to be on.
+    if (spec.bare && !shape.options.has(name) && !shape.live.has(name)) continue
     if (typeof value === "function" && !shape.options.has(name)) {
       const event = listenerName(name, value)
       if (event) bound.on[event] = value as Listener
@@ -155,6 +157,9 @@ export function drawElement(
     const change = `${name.toLowerCase()}change`
     outer.on[change] ??= settle
   }
+
+  // Such a root must make no box either, or it would be a flex or grid item of its own.
+  if (spec.bare) outer.style = { display: "contents" }
 
   if (!inner) return h(spec.tag, outer, children)
   return h(spec.tag, outer, [h(boundTag, inner, VOID.has(boundTag) ? [] : children)])

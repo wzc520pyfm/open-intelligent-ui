@@ -269,7 +269,18 @@ describe("safety of the renderer's own channels", () => {
 
   test("the native elements UI SDK parts wrap are the ones React renders, none of which loads a URL unasked", () => {
     const inner = new Set(Object.values(UI_SDK_ELEMENTS).map((spec) => spec.inner).filter(Boolean))
-    expect([...inner].sort()).toEqual(["a", "button", "canvas", "h3", "img", "input", "select", "textarea", "time"])
+    expect([...inner].sort()).toEqual([
+      "a",
+      "button",
+      "canvas",
+      "fieldset",
+      "h3",
+      "img",
+      "input",
+      "select",
+      "textarea",
+      "time",
+    ])
   })
 
   test("is= never names a customized built-in, and no element is created through it", async () => {

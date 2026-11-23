@@ -635,16 +635,23 @@ for (const [name, slug] of Object.entries(components)) {
   const events = root
     ? callbacks(schema.options)
     : callbacks(schema.slots[slot] ?? config.feature?.slots?.[slot]?.props)
-  const sought = config.target
-    ? soughtBy(config.target)
-    : root && config.children?.root
-      ? soughtBy(config.children.root)
-      : []
+  // A root that is no part itself binds the first child it can't do without: an
+  // input's <input>, a field set's <fieldset>.
+  const boundChild =
+    root && config.children && !config.self
+      ? (config.children.root ??
+        Object.entries(config.children).find(
+          ([key]) => !(config.optionalChildren ?? []).includes(key)
+        )?.[1])
+      : undefined
+  const sought = config.target ? soughtBy(config.target) : boundChild ? soughtBy(boundChild) : []
   const natives = nativeTags(sought)
   const drawn = reactTags.get(`${primitive.name}:${element.key}`)
   const inner = natives.includes(drawn) ? drawn : natives[0]
   const part = { tag }
   if (root) part.root = true
+  // A root that is no part of the component stands where React draws nothing.
+  if (root && !config.self && !config.children) part.bare = true
   if (inner) part.inner = inner
   if (options.length) part.options = [...new Set(options)].join(" ")
   if (live.length) part.live = live.join(" ")
@@ -680,6 +687,8 @@ export interface UiSdkElement {
   tag: string
   /** Whether the element holds the component's state, rather than being one of its parts. */
   root?: true
+  /** Whether React draws no element for it: the component only holds state for its parts. */
+  bare?: true
   /** The native element the part binds, which is written inside it. */
   inner?: string
   /** Props the element declares as its own properties. Anything else belongs to the bound element. */

@@ -6,7 +6,8 @@ import { listenerName } from "./dialect"
 /**
  * The few properties an element is given instead of an attribute, because
  * the attribute only says how the element starts out: what a control holds
- * now, whether a disclosure is open, whether media is muted.
+ * now, whether a disclosure is open, which option is picked, whether media
+ * is muted.
  */
 const LIVE: Record<string, readonly string[]> = {
   input: ["value", "checked"],
@@ -54,6 +55,11 @@ export function nativeProp(
   const attribute = exact ? name : attributeName(name)
   if (LIVE[tag]?.includes(attribute)) {
     if (value !== undefined) (parts.live ??= {})[attribute] = attribute === "value" ? value : Boolean(value)
+    return
+  }
+  // The attribute is the default; which option is picked now is the property.
+  if (attribute === "selected" && tag === "option") {
+    ;(parts.props ??= {}).selected = Boolean(value)
     return
   }
   if (attribute === "muted" && (tag === "video" || tag === "audio")) {

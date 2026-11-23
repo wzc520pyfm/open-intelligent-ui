@@ -1,12 +1,12 @@
-import { mkdirSync, writeFileSync } from "node:fs"
 import { IntelligentUI as ReactUI, preloadUiSdk as preloadReact } from "@open-intelligent-ui/react"
 import { act, createElement } from "react"
 import { createRoot } from "react-dom/client"
 import { beforeAll, expect, test } from "vitest"
 import { CORPUS, corpusTools, type Sample } from "../../vue/test/corpus"
 import { describe as describeDom } from "../../vue/test/dom"
-import { mount, preloadUiSdk as preloadWeb } from "../src"
+import { isUiSdkComponent, mount, preloadUiSdk as preloadWeb } from "../src"
 import { flushPromises } from "./helpers"
+import { EXACT_SAMPLES } from "./exact-samples"
 import { describeForReader } from "./reader"
 
 declare global {
@@ -91,20 +91,54 @@ test("there are samples to compare", () => {
   expect(CORPUS.length).toBeGreaterThan(40)
 })
 
-mkdirSync("/tmp/web-conf", { recursive: true })
+/** Whether a sample draws any UI SDK component, which the two renderers build from different elements. */
+const usesUiSdk = (source: string) =>
+  [...source.matchAll(/<([A-Z][A-Za-z0-9]*)/g)].some((match) => isUiSdkComponent(match[1] as string))
 
+const exact: string[] = []
+const byReader: string[] = []
+
+/**
+ * A sample with no UI SDK component must give the same DOM, node for node.
+ * One with UI SDK components is built from custom elements here and from
+ * React components there, so it is compared as `describeForReader` reads
+ * it: every element outside UI SDK exactly, and each UI SDK part by its
+ * slot, role, name, state and text.
+ */
 test.each(CORPUS.map((sample) => [sample.name, sample] as const))(
   "%s is drawn the same by React and Web",
   async (name, sample) => {
     const react = await drawnByReact(sample)
     const web = await drawnByWeb(sample)
-    const file = name.replace(/[^a-z0-9]+/gi, "_")
-    writeFileSync(`/tmp/web-conf/${file}.react.txt`, react.reader + "\n\nWARN " + react.warnings.join("\n"))
-    writeFileSync(`/tmp/web-conf/${file}.web.txt`, web.reader + "\n\nWARN " + web.warnings.join("\n"))
-    writeFileSync(`/tmp/web-conf/${file}.src.txt`, sample.source)
     expect(react.dom).not.toContain("iui-error")
-    expect(web.reader).toBe(react.reader)
+    if (usesUiSdk(sample.source)) {
+      expect(web.reader).toBe(react.reader)
+      byReader.push(name)
+    } else {
+      expect(web.dom).toBe(react.dom)
+      exact.push(name)
+    }
     expect(web.warnings).toEqual(react.warnings)
     expect(react.warnings).toEqual([])
+  }
+)
+
+test("the corpus splits into samples compared exactly and samples compared as read", () => {
+  // The split the report quotes; a new sample has to be counted on one side.
+  expect({ exact: exact.length, byReader: byReader.length }).toEqual({ exact: 6, byReader: 47 })
+})
+
+test("the samples of our own stay clear of UI SDK", () => {
+  expect(EXACT_SAMPLES.filter((sample) => usesUiSdk(sample.source))).toEqual([])
+})
+
+test.each(EXACT_SAMPLES.map((sample) => [sample.name, sample] as const))(
+  "%s gives the same DOM in React and Web",
+  async (_name, sample) => {
+    const react = await drawnByReact(sample)
+    const web = await drawnByWeb(sample)
+    expect(react.dom).not.toContain("iui-error")
+    expect(web.dom).toBe(react.dom)
+    expect(web.warnings).toEqual(react.warnings)
   }
 )

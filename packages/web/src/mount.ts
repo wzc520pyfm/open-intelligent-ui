@@ -73,6 +73,8 @@ export interface IntelligentUIOptions {
   storageKey?: string | undefined
   /** Return false to refuse a link or media URL. */
   allowUrl?: ((url: string, kind: "link" | "media") => boolean) | undefined
+  /** Class names for the surface's root element, next to its own. */
+  class?: string | undefined
 }
 
 /** What a surface lets the application around it do. */
@@ -342,6 +344,7 @@ export function mount(target: Element, initial: IntelligentUIOptions): MountedUI
       timers.clear()
       surface.stop()
       root.unmount()
+      claim.release()
     },
   }
 }

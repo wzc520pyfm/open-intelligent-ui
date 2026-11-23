@@ -278,6 +278,20 @@ describe("mount()", () => {
     other.release()
   })
 
+  test("class names the host gives are on the root next to its own", async () => {
+    const host = document.body.appendChild(document.createElement("div"))
+    made.push(host)
+    const ui = mount(host, { source: "Hello", class: "reply framed" })
+    await flushPromises()
+    const root = host.querySelector(".iui-root") as HTMLElement
+    expect(root.className).toBe("iui-root reply framed")
+    ui.update({ class: "reply" })
+    ui.flush()
+    expect(host.querySelector(".iui-root")).toBe(root)
+    expect(root.className).toBe("iui-root reply")
+    ui.unmount()
+  })
+
   test("an option left out of update() keeps its value", async () => {
     const onWarning = vi.fn()
     const host = document.body.appendChild(document.createElement("div"))

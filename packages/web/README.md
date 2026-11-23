@@ -60,6 +60,7 @@ ui.unmount()
 - `design` is a DESIGN.md file's text. Leave it out for the built-in design.
 - `tools` are the functions markup reads with `<query>` and writes with `call()`.
 - `onAction` receives what the reader decided, to send back to the model. Return `true` when you have handled an `open` or `copy` action yourself.
+- `class` gives the surface's root element class names of your own. The design's colors and sizes are custom properties set on that element, so a frame that uses `var(--iui-color-border)` goes there. `mount()` takes it; around the element, write `intelligent-ui > .iui-root` in your stylesheet.
 
 The markup, the options and the prompt are the same as for [`@open-intelligent-ui/react`](https://www.npmjs.com/package/@open-intelligent-ui/react); one reply looks and behaves the same in both. The prompt that teaches a model the markup comes from `buildSystemPrompt` in [`@open-intelligent-ui/core/prompt`](https://www.npmjs.com/package/@open-intelligent-ui/core).
 

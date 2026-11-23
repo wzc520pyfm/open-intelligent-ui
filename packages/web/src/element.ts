@@ -269,6 +269,22 @@ export function defineIntelligentUI(tag = "intelligent-ui"): void {
   // A class can be registered once, so another tag gets a class of its own.
   const registered = customElements.getName?.(IntelligentUIElement)
   customElements.define(tag, registered ? class extends IntelligentUIElement {} : IntelligentUIElement)
+  blockByDefault(tag)
+}
+
+/**
+ * A custom element is inline until a stylesheet says otherwise, and a
+ * surface is a block. The rule has no specificity, so any rule of the
+ * page's for the element wins over it.
+ */
+function blockByDefault(tag: string): void {
+  try {
+    const sheet = new CSSStyleSheet()
+    sheet.replaceSync(`:where(${tag}) { display: block }`)
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet]
+  } catch {
+    // No constructable stylesheets here: the page gives the element its display.
+  }
 }
 
 declare global {

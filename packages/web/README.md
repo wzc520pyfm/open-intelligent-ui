@@ -142,7 +142,7 @@ The layout primitives and the presets `Stat`, `Number`, `DataTable`, `CodeBlock`
 
 UI SDK components and icons load on first use, one chunk per entry point or icon. Call `preloadUiSdk()` or `preloadUiSdk("Tabs", "Dialog")`, and `preloadIcons("arrow-up", "x")`, to load them ahead of time.
 
-ESM only, for browsers. The files in `dist` import their dependencies by package name, so a page without a bundler needs an import map for `@open-intelligent-ui/core`, `@ui-sdk/web`, `@ui-sdk/core` and `lucide`. Importing the package on a server does nothing and does not fail; there is no server rendering.
+ESM only, for browsers. The files in `dist` import their dependencies by package name, so a bundler is the easy way to use them. A page without one needs an import map with an entry for every entry point of `@open-intelligent-ui/web`, `@open-intelligent-ui/core`, `@ui-sdk/web` and `@ui-sdk/core`, for `marked` and `yaml`, for the prefix `lucide/`, and for the two names `@ui-sdk/core` gives its own files, `#dev` and `#name-check`. Importing the package on a server does nothing and does not fail; there is no server rendering.
 
 Tools, theming, state and the safety model are covered in the [integration guide](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/skills/intelligent-ui/references/integration.md).
 

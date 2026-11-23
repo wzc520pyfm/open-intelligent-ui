@@ -46,6 +46,7 @@ export default defineConfig({
           server: { deps: { inline: [/solid-js/, /@solidjs\//, /@ui-sdk\/solid/] } },
         },
       },
+      "packages/svelte/vitest.config.ts",
     ],
   },
 })

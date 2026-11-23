@@ -5,6 +5,7 @@ import type { Mount, Mounted, RendererId, SurfaceHandle, SurfaceProps } from "./
 
 const LOADERS: Record<Exclude<RendererId, "react">, () => Promise<Mount>> = {
   vue: () => import("./vue").then((module) => module.mount),
+  solid: () => import("./solid").then((module) => module.mount),
 }
 
 interface Shared {

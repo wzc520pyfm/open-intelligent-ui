@@ -2,12 +2,15 @@ import { flush, type IntelligentUIOptions, type MountedUI, mount } from "../src"
 
 export type Props = IntelligentUIOptions
 
+/** The real timer, so waiting still works in a test that fakes time. */
+const later = setTimeout
+
 const mounted = new Set<{ view: MountedUI; host: HTMLElement }>()
 
 /** Lets promises that are already resolved, and what they start, run. */
 export async function flushPromises() {
   for (let turn = 0; turn < 4; turn++) {
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    await new Promise((resolve) => later(resolve, 0))
     flush()
   }
 }
@@ -92,7 +95,7 @@ export async function until(check: () => void, timeout = 2000) {
       return
     } catch (error) {
       if (Date.now() - started > timeout) throw error
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await new Promise((resolve) => later(resolve, 10))
       await flushPromises()
     }
   }

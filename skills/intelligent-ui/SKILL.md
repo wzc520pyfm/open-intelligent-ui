@@ -1,6 +1,6 @@
 ---
 name: intelligent-ui
-description: Writes interfaces in IUI markup and wires the Open Intelligent UI renderer into a product. Use when an agent's answer should be an interface a person can operate (a calculator, comparison, dashboard, form or workbench) instead of text, when writing or fixing `.iui` markup, when adding `<IntelligentUI>` to a React app, when building the system prompt that teaches a model the markup, or when choosing or writing the DESIGN.md that themes it.
+description: Writes interfaces in IUI markup and wires the Open Intelligent UI renderer into a product. Use when an agent's answer should be an interface a person can operate (a calculator, comparison, dashboard, form or workbench) instead of text, when writing or fixing `.iui` markup, when adding `<IntelligentUI>` to a React or Vue app, when building the system prompt that teaches a model the markup, or when choosing or writing the DESIGN.md that themes it.
 ---
 
 # Intelligent UI
@@ -20,7 +20,7 @@ Pick the job in front of you:
 | --- | --- |
 | Write or fix an interface | [The steps below](#write-an-interface), then [references/language.md](references/language.md) |
 | Look up a UI SDK component and its parts | [references/components.md](references/components.md) |
-| Put the renderer in a React app, build the prompt, connect tools | [references/integration.md](references/integration.md) |
+| Put the renderer in a React or Vue app, build the prompt, connect tools | [references/integration.md](references/integration.md) |
 | Make it move well | The `motion` skill next to this one |
 
 ## Write an interface

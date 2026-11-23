@@ -84,7 +84,7 @@ pnpm dev
 pnpm test
 pnpm typecheck
 pnpm design:lint      # 用 DESIGN.md 官方 CLI 检查 design/ 下的三份设计
-pnpm check:packages   # 构建两个包，检查将要发到 npm 的 tarball
+pnpm check:packages   # 构建所有包，检查将要发到 npm 的 tarball
 ```
 
 ## 接入
@@ -113,15 +113,43 @@ const system = buildSystemPrompt({ design, tools: toolDescriptions })
 />
 ```
 
-两个包都是 ESM，带类型声明；React 包的入口标了 `"use client"`。工具、主题、宿主组件、状态读写和安全边界的说明在 [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md)。
+Vue 里是同一个组件、同一组属性：
+
+```bash
+npm install @open-intelligent-ui/vue @open-intelligent-ui/core @ui-sdk/vue @ui-sdk/core
+```
+
+```vue
+<script setup lang="ts">
+import { IntelligentUI } from "@open-intelligent-ui/vue"
+import "@open-intelligent-ui/vue/styles.css"
+</script>
+
+<template>
+  <IntelligentUI
+    :source="replySoFar"
+    :streaming="isStreaming"
+    :design="design"
+    :tools="{ listTickets, updateTicket }"
+    :on-action="onAction"
+  />
+</template>
+```
+
+模型给两边写的是同一份标记，两个渲染器画出的 DOM 也相同。`pnpm dev:vue` 在 <http://localhost:5174> 用 Vue 渲染器运行那六个示例。
+
+这些包都是 ESM，带类型声明；React 包的入口标了 `"use client"`。工具、主题、宿主组件、状态读写和安全边界的说明在 [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md)。
 
 ## 仓库结构
 
 ```
 packages/core     标记解析、表达式解释器、状态仓库、DESIGN.md、系统提示词。不依赖框架
-packages/react    React 渲染器、原语、预置组件、样式
+packages/core/src/renderer   各渲染器共用的部分：指令、原语、预置组件、图表。packages/core/styles 是样式表
+packages/react    React 渲染器，建在 @ui-sdk/react 上
+packages/vue      Vue 渲染器，建在 @ui-sdk/vue 上
 packages/open-intelligent-ui   不带 scope 的 npm 包名，只重导出 packages/core
-apps/playground   演示站
+apps/playground   演示站（React）
+apps/vue-demo     同一批示例，用 Vue 渲染器
 design/           三份 DESIGN.md：Paper、Heritage、Signal
 skills/           给编码智能体的两个 skill：intelligent-ui 和 motion
 docs/             调研、语言规范、架构
@@ -144,7 +172,7 @@ scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设�
 
 - **没有用真实模型验证过。** 示例是手写的标记。系统提示词里的每个示例都经过测试渲染，但模型按这份提示词实际写得怎么样、token 成本如何，没有数据。
 - **UI SDK 是 beta**（0.1.0-beta.13）。升级后运行 `pnpm generate`，测试会指出变化。
-- **只有 React 渲染器**，需要 React 19。UI SDK 另有 Vue、Svelte、Solid 和 Web Components 的包，组件名相同；`packages/core` 和样式表不依赖框架，但其他框架的渲染器没有写。见 [`docs/research.md`](docs/research.md#其他框架)。
+- **两个渲染器：React 19 以上和 Vue 3.5 以上。** 有一个测试把仓库里的每个示例分别交给两个渲染器，比较画出的 DOM 和报出的警告。Vue 渲染器是新写的：除了这些测试，只在桌面版 Chrome 里用六个演示和 React 对比过，没有在产品里用过。Svelte、Solid 和 Web Components 还没有渲染器。见 [`docs/research.md`](docs/research.md#其他框架)。
 - **目测只在桌面版 Chrome 里做过。** 位置过渡依赖 View Transitions API，不支持的浏览器会直接切换。
 - **安全模型没有经过外部审计。** 标记不会被当作代码执行，但工具调用的权限检查是宿主的责任。
 - **宿主页面不分层的全局 CSS 会影响界面内部**，接入时需要把 reset 放进层叠层。

@@ -36,7 +36,7 @@
 2. 模型流式返回 IUI 标记。每来一段，宿主把到目前为止的全文交给 `<IntelligentUI source streaming>`。
 3. `parse` 把全文解析成树。流式期间，末尾半截的标签和表达式先不解析。
 4. `Surface` 读树里的声明：建立状态、派生值、查询、自定义组件和样式。已有的状态不动。
-5. 渲染器把树变成 React 元素：原语、预置组件、UI SDK 部件、HTML 和 SVG。
+5. 渲染器把树变成所在框架的元素（React 或 Vue）：原语、预置组件、UI SDK 部件、HTML 和 SVG。
 6. 读者操作界面。事件处理是标记里的动作，在解释器里执行，写状态仓库；读过这些状态的地方重新渲染。这一步没有模型参与。
 7. `<query>` 和 `call()` 直接调用宿主提供的工具，读写真实数据。这一步也没有模型参与。
 8. 动作调用 `send()` 时，宿主收到一句话、附带的数据和当时的全部状态，把它作为用户消息交给模型，开始下一轮。
@@ -52,20 +52,24 @@ packages/core            不依赖任何框架
   src/runtime            Surface：状态、派生值、查询、动作
   src/design             DESIGN.md 解析、令牌到 CSS 变量、CSS 作用域与净化
   src/prompt             系统提示词、语言指南、UI SDK 清单（生成）
-packages/react           React 渲染器
-  src/IntelligentUI.tsx  组件本体
-  src/render             树到 React 元素、属性与指令、入场与离场
-  src/primitives         15 个布局与文字原语
-  src/presets            6 个预置组件
+  src/renderer           各渲染器共用的部分，不依赖框架，但会用到 DOM
+                         树的遍历、属性与指令、令牌、原语、预置组件、图表
+  styles                 样式表，只有这一份
+packages/react           React 渲染器，建在 @ui-sdk/react 上
+packages/vue             Vue 渲染器，建在 @ui-sdk/vue 上；两个包的结构相同
+  src/IntelligentUI      组件本体：状态订阅、流式更新、提示、morph
+  src/render             本框架的命名规则、视图到元素、错误边界、离场
+  src/primitives         图标和图片；其余原语直接用共用的视图
+  src/presets            预置组件里需要本地状态的部分（排序、翻页、数字滚动）
   src/registry           UI SDK 部件的懒加载表（生成）
-  src/styles             样式表
 apps/playground          演示站：六个示例、流式回放、接真实模型
+apps/vue-demo            同一批示例，用 Vue 渲染器
 design                   三份 DESIGN.md
 skills                   给编码智能体的两个 skill
 scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DESIGN.md
 ```
 
-运行时依赖只有三个：`marked`（Markdown）、`yaml`（DESIGN.md 的令牌）、`lucide-react`（图标）。UI SDK 和 React 是 peer 依赖。
+运行时依赖只有三个：`marked`（Markdown）、`yaml`（DESIGN.md 的令牌）和图标（React 包用 `lucide-react`，Vue 包用同一版本的 `@lucide/vue`）。UI SDK 和框架本身是 peer 依赖。
 
 ## 解析器
 
@@ -90,7 +94,7 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 
 `packages/core/src/runtime/surface.ts`。每个界面一个 `Surface`。
 
-**状态不可变。** 赋值不修改对象，而是沿路径复制：`todo.done = true` 会生成新的 todo、新的列表，再替换状态里的那一项。React 侧用 `useSyncExternalStore` 订阅版本号。
+**状态不可变。** 赋值不修改对象，而是沿路径复制：`todo.done = true` 会生成新的 todo、新的列表，再替换状态里的那一项。React 侧用 `useSyncExternalStore` 订阅版本号，Vue 侧把版本号放进一个 `shallowRef`。
 
 **按身份写回。** 难点在于被赋值的对象常常不是从状态里直接取的：
 
@@ -110,9 +114,16 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 
 ## 渲染
 
-`packages/react/src/render`。
+渲染分两层。`packages/core/src/renderer` 是共用的一层，决定“渲染成什么”；`packages/react` 和 `packages/vue` 各自只决定“在这个框架里怎么写出来”。
 
-- **树到元素。** `renderNodes` 逐节点生成 React 元素。大写名字的查找顺序是宿主组件、`<define>`、预置组件、UI SDK。
+共用层向框架要两样东西：
+
+- **命名规则（`PropsDialect`）。** 同一个意思在不同框架里名字不同：类名是 `className` 还是 `class`，`on:keydown` 是 `onKeyDown` 还是 `onKeydown`，`bind:value` 写回时监听哪个事件。标记里的 `on:change` 在两边都表示“每次编辑”，所以在 Vue 里落到 `input` 事件上。
+- **宿主（`RenderHost`）。** 怎么创建元素、片段和组件，怎么把子树交给组件（`let:`），怎么做离场和占位。
+
+原语、预置组件和图表不直接生成框架元素，而是生成一棵中性的视图树（`view.ts`：标签、类名、样式、事件、子节点），每个框架用一个几十行的转换函数把它变成自己的元素。排序、翻页、悬停这类本地状态留在框架一侧，画什么由共用层决定。
+
+- **树到元素。** `createRenderer(host)` 返回的 `renderNodes` 逐节点生成元素。大写名字的查找顺序是宿主组件、`<define>`、预置组件、UI SDK。
 - **属性。** `props.ts` 把标记属性转成组件属性：`bind:` 变成值加回调，`on:` 变成事件处理函数，`class:`、`style:` 合并，危险属性（`dangerouslySetInnerHTML`、`srcdoc`、`formaction` 等）丢弃，链接和媒体地址经过 `safeUrl`。
 - **原语的属性是令牌。** `tokens.ts` 把 `gap={3}`、`color="muted"`、`radius="lg"` 解析成 `var(--iui-…)`；不认识的颜色名按 CSS 颜色处理并经过净化。
 - **错误边界。** 每个顶层块包在一个 `Boundary` 里。一块出错只影响这一块；流式期间不显示错误，只显示占位，因为下一个数据块可能就修好了。
@@ -125,13 +136,16 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 
 | 文件 | 内容 | 用途 |
 | --- | --- | --- |
-| `packages/react/src/registry/ui-sdk.generated.ts` | 组件名到入口的表，每个入口一个动态 `import()` | 渲染器按名字懒加载 |
+| `packages/react/src/registry/ui-sdk.generated.ts`、`packages/vue/src/registry/ui-sdk.generated.ts` | 组件名到入口的表，每个入口一个动态 `import()`，分别指向 `@ui-sdk/react` 和 `@ui-sdk/vue` | 渲染器按名字懒加载 |
 | `packages/core/src/prompt/ui-sdk-catalog.generated.ts` | 每个入口的说明、部件、结构、示例、属性 | 提示词和 `describeComponent` |
-| `packages/react/src/styles/ui-sdk.generated.css` | UI SDK 的 `web.css`，限定在 `.iui-root` 和 `ui-sdk` 层里 | 默认外观 |
+| `packages/core/styles/ui-sdk.generated.css` | UI SDK 的 `web.css`，限定在 `.iui-root` 和 `ui-sdk` 层里 | 默认外观 |
+| `packages/vue/src/primitives/icons.generated.ts` | 图标名到 `@lucide/vue` 单个图标文件的表 | Vue 渲染器按名字懒加载图标 |
 
 渲染器不认识任何一个具体的 UI SDK 组件：标记里出现 `<Tabs>`，就按名字加载、传属性、渲染子节点。所以 UI SDK 新增组件后，重新运行 `pnpm generate` 即可用，不需要改渲染器。
 
-需要特别处理的只有一类：以函数作为子节点的部件（Calendar 的周和日）。带 `let:` 的元素会把自己的子树编译成一个函数再传给组件。
+生成脚本会核对两个包：版本必须相同，React 清单里的每个组件名在 `@ui-sdk/vue` 里都要能找到，否则报错。
+
+需要特别处理的只有一类：以函数作为子节点的部件（Calendar 的周和日）。带 `let:` 的元素会把自己的子树编译成一个函数再传给组件。React 的部件把一个值传给函数子节点；Vue 的部件把一个对象传给默认插槽（多数是 `{ state }`，也有 `{ cell }`、`{ index }`），而且 `state` 是按字段读取时才取值并建立订阅的代理。所以 Vue 一侧不复制它，而是包成 `lazyRecord`：表达式读到哪个字段，才去取哪个字段，取到的值照常转成纯数据。
 
 加载是异步的。部件第一次出现时先渲染占位，模块到达后触发重新渲染；`preloadUiSdk()` 可以提前加载。
 
@@ -160,7 +174,7 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 
 ## 样式分层
 
-`packages/react/src/styles/index.css` 声明两个层叠层：
+`packages/core/styles/index.css` 声明两个层叠层，两个渲染器发布的 `styles.css` 都是它：
 
 ```css
 @layer ui-sdk, iui;
@@ -226,6 +240,7 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 | 卡死页面 | 求值有步数上限；自定义组件嵌套最多 24 层 |
 | 加载外部资源 | CSS 里的 `@import` 和外站 `url()` 被移除；链接和媒体地址按协议过滤，宿主可用 `allowUrl` 收紧 |
 | 遮盖宿主页面 | 样式限定在界面内；`position: fixed` 改为 `absolute` |
+| 经组件改写 DOM | 组件没有声明的属性，Vue 会透传到它的根元素上，并在元素有同名属性（property）时直接赋值；`outerHTML` 能把部件换成任意 HTML，`hostname` 能改掉已经检查过的链接。Vue 渲染器对这类名字只按 HTML 属性（attribute）设置，和 React 对未知属性的处理一致；`innerHTML`、`outerHTML` 在两边都丢弃 |
 | 嵌入其他文档 | `iframe`、`object`、`embed`、SVG `foreignObject` 被丢弃 |
 | 越权读写数据 | 标记只能调用宿主传入的工具。工具在读者的会话里运行，宿主应在服务端校验每一次调用 |
 
@@ -245,7 +260,10 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 | `packages/react/test/guide.test.tsx` | 提示词里的每个示例都能渲染，且没有警告 |
 | `packages/react/test/claims.test.tsx` | 提示词里的每条承诺（按钮 pending、查询轮询、morph、离场动画等） |
 | `packages/react/test/ui-sdk.test.tsx` | UI SDK 55 个入口的官方示例；预置组件不重名；智能体桥 |
+| `packages/core/test/renderer.test.ts` | 组件交给标记的值只能是纯数据；按需读取的记录不泄露函数和原型 |
+| `packages/vue/test/conformance.test.ts` | 一致性：仓库里的每个示例（六个演示、提示词和文档里的全部示例）分别用 React 和 Vue 渲染，DOM 和警告必须相同 |
+| `packages/vue/test/render.test.ts`、`claims.test.ts`、`ui-sdk.test.ts` | React 那三组测试在 Vue 上的对应版本，另加 Vue 特有的部分（`v-model` 式的宿主组件、`.prop` 和 `^attr` 写法不能被标记利用） |
 | `apps/playground/test/demos.test.tsx` | 六个演示能渲染、能交互、在任意截断点都能流式显示 |
 | `apps/playground/test/docs.test.tsx` | 文档和 skill 里的每个 `iui` 示例；skill 参考页没有过期 |
 
-测试在 jsdom 里运行，不覆盖布局、绘制和动画。这些是在 Chrome 里用截图检查的，见 [`skills/motion/SKILL.md`](../skills/motion/SKILL.md) 里的截图脚本。
+测试在 jsdom 里运行，不覆盖布局、绘制和动画，一致性测试比较的也只是 DOM。这些是在 Chrome 里用截图检查的，见 [`skills/motion/SKILL.md`](../skills/motion/SKILL.md) 里的截图脚本。

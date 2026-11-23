@@ -1,0 +1,217 @@
+:root {
+  --wd-bg: #f4f4f2;
+  --wd-panel: #ffffff;
+  --wd-ink: #1a1a18;
+  --wd-dim: #6d6d67;
+  --wd-line: #e2e2dd;
+  --wd-hover: #ecece8;
+  --wd-accent: #2f8f6b;
+  color-scheme: light;
+}
+
+:root[data-scheme="dark"] {
+  --wd-bg: #0c0c0b;
+  --wd-panel: #151514;
+  --wd-ink: #ecece9;
+  --wd-dim: #9a9a93;
+  --wd-line: #2a2a27;
+  --wd-hover: #20201e;
+  --wd-accent: #5fcf9f;
+  color-scheme: dark;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--wd-bg);
+  color: var(--wd-ink);
+  font: 14px/1.5 "Inter", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wd {
+  display: grid;
+  grid-template: auto 1fr / 250px minmax(0, 1fr) 300px;
+  height: 100%;
+}
+
+/*
+ * The demo's own rules stay off the generated surface: styles outside a
+ * cascade layer would override the renderer's layered ones.
+ */
+:where(.wd-top, .wd-side) :is(button, select) {
+  box-sizing: border-box;
+  font: inherit;
+  color: inherit;
+}
+
+.wd-top {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--wd-line);
+  background: var(--wd-panel);
+}
+
+.wd-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--wd-accent) 16%, transparent);
+  color: var(--wd-accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.wd-grow {
+  flex: 1;
+}
+
+.wd-top label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--wd-dim);
+}
+
+.wd-top :is(button, select) {
+  padding: 5px 10px;
+  border: 1px solid var(--wd-line);
+  border-radius: 8px;
+  background: var(--wd-panel);
+  cursor: pointer;
+}
+
+.wd-top button:hover {
+  background: var(--wd-hover);
+}
+
+.wd-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  overflow: auto;
+  border-right: 1px solid var(--wd-line);
+  background: var(--wd-panel);
+}
+
+.wd-side button {
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wd-side button:hover,
+.wd-side button[aria-current="true"] {
+  background: var(--wd-hover);
+}
+
+.wd-side span {
+  color: var(--wd-dim);
+  font-size: 12.5px;
+}
+
+.wd-main {
+  overflow: auto;
+  padding: 28px clamp(16px, 4vw, 48px) 64px;
+}
+
+.wd-ask,
+.wd-surface {
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.wd-ask {
+  width: fit-content;
+  margin-block: 0 16px;
+  margin-right: max(0px, calc((100% - 760px) / 2));
+  padding: 9px 14px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--wd-ink);
+  color: var(--wd-bg);
+}
+
+/* The element is the surface's place on the page; the frame goes on what it draws. */
+.wd-surface > .iui-root {
+  box-sizing: border-box;
+  padding: 22px;
+  border: 1px solid var(--iui-color-border);
+  border-radius: 16px;
+  background: var(--iui-color-background);
+}
+
+.wd-inspect {
+  overflow: auto;
+  padding: 14px 16px;
+  border-left: 1px solid var(--wd-line);
+  background: var(--wd-panel);
+  font-size: 12.5px;
+}
+
+.wd-inspect h2 {
+  margin: 0 0 6px;
+  color: var(--wd-dim);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.wd-inspect pre {
+  margin: 0 0 18px;
+  font: 12px/1.5 "JetBrains Mono", ui-monospace, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.wd-inspect ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+.wd-inspect b {
+  color: var(--wd-accent);
+}
+
+.wd-dim {
+  margin: 0;
+  color: var(--wd-dim);
+}
+
+@media (max-width: 1000px) {
+  .wd {
+    grid-template: auto auto 1fr / minmax(0, 1fr);
+  }
+
+  .wd-side {
+    flex-direction: row;
+    border-right: 0;
+    border-bottom: 1px solid var(--wd-line);
+  }
+
+  .wd-side button {
+    flex: none;
+    width: 190px;
+  }
+
+  .wd-inspect {
+    display: none;
+  }
+}

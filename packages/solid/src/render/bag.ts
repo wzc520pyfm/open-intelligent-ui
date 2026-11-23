@@ -29,6 +29,13 @@ export function same(a: unknown, b: unknown, depth = 0): boolean {
 
 const isHandler = (name: string) => /^on[A-Z]/.test(name)
 
+/** A prop worked out when it is read, like `children`. */
+export interface Special {
+  read(): unknown
+  /** Whether the component was given it at all, which `"children" in props` asks. */
+  has(): boolean
+}
+
 export interface Bag {
   /** What the component is given as its props. */
   props: Record<string, unknown>
@@ -42,11 +49,10 @@ export interface Bag {
  * same while the values behind it change. Each prop is a signal of its own,
  * made when first read, and so is the set of names.
  *
- * `special` props are computed when read, like `children`.
  */
 export function createBag(
   initial: Record<string, unknown>,
-  special: Record<string, () => unknown> = {}
+  special: Record<string, Special> = {}
 ): Bag {
   let current = initial
   const cells = new Map<string, [() => number, (next: (count: number) => number) => void]>()
@@ -81,7 +87,7 @@ export function createBag(
   }
 
   const read = (name: string): unknown => {
-    if (Object.hasOwn(special, name)) return (special[name] as () => unknown)()
+    if (Object.hasOwn(special, name)) return (special[name] as Special).read()
     track(name)
     if (!Object.hasOwn(current, name)) return undefined
     const value = current[name]
@@ -89,7 +95,7 @@ export function createBag(
   }
 
   const has = (name: string): boolean => {
-    if (Object.hasOwn(special, name)) return true
+    if (Object.hasOwn(special, name)) return (special[name] as Special).has()
     if (getObserver()) names()
     return Object.hasOwn(current, name)
   }
@@ -102,7 +108,8 @@ export function createBag(
       has: (_, name) => name === $PROXY || (typeof name === "string" && has(name)),
       ownKeys: () => {
         if (getObserver()) names()
-        return [...new Set([...Object.keys(current), ...Object.keys(special)])]
+        const given = Object.keys(special).filter((name) => (special[name] as Special).has())
+        return [...new Set([...Object.keys(current), ...given])]
       },
       getOwnPropertyDescriptor: (_, name) =>
         typeof name === "string" && has(name)

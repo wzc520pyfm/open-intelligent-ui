@@ -408,7 +408,9 @@ class ComponentMount implements Mounted {
   ) {
     this.node = node
     this.filled[1](this.hasChildren(node))
-    this.bag = createBag(componentProps(node.props), { children: () => this.readChildren() })
+    this.bag = createBag(componentProps(node.props), {
+      children: { read: () => this.readChildren(), has: () => this.isFilled() },
+    })
     runWithOwner(place.owner, () =>
       createRoot((dispose) => {
         this.stop = dispose
@@ -426,10 +428,13 @@ class ComponentMount implements Mounted {
    * mounted there, as with children written in JSX: read again by a new
    * owner, they are mounted again.
    */
+  /** Read through the signal only where a change can be heard. */
+  private isFilled(): boolean {
+    return getObserver() ? this.filled[0]() : this.hasChildren(this.node)
+  }
+
   private readChildren(): unknown {
-    // Read through the signal only where a change can be heard.
-    const filled = getObserver() ? this.filled[0]() : this.hasChildren(this.node)
-    if (!filled) return undefined
+    if (!this.isFilled()) return undefined
     if (this.node.scoped) return this.scopedChildren
     const slot = new Slot({ owner: getOwner(), space: this.place.space }, () => this.node.children)
     this.slots.add(slot)

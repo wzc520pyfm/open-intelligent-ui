@@ -23,6 +23,7 @@ which the interface reaches your product.
 | `@open-intelligent-ui/core` | The markup parser, the expression language, the state store, the DESIGN.md reader. No framework. |
 | `@open-intelligent-ui/core/prompt` | `buildSystemPrompt`, `describeComponent`, the guides and the UI SDK catalog. Import it on the server. |
 | `@open-intelligent-ui/react` | `<IntelligentUI>`, the primitives, the preset widgets and the stylesheet. |
+| `open-intelligent-ui` | The unscoped name. Re-exports `@open-intelligent-ui/core`, with `/prompt`. |
 
 ```bash
 npm install @open-intelligent-ui/react @open-intelligent-ui/core @ui-sdk/react @ui-sdk/core
@@ -33,10 +34,6 @@ Both are ESM with type declarations. The React package needs React 19 and
 `"use client"`: a Next.js server component can render `<IntelligentUI>`,
 but `tools` and the callbacks are functions, so pass those from a client
 component.
-
-The first release to npm has not happened yet. Until it does, use the
-packages through this repository's workspace, or run `pnpm pack` in
-`packages/core` and `packages/react` and install the two tarballs.
 
 ## Render a reply
 

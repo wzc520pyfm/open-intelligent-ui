@@ -93,7 +93,7 @@ pnpm check:packages   # build both packages and check the tarballs npm would get
 npm install @open-intelligent-ui/react @open-intelligent-ui/core @ui-sdk/react @ui-sdk/core
 ```
 
-> Not on npm yet. Both packages build and pack (`pnpm check:packages`); the first release is waiting on npm credentials. Until it lands, use the workspace, or install the tarballs that `pnpm pack` writes in `packages/core` and `packages/react`.
+`open-intelligent-ui`, without a scope, is the same project: it re-exports `@open-intelligent-ui/core`.
 
 ```tsx
 import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
@@ -145,7 +145,6 @@ A working prototype, not a product.
 - **Not validated against a real model.** Demos are handwritten. Every example in the system prompt is rendered by tests; how a model writes against that prompt, and at what token cost, is unknown.
 - **UI SDK is beta** (0.1.0-beta.13). After upgrading, run `pnpm generate`; tests will flag drift.
 - **React renderer only**, React 19+. UI SDK also ships Vue, Svelte, Solid and web-component packages with the same component names, and `packages/core` and the stylesheet do not depend on a framework, but no other renderer has been written. See [`docs/research.md`](docs/research.md#其他框架).
-- **Not on npm yet.** The packages build to `dist/` and their tarballs were installed and run in a Vite app and a Next.js app outside this repository; the publish itself has not happened.
 - **Visual checks only in desktop Chrome.** Layout morphing needs View Transitions; unsupported browsers swap instantly.
 - **Safety model has not been audited externally.** Markup is never executed as code; authorizing tool calls is the host's job.
 - **Unlayered host CSS can override the surface.** Put resets in a cascade layer when integrating.

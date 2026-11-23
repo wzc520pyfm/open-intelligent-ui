@@ -291,9 +291,9 @@ UI SDK 的 55 个入口几乎全是交互。回答问题最常用的“内容”
 | React 的部件把一个值传给函数子节点；Vue 的部件把 `{ state }` 传给插槽，而且 `state` 是只能按字段读取的代理，复制它会得到空对象 | `let:` 在 Vue 里按字段惰性读取（`lazyRecord`） |
 | `lucide-react` 有按名字懒加载的入口，`@lucide/vue` 没有 | 生成一张图标名到单个文件的表，自己画同样的 `<svg>` |
 | Vue 的宿主组件习惯用 `update:value` 而不是 `onValueChange` | `bind:value` 在 Vue 里两个都监听 |
-| 组件没声明的属性，Vue 会在根元素上按 property 赋值，`outerHTML`、`hostname` 因此可以被标记利用；`onVnodeMounted` 一类钩子能拿到虚拟节点 | 这类名字只按 attribute 设置，钩子一律丢弃；见架构文档的安全模型 |
+| 组件没声明的属性，Vue 会在根元素上按 property 赋值，`outerHTML`、`hostname` 因此可以被标记利用；`onVnodeMounted` 一类钩子能拿到虚拟节点；按 attribute 设置的 `onclick` 字符串是内联事件处理器 | 这类名字只按 attribute 设置，钩子和 `on` 开头的字符串一律丢弃；见架构文档的安全模型 |
 
-最后一行是安全问题，是在对照 React 逐项检查 Vue 的属性通道时发现的，一致性测试本身发现不了它。换下一个框架时，同样需要单独过一遍“这个框架会把属性名变成什么”。
+最后一行是安全问题，是在对照 React 逐项检查 Vue 的属性通道时发现的，一致性测试本身发现不了它。合并前的代码评审又在共用层里指出了几处：被禁的属性名换成大写、或者改用 `bind:` 绑定，就能绕过检查。这些在两个渲染器里都存在，已经一并修掉并补了测试。换下一个框架时，同样需要单独过一遍“这个框架会把属性名变成什么”。
 
 **没有做的。** 没有在真实的 Vue 应用或 Nuxt 里用过；服务端用 `renderToString` 能输出 HTML，但水合（hydration）没有测过；演示站的 Live 模式（接真实模型）只有 React 版；Svelte、Solid、Web Components 没有动。
 

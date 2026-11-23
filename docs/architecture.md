@@ -237,11 +237,12 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 | --- | --- |
 | 执行脚本 | 标记是被解释的数据。没有 `eval`；`<script>` 等标签在解析后丢弃；字符串事件属性丢弃 |
 | 逃出解释器 | 表达式访问不到 `window`、`document`、原型链；方法是白名单 |
-| 卡死页面 | 求值有步数上限；自定义组件嵌套最多 24 层 |
+| 卡死页面 | 求值有步数上限；自定义组件嵌套最多 24 层；图表刻度按个数生成，数值再大再密也不会循环不止 |
 | 加载外部资源 | CSS 里的 `@import` 和外站 `url()` 被移除；链接和媒体地址按协议过滤，宿主可用 `allowUrl` 收紧 |
 | 遮盖宿主页面 | 样式限定在界面内；`position: fixed` 改为 `absolute` |
-| 经组件改写 DOM | 组件没有声明的属性，Vue 会透传到它的根元素上，并在元素有同名属性（property）时直接赋值；`outerHTML` 能把部件换成任意 HTML，`hostname` 能改掉已经检查过的链接。Vue 渲染器对这类名字只按 HTML 属性（attribute）设置，和 React 对未知属性的处理一致；`innerHTML`、`outerHTML` 在两边都丢弃 |
-| 绕过 `allowUrl` 加载资源 | UI SDK 组件会把不认识的属性放到自己的元素上。`srcset`、`imagesrcset`、`ping`、`attributionsrc` 不论大小写一律丢弃；组件上的 `poster` 和 `src` 一样先问 `allowUrl` |
+| 经组件改写 DOM | 组件没有声明的属性，Vue 会透传到它的根元素上，并在元素有同名属性（property）时直接赋值；`outerHTML` 能把部件换成任意 HTML，`hostname` 能改掉已经检查过的链接。Vue 渲染器对这类名字只按 HTML 属性（attribute）设置，和 React 对未知属性的处理一致；`innerHTML`、`outerHTML` 在两边都丢弃。`defineAsyncComponent` 的组件按它加载到的组件所声明的属性处理 |
+| 绕过 `allowUrl` 加载资源 | UI SDK 组件会把不认识的属性放到自己的元素上。`srcset`、`imagesrcset`、`ping`、`attributionsrc` 一律丢弃；组件上的 `href`、`src`、`poster` 先问 `allowUrl` |
+| 换个写法绕过检查 | 被禁的名字和带地址的名字不论大小写都按同一条规则处理（HTML 元素的属性名不分大小写）；`bind:` 绑定的值和直接写的值走同一套检查，样式、地址、事件名都一样。字符串不会落到 `on` 开头的属性上，否则在 Vue 里会成为内联事件处理器 |
 | 借框架的钩子读到宿主 | Vue 的 `onVnodeMounted` 一类属性不是事件，调用时会拿到虚拟节点，顺着它能读到应用上下文。Vue 渲染器在标记能写到的每一处都丢弃这类名字；`ref` 在两边都丢弃 |
 | 嵌入其他文档 | `iframe`、`object`、`embed`、SVG `foreignObject` 被丢弃 |
 | 越权读写数据 | 标记只能调用宿主传入的工具。工具在读者的会话里运行，宿主应在服务端校验每一次调用 |

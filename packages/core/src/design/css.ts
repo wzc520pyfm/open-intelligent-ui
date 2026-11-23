@@ -23,13 +23,15 @@ function normalize(css: string): string {
   return css.replace(/\r\n?|\f/g, "\n").replace(/\0/g, "\uFFFD")
 }
 
-/** Removes comments and markup until none is left: taking one out can join the halves of another. */
+/**
+ * Removes comments, and markup left around the CSS, until none is left:
+ * taking one out can join the halves of another. A quoted string is kept as
+ * written, so `content: "/* note *\/"` still shows its text.
+ */
 function stripComments(css: string): string {
   let out = css
   for (;;) {
-    const next = out
-      .replace(/\/\*[\s\S]*?(?:\*\/|$)/g, "")
-      .replace(/<\/?style[^>]*>?|<!--|-->/gi, "")
+    const next = withoutComments(out)
     if (next === out) return out
     out = next
   }
@@ -56,6 +58,28 @@ function skipOpaque(css: string, i: number): number {
   if (ch === "\\") return Math.min(i + 2, css.length)
   if (ch === '"' || ch === "'") return skipString(css, i)
   return i
+}
+
+function withoutComments(css: string): string {
+  let out = ""
+  let start = 0
+  let i = 0
+  const code = (end: number) => css.slice(start, end).replace(/<\/?style[^>]*>?|<!--|-->/gi, "")
+  while (i < css.length) {
+    const ch = css[i]
+    if (ch === '"' || ch === "'") {
+      const end = skipString(css, i)
+      out += code(i) + css.slice(i, end)
+      start = i = end
+    } else if (ch === "/" && css[i + 1] === "*") {
+      const end = css.indexOf("*/", i + 2)
+      out += code(i)
+      start = i = end === -1 ? css.length : end + 2
+    } else {
+      i += ch === "\\" ? 2 : 1
+    }
+  }
+  return out + code(css.length)
 }
 
 /** Splits CSS into its top-level statements. Unclosed blocks are dropped. */
@@ -147,7 +171,10 @@ function outsideStrings(css: string, change: (code: string) => string): string {
 }
 
 /** What a bare `url(...)` may hold and still be read the same by this file and a browser. */
-const BARE_URL = /^[^\s"'()\\]*$/
+const BARE_URL = /^[^ \t\n\f\r"'()\\]*$/
+
+/** What CSS counts as white space. A no-break space is not: in `url(\u00A0#a)` it is part of the address. */
+const SPACE = /^[ \t\n\f\r]$/
 
 /**
  * Replaces every `url(...)` that `allow` turns down with `none`. A call is
@@ -171,19 +198,19 @@ function mapUrls(css: string, allow: (target: string) => boolean): string {
       continue
     }
     let j = i + 4
-    while (/\s/.test(css[j] ?? "")) j++
+    while (SPACE.test(css[j] ?? "")) j++
     const quote = css[j]
     let target: string | null = null
     if (quote === '"' || quote === "'") {
       const end = skipString(css, j)
       if (css[end - 1] === quote && end - 1 > j) target = css.slice(j + 1, end - 1)
       j = end
-      while (/\s/.test(css[j] ?? "")) j++
+      while (SPACE.test(css[j] ?? "")) j++
       if (css[j] !== ")") target = null
     } else {
       const start = j
       while (j < css.length && css[j] !== ")") j += css[j] === "\\" ? 2 : 1
-      const bare = css.slice(start, j).trim()
+      const bare = css.slice(start, j).replace(/[ \t\n\f\r]+$/, "")
       if (css[j] === ")" && BARE_URL.test(bare)) target = bare
     }
     // Whatever else the call holds goes with it.
@@ -207,18 +234,22 @@ const NAME_CHARACTER = /^[A-Za-z0-9_-]$/
  * A backslash escape spells any character of a name, so to a browser
  * `u\72l(` is `url(` and `f\69xed` is `fixed`. Escapes that spell a letter,
  * a digit, `-` or `_` are written out here, so the checks read the names the
- * browser reads. Quoted strings are left as they are.
+ * browser reads. Quoted strings are left as they are, and so is a digit that
+ * starts a name: `.\31 23` is the class `123`, and `.123` is not a selector.
  */
 function plainNames(css: string): string {
   if (!css.includes("\\")) return css
   let out = ""
   let i = 0
+  // Where the next character falls in a name: at its start, after a first `-`, or further in.
+  let at: "start" | "dash" | "in" = "start"
   while (i < css.length) {
     const ch = css[i] as string
     if (ch === '"' || ch === "'") {
       const end = skipString(css, i)
       out += css.slice(i, end)
       i = end
+      at = "start"
     } else if (ch === "\\") {
       const hex = /^[0-9a-f]{1,6}/i.exec(css.slice(i + 1, i + 7))?.[0]
       const point = hex ? Number.parseInt(hex, 16) : Number.NaN
@@ -231,14 +262,25 @@ function plainNames(css: string): string {
         i += 1 + (hex ? hex.length : 1)
         // One space after a hexadecimal escape only ends it.
         if (hex && /[ \t\n]/.test(css[i] ?? "")) i++
-        out += spelled
+        const digit = /[0-9]/.test(spelled)
+        const beforeDigit = spelled === "-" && at === "start" && /[0-9]/.test(css[i] ?? "")
+        if (at !== "in" && (digit || beforeDigit)) {
+          out += `\\${spelled.charCodeAt(0).toString(16)} `
+          at = "in"
+        } else {
+          out += spelled
+          at = spelled === "-" && at === "start" ? "dash" : "in"
+        }
       } else {
         out += css.slice(i, i + 2)
         i += 2
+        at = "in"
       }
     } else {
       out += ch
       i++
+      if (ch === "-") at = at === "start" ? "dash" : "in"
+      else at = /[A-Za-z0-9_]/.test(ch) || ch > "\x7f" ? "in" : "start"
     }
   }
   return out
@@ -262,19 +304,79 @@ function localUrl(target: string): boolean {
 /** Functions other than `url()` that load what they name. A string is enough for them. */
 const LOADING_CALL = /(^|[^\w-])(?:(?:-webkit-)?image-set|image|src)\s*\(/gi
 
-/** Declarations, or the text before a block, with what they may not say taken out. */
-function cleanValues(css: string): string {
-  return outsideStrings(css, (code) =>
-    code
+/** Every `position` in `code` with a value that can't pin. The value runs to the end of its declaration. */
+function safePositions(code: string): string {
+  const lead = /(?:^|[;{\s(])position\s*:/gi
+  let out = ""
+  let from = 0
+  for (let match = lead.exec(code); match; match = lead.exec(code)) {
+    const start = match.index + match[0].length
+    let end = start
+    let depth = 0
+    for (; end < code.length; end++) {
+      const ch = code[end] as string
+      if (ch === ";" || ch === "{" || ch === "}") break
+      if (ch === "(") depth++
+      else if (ch === ")" && depth-- === 0) break
+    }
+    const value = code.slice(start, end)
+    const keyword = value.trim()
+    out += code.slice(from, start) + (keyword ? value.replace(keyword, () => safePosition(keyword)) : value)
+    from = lead.lastIndex = end
+  }
+  return out + code.slice(from)
+}
+
+/**
+ * Declarations, or the condition of a group rule, with what they may not say
+ * taken out. A condition like `@supports (position: sticky)` styles nothing,
+ * so its `position` is left as asked.
+ */
+function cleanValues(css: string, declarations = true): string {
+  return outsideStrings(css, (code) => {
+    const safe = code
       .replace(LOADING_CALL, "$1none(")
       .replace(/expression\s*\(/gi, "none(")
-      .replace(/(-moz-binding|behavior)\s*:/gi, "--blocked:")
-      .replace(/((?:^|[;{\s(])position\s*:)([^;{}()]*)/gi, (match, lead: string, value: string) => {
-        const keyword = value.trim()
-        return keyword ? lead + value.replace(keyword, safePosition(keyword)) : match
-      })
       .replace(/@import\b[^;]*;?/gi, " ")
-  )
+    return declarations
+      ? safePositions(safe.replace(/(-moz-binding|behavior)\s*:/gi, "--blocked:"))
+      : safe
+  })
+}
+
+/**
+ * The stylesheet with no `/*` and no tag left in it. Nothing above joins
+ * text, but a comment or a closing tag that took shape anyway would be read
+ * by the browser and not by the checks. Inside a quoted string the same
+ * characters are written as escapes, so `content: "<b>"` still shows `<b>`.
+ */
+function seal(css: string): string {
+  let out = ""
+  let start = 0
+  let i = 0
+  const code = (end: number) =>
+    css
+      .slice(start, end)
+      .replace(/\/\*/g, "/ *")
+      .replace(/<(?=[/!a-z])/gi, "< ")
+  while (i < css.length) {
+    const ch = css[i]
+    if (ch === '"' || ch === "'") {
+      const end = skipString(css, i)
+      out += code(i)
+      for (let j = i; j < end; j++) {
+        const next = css[j] as string
+        const escaped = next === "\\" && j + 1 < end ? (css[++j] as string) : ""
+        if (next === "<" || escaped === "<") out += "\\3c "
+        else if (next === "*" && out.endsWith("/")) out += "\\2a "
+        else out += next + escaped
+      }
+      start = i = end
+    } else {
+      i += ch === "\\" ? 2 : 1
+    }
+  }
+  return out + code(css.length)
 }
 
 /** A selector's own pseudo-element, which has to stay last. */
@@ -376,10 +478,20 @@ export function scopeCss(css: string, scope: string, id = ""): ScopedCss {
         continue
       }
       const inner = statements(`${block};`)
-      const body = inner.some((part) => part.block !== undefined)
-        ? `\n${walk(inner, name ? level : level + 1, false).join("\n")}\n`
-        : cleanValues(block)
-      rules.push(`${name ? cleanValues(prelude) : scopeSelector(prelude, scope, level === 0)} {${body}}`)
+      let body: string
+      if (inner.some((part) => part.block !== undefined)) {
+        body = `\n${walk(inner, name ? level : level + 1, false).join("\n")}\n`
+      } else {
+        const kept = inner.filter((part) => {
+          if (!atRuleName(part.prelude)) return part.prelude !== ""
+          dropped.push(part.prelude)
+          return false
+        })
+        const stated = inner.filter((part) => part.prelude !== "").length
+        body = cleanValues(kept.length === stated ? block : ` ${kept.map((part) => part.prelude).join("; ")} `)
+      }
+      const head = name ? cleanValues(prelude, false) : scopeSelector(prelude, scope, level === 0)
+      rules.push(`${head} {${body}}`)
     }
     return rules
   }
@@ -396,14 +508,7 @@ export function scopeCss(css: string, scope: string, id = ""): ScopedCss {
     frames = frames.replace(use, `$1${renamed}`)
   }
   const scoped = body ? `${scope} {\n${body}\n}` : ""
-  // Nothing above joins text, but a comment or a closing tag that took shape
-  // anyway would be read by the browser and not by the checks.
-  const sealed = [frames, scoped]
-    .filter(Boolean)
-    .join("\n")
-    .replace(/\/\*/g, "/ *")
-    .replace(/<(?=[/!a-z])/gi, "< ")
-  return { css: sealed, dropped }
+  return { css: seal([frames, scoped].filter(Boolean).join("\n")), dropped }
 }
 
 const LOADING_NAME = /(?:^|[^\w-])(?:(?:-webkit-)?image-set|image|src)\s*\(/i

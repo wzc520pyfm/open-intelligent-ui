@@ -186,6 +186,16 @@ describe("DESIGN.md", () => {
     expect(loading.colors).toEqual({ ok: "#fff" })
   })
 
+  test("a quoted font name may say anything a declaration can hold", () => {
+    const design = parseDesign(
+      `---\ntypography:\n  body:\n    fontFamily: '"Image (Text)", "Src (Pro)", sans-serif'\n  open:\n    fontFamily: '"Inter, url(https://x.dev/a.woff)'\n  call:\n    fontFamily: '"Inter", url(https://x.dev/a.woff)'\n---`
+    )
+    expect(design.typography.body?.fontFamily).toBe('"Image (Text)", "Src (Pro)", sans-serif')
+    expect(design.typography.open?.fontFamily).toBeUndefined()
+    expect(design.typography.call?.fontFamily).toBeUndefined()
+    expect(design.issues).toHaveLength(2)
+  })
+
   test("tokens may also live in yaml blocks in the body", () => {
     const interleaved = parseDesign(
       "## Colors\n\n```yaml\ncolors:\n  primary: '#ff0000'\n```\n\n```yaml\nunrelated: true\n```\n"
@@ -230,12 +240,12 @@ function asBrowser(css: string): { code: string; addresses: string[]; closes: nu
       string()
     } else if (/^url\($/i.test(css.slice(i, i + 4)) && !/[\w-]/.test(css[i - 1] ?? "")) {
       i += 4
-      while (/\s/.test(css[i] ?? "")) i++
+      while (/[ \t\n\f\r]/.test(css[i] ?? "")) i++
       if (css[i] === '"' || css[i] === "'") {
         addresses.push(string())
       } else {
         const end = css.indexOf(")", i)
-        addresses.push(css.slice(i, end === -1 ? css.length : end).trim())
+        addresses.push(css.slice(i, end === -1 ? css.length : end).replace(/[ \t\n\f\r]+$/, ""))
         i = end === -1 ? css.length : end + 1
       }
     } else {
@@ -330,12 +340,83 @@ describe("scoped CSS", () => {
 @supports (position: sticky) { .f { position: absolute } }`,
       ".s"
     )
-    expect(css).toContain(".a { --p: fixed; position: absolute(--p) }")
-    expect(css).toContain(".b { position: absolute(data-p type(*)) }")
+    expect(css).toContain(".a { --p: fixed; position: absolute }")
+    expect(css).toContain(".b { position: absolute }")
     expect(css).toContain(".c { position: absolute !important; background-position: center }")
     expect(css).toContain(".d { position: sticky; top: 0 }")
     expect(css).toContain(".e { position:relative }")
     expect(css).toContain("@supports (position: sticky) {\n.f { position: absolute }\n}")
+  })
+
+  test("a position is replaced whole, and only where it styles something", () => {
+    const scoped = (css: string) => scopeCss(css, ".s").css
+    expect(scoped(".a { position: var(--p, fixed) !important; top: 0 }")).toContain(
+      ".a { position: absolute !important; top: 0 }"
+    )
+    // The brackets still pair up, so the rest of the sheet is read.
+    expect(scoped(".a { width: calc(position: fixed); color: red }")).toContain(
+      ".a { width: calc(position: absolute); color: red }"
+    )
+    // A condition asks; it doesn't style. Rewriting it would turn an unsupported value into a supported one.
+    expect(scoped("@supports (position: anchor) { .a { position: fixed } }")).toContain(
+      "@supports (position: anchor) {\n.a { position: absolute }\n}"
+    )
+    expect(scoped("@container style(position: fixed) { .a { color: red } }")).toContain(
+      "@container style(position: fixed) {"
+    )
+  })
+
+  test("an at-rule inside a rule is dropped whether or not the rule nests another", () => {
+    const leaf = scopeCss(".a { @layer x; color: red; @import 'https://x.dev/a.css'; margin: 0 }", ".s")
+    expect(leaf.css).toBe(".s {\n.a { color: red; margin: 0 }\n}")
+    expect(leaf.dropped).toEqual(["@layer x", "@import 'https://x.dev/a.css'"])
+    const nested = scopeCss(".a { @layer x; color: red; .b { margin: 0 } }", ".s")
+    expect(nested.css).not.toContain("@layer")
+    expect(nested.dropped).toEqual(["@layer x"])
+  })
+
+  test("a name that needs its escape keeps it", () => {
+    const scoped = (css: string) => scopeCss(css, ".s").css
+    // `.\31 23` is the class "123"; `.123` is not a selector at all.
+    expect(scoped(String.raw`.\31 23 { color: red }`)).toContain(String.raw`.\31 23 { color: red }`)
+    expect(scoped(String.raw`.\32xl\:grid { color: red }`)).toContain(String.raw`.\32 xl\:grid { color: red }`)
+    expect(scoped(String.raw`.\-1 { color: red } .-\31 { margin: 0 }`)).toContain(
+      String.raw`.\2d 1 { color: red }` + "\n" + String.raw`.-\31 { margin: 0 }`
+    )
+    // Further into a name a digit needs no escape, and a name the checks look for is still spelled out.
+    expect(scoped(String.raw`.a\31 { p\6fsition: f\69xed; background: image\2d set("https://x.dev/a.png" 1x) }`)).toContain(
+      '.a1 { position: absolute; background: none("https://x.dev/a.png" 1x) }'
+    )
+  })
+
+  test("white space in an address is what CSS calls white space", () => {
+    // A no-break space is part of the address: this asks the page's own server for a path.
+    for (const space of ["\u00A0", "\uFEFF", "\u2028", "\u3000"]) {
+      const { css } = scopeCss(`.a { background: url(${space}#a); mask: url(#b${space}) }`, ".s")
+      // After the `#` it is only part of a fragment.
+      expect(asBrowser(css).addresses, JSON.stringify(space)).toEqual([`#b${space}`])
+      expect(loadsNothing(`url(${space}#a)`), JSON.stringify(space)).toBe(false)
+    }
+    expect(asBrowser(scopeCss(".a { fill: url( \t\n#a\f ) }", ".s").css).addresses).toEqual(["#a"])
+  })
+
+  test("a quoted string keeps what it says", () => {
+    const scoped = (css: string) => scopeCss(css, ".s").css
+    const shown = (css: string) => {
+      const quoted = /content: ("[^\n]*")/.exec(css)?.[1] as string
+      // What the browser shows for the string: each escape is the character it spells.
+      return quoted
+        .slice(1, -1)
+        .replace(/\\([0-9a-f]{1,6}) ?|\\(.)/gi, (_match, hex: string, ch: string) =>
+          hex ? String.fromCodePoint(Number.parseInt(hex, 16)) : ch
+        )
+    }
+    for (const label of ["/* note */", "<div>", "a </style> b", "<!-- x -->", "1 < 2", String.raw`\</style>`, String.raw`/\* x`, String.raw`\/* x`]) {
+      const css = scoped(`.a::before { content: "${label}" } /* gone */ .b { color: red }`)
+      expect(shown(css), label).toBe(label.replace(/\\(.)/g, "$1"))
+      expect(css, label).not.toMatch(/\/\*|<[/!a-z]|gone/i)
+      expect(css, label).toContain(".b { color: red }")
+    }
   })
 
   test("a selector that names the surface or starts from a sibling stays inside it", () => {

@@ -27,7 +27,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./ui-sdk": "./src/registry/ui-sdk.ts",
-    "./styles.css": "./src/styles/index.css"
+    "./styles.css": "./src/styles.css"
   },
   "files": [
     "dist",
@@ -48,7 +48,7 @@
     }
   },
   "scripts": {
-    "build": "tsdown && node scripts/build-css.mjs",
+    "build": "tsdown && node ../../scripts/build-css.mjs",
     "prepack": "pnpm run build && node ../../scripts/copy-license.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

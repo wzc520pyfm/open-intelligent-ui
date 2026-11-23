@@ -5,6 +5,7 @@ import { mount, unmount } from "svelte"
 import { describe, expect, test, vi } from "vitest"
 import { preloadUiSdk } from "../src"
 import { UI_SDK_PROPS } from "../src/registry/ui-sdk.generated"
+import { held } from "../src/render/held"
 import Nodes from "../src/render/Nodes.svelte"
 import { componentProps, cssText, nativeProps, PROPERTY_SINKS } from "../src/render/props"
 import Counter from "./fixtures/Counter.svelte"
@@ -580,6 +581,32 @@ describe("safety: Svelte's own channels", () => {
     expect(target.querySelector("#pwn")).toBeNull()
     expect(link.getAttribute("onerror")).toBeNull()
     remove()
+  })
+
+  test("holding a field adds listeners and attachments of the renderer's own, and nothing else", async () => {
+    const given = nativeProps({ type: "number", value: ["7"], checked: "yes", name: "n", oninput: () => {} }, "input")
+    const out = held("input", () => given)
+    expect(Object.keys(out).sort()).toEqual(["checked", "name", "onchange", "oninput", "type"])
+    expect(out.checked).toBe(true)
+    // A number field's value is set by the renderer, which compares numbers.
+    const attached = Object.getOwnPropertySymbols(out)
+    expect(attached).toHaveLength(1)
+    expect(attached.every((key) => typeof out[key] === "function")).toBe(true)
+    // What isn't a field is passed on as it was given.
+    const plain = nativeProps({ value: "x", checked: true }, "div")
+    expect(held("div", () => plain)).toBe(plain)
+    const free = nativeProps({ name: "n" }, "input")
+    expect(held("input", () => free)).toBe(free)
+
+    // A handler that throws doesn't stop the field from being put back.
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {})
+    const { container } = await draw({
+      source: `<input aria-label="Field" value="fixed" on:input={missing.deep.value} />`,
+    })
+    const field = byLabel<HTMLInputElement>(container, "Field")
+    await type(field, "typed")
+    expect(field.value).toBe("fixed")
+    errors.mockRestore()
   })
 
   test("a value that isn't text reaches an element as text", async () => {

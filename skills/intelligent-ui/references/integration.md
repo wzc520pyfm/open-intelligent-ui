@@ -13,6 +13,7 @@ which the interface reaches your product.
 - [Add your own components](#add-your-own-components)
 - [Read and write its state](#read-and-write-its-state)
 - [In Vue](#in-vue)
+- [In Svelte, in Solid, and without a framework](#in-svelte-in-solid-and-without-a-framework)
 - [CSS and your page](#css-and-your-page)
 - [What markup can and can't do](#what-markup-can-and-cant-do)
 - [Let an agent operate it](#let-an-agent-operate-it)
@@ -25,6 +26,9 @@ which the interface reaches your product.
 | `@open-intelligent-ui/core/prompt` | `buildSystemPrompt`, `describeComponent`, the guides and the UI SDK catalog. Import it on the server. |
 | `@open-intelligent-ui/react` | `<IntelligentUI>` for React, with the primitives, the preset widgets and the stylesheet. |
 | `@open-intelligent-ui/vue` | The same for Vue. |
+| `@open-intelligent-ui/svelte` | The same for Svelte. |
+| `@open-intelligent-ui/solid` | The same for Solid. |
+| `@open-intelligent-ui/web` | The same with no framework: the `<intelligent-ui>` element and `mount()`. |
 | `open-intelligent-ui` | The unscoped name. Re-exports `@open-intelligent-ui/core`, with `/prompt`. |
 
 ```bash
@@ -32,19 +36,33 @@ which the interface reaches your product.
 npm install @open-intelligent-ui/react @open-intelligent-ui/core @ui-sdk/react @ui-sdk/core
 # Vue
 npm install @open-intelligent-ui/vue @open-intelligent-ui/core @ui-sdk/vue @ui-sdk/core
+# Svelte
+npm install @open-intelligent-ui/svelte @open-intelligent-ui/core @ui-sdk/svelte @ui-sdk/core
+# Solid
+npm install @open-intelligent-ui/solid @open-intelligent-ui/core @ui-sdk/solid @ui-sdk/core solid-js @solidjs/web
+# No framework
+npm install @open-intelligent-ui/web @open-intelligent-ui/core @ui-sdk/web @ui-sdk/core
 ```
 
 All are ESM with type declarations. The React package needs React 19 and
 `@ui-sdk/react` + `@ui-sdk/core` as peers, and its entry is marked
 `"use client"`: a Next.js server component can render `<IntelligentUI>`,
 but `tools` and the callbacks are functions, so pass those from a client
-component. The Vue package needs Vue 3.5 and `@ui-sdk/vue` +
-`@ui-sdk/core`. Hydrating server-rendered output has not been tested: in
-Nuxt, put it inside `<ClientOnly>`.
+component. The Vue package needs Vue 3.5, the Svelte package Svelte 5.33
+and a bundler with the Svelte plugin, the Solid package Solid 2; each needs
+its `@ui-sdk/*` package and `@ui-sdk/core` as peers. Hydrating
+server-rendered output has not been tested in any of them: in Nuxt put the
+surface inside `<ClientOnly>`, in SvelteKit draw it in the browser only, in
+SolidStart load it with `clientOnly`.
 
-The two renderers take the same markup and the same props, and draw the
-same DOM. The examples below are React; [In Vue](#in-vue) lists what is
-written differently.
+The five renderers take the same markup and the same props. React, Vue and
+Solid draw the same DOM, and Svelte does apart from a few elements
+`@ui-sdk/svelte` places differently. The web renderer draws UI SDK
+components as custom elements (`<Tabs>` is `<ui-tabs>`) with the same
+`data-slot`, roles, names and states, so select on `[data-slot]`, not on a
+tag name. The examples below are React; [In Vue](#in-vue) and
+[the section after it](#in-svelte-in-solid-and-without-a-framework) list
+what is written differently.
 
 ## Render a reply
 
@@ -278,6 +296,59 @@ function onAction(action) {
 - `let:name` reads what a component passes to its default slot, where
   React reads what it passes to a function child.
 - `class` and `style` on `<IntelligentUI>` land on the surface's root.
+- Vue counts the ids `useId()` gives out per app. If each reply is a Vue
+  app of its own, set a different `app.config.idPrefix` on each, so the ids
+  UI SDK components give their parts don't repeat across replies.
+
+## In Svelte, in Solid, and without a framework
+
+Every prop on this page exists under the same name in all three. Each
+package's README has a full example and the list of what differs.
+
+**Svelte** (`@open-intelligent-ui/svelte`): `<IntelligentUI source={text}
+{streaming} {onAction} />`. `bind:this` is the handle. `components` takes
+Svelte components; `on:pick` arrives as the function prop `onPick`, and
+`bind:value` as a `value` the component can write (`$bindable()`) plus
+`onValueChange`. `let:` reads what a component passes to its `children`
+snippet.
+
+**Solid** (`@open-intelligent-ui/solid`): the JSX is the same as React's.
+`ref` is called with the handle. `components` takes Solid components,
+which run once: read props where Solid tracks them.
+
+**No framework** (`@open-intelligent-ui/web`):
+
+```html
+<intelligent-ui id="reply"></intelligent-ui>
+
+<script type="module">
+  import "@open-intelligent-ui/web/define"
+  import "@open-intelligent-ui/web/styles.css"
+
+  const reply = document.querySelector("#reply")
+  reply.tools = tools
+  reply.addEventListener("action", (event) => {
+    if (event.detail.type === "send") sendUserMessage(event.detail.text, event.detail.data, event.detail.state)
+  })
+  reply.streaming = true
+  reply.source = textSoFar
+</script>
+```
+
+- Options that are text (`source`, `design`, `scheme`, `locale`,
+  `currency`) are attributes and properties; the rest (`tools`,
+  `components`, `allowUrl`, the callbacks) are properties. What the surface
+  reports is also an event: `action`, `tool`, `warning`, `diagnostics`,
+  `statechange`. Call `event.preventDefault()` on `action` where the other
+  renderers return `true`.
+- The element is the handle: `reply.getState()`, `setState`, `reset`,
+  `refetch`. `mount(target, options)` does the same without registering an
+  element and returns the handle with `update()` and `unmount()`.
+- `components` maps a name to a custom element's tag, to
+  `{ tag, properties, events }`, or to a function `(props, children) =>
+  Node` that builds the DOM.
+- A page that already loads another renderer's `styles.css` needs only
+  `@open-intelligent-ui/web/elements.css` on top of it.
 
 ## CSS and your page
 
@@ -296,6 +367,22 @@ own declared first, or keep them off the surface:
   button { font: inherit; color: inherit; }
 }
 ```
+
+With Tailwind 4, or a component library built on it, the page's styles are
+already layered. Name their layers first so the surface's come last:
+
+```css
+@layer theme, base, components, utilities, ui-sdk, iui;
+@import "tailwindcss";
+```
+
+The renderer then wins wherever both set a property. Two things still get
+through: a reset on a property the renderer leaves alone (`svg { display:
+block }`), and a class name of the library that a reply happens to use
+(`.card`, `.button`). If either shows, keep those layers off the surface by
+adding `:where(:not(.iui-root, .iui-root *))` to their selectors;
+`apps/playground/build/outside-surfaces.ts` in the repository is a PostCSS
+plugin that does it.
 
 Dialogs, popovers, menus and toasts use the browser's top layer, so they
 are not clipped by a scrolling chat column and need no z-index from you.
@@ -320,7 +407,8 @@ JavaScript.
 - `<style>` is scoped to its surface. `@import`, `url()` to other sites and
   unknown at-rules are removed, and `position: fixed` becomes `absolute`,
   so a surface can't draw over your page. The scope holds across the page,
-  also when each reply is its own React root or Vue app.
+  also when each reply is its own React root or Vue app, or is drawn by a
+  different renderer.
 - The only side effects are the actions: `send`, `call`, `refetch`,
   `reset`, `toast`, `copy`, `open`, plus any you add with `actions`.
 
@@ -332,7 +420,7 @@ message, and keep consequential writes behind tools you control.
 
 Because the controls are UI SDK components, UI SDK's agent bridge can read
 and drive a generated surface: `createAgent()` from `@ui-sdk/react/agent`
-(or `@ui-sdk/vue/agent`)
+(or the `/agent` entry of the `@ui-sdk/*` package you use)
 returns a snapshot of the controls with their labels and values, and can
 act on them (for example `setValue`). An agent can therefore use an interface
 another agent wrote. `packages/react/test/ui-sdk.test.tsx` shows it.

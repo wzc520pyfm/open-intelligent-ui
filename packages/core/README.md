@@ -2,7 +2,7 @@
 
 The framework-free half of [Open Intelligent UI](https://github.com/wzc520pyfm/open-intelligent-ui): the parser for IUI markup, the expression language, the state store behind a surface, the DESIGN.md reader and the system prompt builder.
 
-Use it on the server to build the prompt that teaches a model the markup, and with [`@open-intelligent-ui/react`](https://www.npmjs.com/package/@open-intelligent-ui/react) or [`@open-intelligent-ui/vue`](https://www.npmjs.com/package/@open-intelligent-ui/vue) to render what comes back.
+Use it on the server to build the prompt that teaches a model the markup, and with a renderer to draw what comes back: [`@open-intelligent-ui/react`](https://www.npmjs.com/package/@open-intelligent-ui/react), [`/vue`](https://www.npmjs.com/package/@open-intelligent-ui/vue), [`/svelte`](https://www.npmjs.com/package/@open-intelligent-ui/svelte), [`/solid`](https://www.npmjs.com/package/@open-intelligent-ui/solid), or [`/web`](https://www.npmjs.com/package/@open-intelligent-ui/web) for a page with no framework.
 
 ```bash
 npm install @open-intelligent-ui/core
@@ -43,7 +43,7 @@ doc.diagnostics // problems in the markup, with positions
 | `Surface` | State, `<derive>`, `<query>`, actions |
 | `parseDesign`, `designToCss` | DESIGN.md tokens to CSS variables |
 | `buildSystemPrompt` (from `/prompt`) | The prompt: language, components, design, your tools |
-| `/renderer`, `/styles.css` | What the React and Vue renderers are built from: directives, primitives, presets, charts, and the stylesheet. For writing a renderer, not for apps; it changes with the renderers |
+| `/renderer`, `/styles.css` | What the renderers are built from: directives, primitives, presets, charts, and the stylesheet. For writing a renderer, not for apps; it changes with the renderers |
 
 ESM only. The language is specified in [`docs/spec.md`](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/docs/spec.md).
 

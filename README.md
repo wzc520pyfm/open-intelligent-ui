@@ -78,7 +78,7 @@ pnpm install
 pnpm dev
 ```
 
-Open <http://localhost:5173> (or the [deployed playground](https://open-intelligent-ui-one.vercel.app)). Six demos on the left; switch streaming speed, design, light/dark and width. Inspect shows markup, state and the system prompt. For a real model, pick **Live** and choose OpenAI, Anthropic, DeepSeek or a custom OpenAI-compatible endpoint — the key stays in this tab.
+Open <http://localhost:5173> (or the [deployed playground](https://open-intelligent-ui-one.vercel.app)). Six demos on the left; switch renderer, streaming speed, design, light/dark and width. Inspect shows markup, state and the system prompt. For a real model, pick **Live** and choose OpenAI, Anthropic, DeepSeek or a custom OpenAI-compatible endpoint — the key stays in this tab.
 
 ```bash
 pnpm test
@@ -113,7 +113,17 @@ const system = buildSystemPrompt({ design, tools: toolDescriptions })
 />
 ```
 
-On Vue it is the same component with the same props:
+There is a renderer for each framework UI SDK supports. Each takes the same props, and each is installed with the UI SDK package it is built on:
+
+| Package | For | Built on |
+| --- | --- | --- |
+| [`@open-intelligent-ui/react`](packages/react) | React 19 or later | `@ui-sdk/react` |
+| [`@open-intelligent-ui/vue`](packages/vue) | Vue 3.5 or later | `@ui-sdk/vue` |
+| [`@open-intelligent-ui/svelte`](packages/svelte) | Svelte 5.33 or later | `@ui-sdk/svelte` |
+| [`@open-intelligent-ui/solid`](packages/solid) | Solid 2 | `@ui-sdk/solid` |
+| [`@open-intelligent-ui/web`](packages/web) | No framework: the `<intelligent-ui>` element, or `mount()` | `@ui-sdk/web` |
+
+On Vue:
 
 ```bash
 npm install @open-intelligent-ui/vue @open-intelligent-ui/core @ui-sdk/vue @ui-sdk/core
@@ -136,7 +146,35 @@ import "@open-intelligent-ui/vue/styles.css"
 </template>
 ```
 
-A model writes the same markup for both, and both draw it to the same DOM. `pnpm dev:vue` runs the six demos on the Vue renderer at <http://localhost:5174>.
+On a page with no framework:
+
+```bash
+npm install @open-intelligent-ui/web @open-intelligent-ui/core @ui-sdk/web @ui-sdk/core
+```
+
+```html
+<intelligent-ui id="reply"></intelligent-ui>
+
+<script type="module">
+  import "@open-intelligent-ui/web/define"
+  import "@open-intelligent-ui/web/styles.css"
+
+  const reply = document.querySelector("#reply")
+  reply.design = design
+  reply.tools = { listTickets, updateTicket }
+  reply.addEventListener("action", (event) => {
+    if (event.detail.type === "send") askModel(event.detail.text, event.detail.data, event.detail.state)
+  })
+  reply.streaming = isStreaming
+  reply.source = replySoFar
+</script>
+```
+
+Svelte and Solid look like React and Vue; each package's README has its example and what differs in that framework.
+
+A model writes the same markup for all five, and the prompt is the same. React, Vue and Solid draw it to the same DOM. Svelte draws the same DOM apart from a few elements `@ui-sdk/svelte` places differently. The web renderer draws UI SDK components as custom elements (`<ui-tabs>`), with the same roles, names, states and look.
+
+The [demo site](https://open-intelligent-ui-one.vercel.app) switches between the five on one reply. `pnpm dev:vue`, `pnpm dev:svelte`, `pnpm dev:solid` and `pnpm dev:web` each run the six demos on one renderer alone.
 
 The packages are ESM with type declarations; the React entry is marked `"use client"`. Tools, theming, host components, state and the safety model: [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md).
 
@@ -147,9 +185,12 @@ packages/core     Markup parser, expression interpreter, state store, DESIGN.md,
 packages/core/src/renderer   What every renderer shares: directives, primitives, presets, charts. packages/core/styles is the stylesheet.
 packages/react    React renderer, on @ui-sdk/react
 packages/vue      Vue renderer, on @ui-sdk/vue
+packages/svelte   Svelte renderer, on @ui-sdk/svelte
+packages/solid    Solid renderer, on @ui-sdk/solid
+packages/web      Web Components renderer, on @ui-sdk/web: <intelligent-ui> and mount()
 packages/open-intelligent-ui   The unscoped npm name; re-exports packages/core
-apps/playground   Demo site (React)
-apps/vue-demo     The same demos on the Vue renderer
+apps/playground   Demo site (React), with a switch that draws a reply with any of the five renderers
+apps/vue-demo, apps/svelte-demo, apps/solid-demo, apps/web-demo   The same demos on one renderer each
 design/           Three DESIGN.md files: Paper, Heritage, Signal
 skills/           Agent skills: intelligent-ui and motion
 docs/             Research, language spec, architecture
@@ -172,7 +213,7 @@ A working prototype, not a product.
 
 - **Not validated against a real model.** Demos are handwritten. Every example in the system prompt is rendered by tests; how a model writes against that prompt, and at what token cost, is unknown.
 - **UI SDK is beta** (0.1.0-beta.13). After upgrading, run `pnpm generate`; tests will flag drift.
-- **Two renderers, React 19+ and Vue 3.5+.** A test draws every sample in this repository with both and compares the DOM and the warnings. The Vue renderer is new: beyond those tests it has been compared with React in desktop Chrome on the six demos, and has not been used in a product. Svelte, Solid and web components have no renderer. See [`docs/research.md`](docs/research.md#其他框架).
+- **Five renderers: React, Vue, Svelte, Solid and Web Components.** Tests draw every sample in this repository with React and with each of the other four, and compare what is drawn and the warnings. The four are new: beyond those tests each has been compared with React in desktop Chrome on the six demos, and none has been used in a product. Hydrating server-rendered HTML is untested. See [`docs/research.md`](docs/research.md#其他框架).
 - **Visual checks only in desktop Chrome.** Layout morphing needs View Transitions; unsupported browsers swap instantly.
 - **Safety model has not been audited externally.** Markup is never executed as code; authorizing tool calls is the host's job.
 - **Unlayered host CSS can override the surface.** Put resets in a cascade layer when integrating.

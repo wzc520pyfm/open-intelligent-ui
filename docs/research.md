@@ -38,10 +38,10 @@
 | 流式渲染 | 支持 | 支持 | 支持，靠流式编译器 | 支持，半截标签会被暂缓 |
 | 视觉来源 | 宿主组件自带 | 宿主组件自带 | 组件库自带 | DESIGN.md：令牌变 CSS 变量，正文进提示词 |
 | 动效 | 由组件决定 | 由组件决定 | 由组件决定 | 设计系统里的动效令牌，加标记属性 |
-| 跨端 | React、Lit、Angular、Flutter、SwiftUI、Compose | React、Vue、Svelte、Angular 等 | ChatGPT 网页与移动端 | React 和 Vue 两个渲染器；UI SDK 自身还有 Svelte、Solid、Web Components |
+| 跨端 | React、Lit、Angular、Flutter、SwiftUI、Compose | React、Vue、Svelte、Angular 等 | ChatGPT 网页与移动端 | React、Vue、Svelte、Solid、Web Components 五个渲染器，UI SDK 支持的每个框架各一个 |
 | 安全边界 | 声明式数据，不执行代码 | 声明式语言 | 未公开 | 声明式标记；表达式在解释器里运行，CSS 被限定作用域 |
 
-这张表里本方案最弱的两项是跨端和成熟度：只有 React 和 Vue 两个渲染器，而且 Vue 的是新写的；UI SDK 自身还在 beta。最强的一项是第三行。
+这张表里本方案最弱的一项是成熟度：五个渲染器里四个是新写的，都没有在产品里用过；UI SDK 自身还在 beta。最强的一项是第三行。
 
 ## A2UI
 
@@ -97,7 +97,7 @@ Thesys 维护的开源方案，核心是 OpenUI Lang。
 
 ## UI SDK
 
-Vercel 的 `@ui-sdk/core` 加上各框架的包，调研版本 0.1.0-beta.13，自述是“A library of behaviors to build your components. Made for agents.”框架包有五个：`@ui-sdk/react`、`@ui-sdk/vue`（含 Nuxt）、`@ui-sdk/svelte`、`@ui-sdk/solid` 和 `@ui-sdk/web`（Web Components）。本方案目前只接了 React 那一个，下面几条按它来写；其余几个见“[其他框架](#其他框架)”。
+Vercel 的 `@ui-sdk/core` 加上各框架的包，调研版本 0.1.0-beta.13，自述是“A library of behaviors to build your components. Made for agents.”框架包有五个：`@ui-sdk/react`、`@ui-sdk/vue`（含 Nuxt）、`@ui-sdk/svelte`、`@ui-sdk/solid` 和 `@ui-sdk/web`（Web Components）。本方案五个都接了，下面几条按 React 那一个来写；其余几个见“[其他框架](#其他框架)”。
 
 - **形态。** 无样式组件，按部件组合：`Popover` 持有状态，`PopoverTrigger` 打开它，`PopoverContent` 显示内容。部件通过上下文找到自己的根。
 - **状态约定。** 统一的受控写法：`value`/`onValueChange`、`open`/`onOpenChange`、`checked`/`onCheckedChange`、`pressed`/`onPressedChange`，以及对应的 `defaultValue` 等非受控写法。
@@ -256,7 +256,7 @@ UI SDK 的 55 个入口几乎全是交互。回答问题最常用的“内容”
 
 换一个框架要重写的是第三行。其中最容易出偏差的是指令：`bind:value` 在 React 和 Solid 里是 `value` 加 `onValueChange`，在 Vue 里是 `v-model:value`，在 Svelte 里是 `bind:value`，进出场和 `morph` 的时机也各不相同。
 
-**三条路线。** 第 1 条的 Vue 已经做了，结果见下面的“Vue 渲染器”；其余的没有实现，是判断，不是结果。
+**三条路线。** 下面是动手之前的判断。后来第 1 条（Vue、Solid、Svelte）和第 2 条（Web Components）都做了，结果见后面两节；第 3 条没有做，也不再需要。
 
 1. **每个框架写一个原生渲染器**，建在对应的 `@ui-sdk/*` 包上。模型写的标记、系统提示词、组件目录都不用变，宿主组件可以直接传框架自己的组件。代价是每个框架重写上表第三行，而且需要一套不依赖框架的一致性测试（同一段标记，各渲染器产出相同的 DOM），否则几个渲染器会慢慢走样。
 2. **写一个 Web Components 渲染器** `<intelligent-ui>`，建在 `@ui-sdk/web` 上，一次实现到处可用。问题在于它的元素结构和 React 版不同，由 React 文档生成的组件目录和提示词示例不能直接用，要么另生成一份，要么在渲染器里做转换；宿主组件也只能以自定义元素的形式传入。
@@ -295,13 +295,56 @@ UI SDK 的 55 个入口几乎全是交互。回答问题最常用的“内容”
 
 最后一行是安全问题，是在对照 React 逐项检查 Vue 的属性通道时发现的，一致性测试本身发现不了它。合并前的代码评审又在共用层里指出了几处：被禁的属性名换成大写、或者改用 `bind:` 绑定，就能绕过检查。这些在两个渲染器里都存在，已经一并修掉并补了测试。换下一个框架时，同样需要单独过一遍“这个框架会把属性名变成什么”。
 
-**没有做的。** 没有在真实的 Vue 应用或 Nuxt 里用过；服务端用 `renderToString` 能输出 HTML，但水合（hydration）没有测过；演示站的 Live 模式（接真实模型）只有 React 版；Svelte、Solid、Web Components 没有动。
+**没有做的。** 没有在真实的 Vue 应用或 Nuxt 里用过；服务端用 `renderToString` 能输出 HTML，但水合（hydration）没有测过。
+
+### Solid、Svelte 和 Web Components 渲染器
+
+Vue 之后把 UI SDK 支持的其余三个也做了：`@open-intelligent-ui/solid`、`@open-intelligent-ui/svelte`、`@open-intelligent-ui/web`。模型写的标记、系统提示词、组件目录都没有变。演示站加了一个渲染器开关，同一条回复可以换五个渲染器来画。
+
+| 部分 | 手写代码量 |
+| --- | --- |
+| `packages/core/src/renderer`：共用的渲染层 | 约 3500 行 |
+| `packages/react/src` | 约 1000 行 |
+| `packages/vue/src` | 约 1200 行 |
+| `packages/svelte/src` | 约 1900 行 |
+| `packages/solid/src` | 约 2300 行 |
+| `packages/web/src` | 约 3600 行 |
+
+后三个比 Vue 的大，多出来的都是“把一棵每次重新算出来的树对到已有的 DOM 上”这件事。React 和 Vue 有虚拟 DOM，这件事由框架做；Solid 的组件只运行一次，Svelte 只能通过组件模板创建元素，不用框架时更是什么都没有，所以这三个渲染器各自带了一部分对账的代码，Web Components 那个带的是完整的一套。
+
+**做的过程中遇到的差异：**
+
+| 差异 | 处理 |
+| --- | --- |
+| Solid 没有虚拟 DOM，而标记在每次状态变化后都重新求值成一棵树 | 渲染器按 key 把新树对到已有的元素上，元素只创建一次，焦点、输入到一半的文字和组件自己的状态不丢 |
+| Solid 的 `createUniqueId()` 和 Svelte 的 `$props.id()` 按页面上各自那一份运行时计数，有第二份运行时或另一个渲染器时会给出相同的 id，一条回复的样式就会套到另一条上 | 五个渲染器都在页面范围内登记 id（`claimId`） |
+| Svelte 的库按惯例发布 `.svelte` 源文件，由使用方编译 | 用 `svelte-package` 打包；使用方需要 Svelte 的 Vite 插件或 SvelteKit |
+| 把属性原样展开到元素上的组件，会让元素把 `STYLE` 读成样式，而检查只在 `style` 这个名字下做 | 共用层里组件的 `style` 只认这一种写法，对五个渲染器都生效 |
+| `@ui-sdk/svelte` 画出的 DOM 和 React 版有两处不同：部件之间可能多一个空格文本节点；`Slider`、`NumberInput` 的隐藏输入框位置不同，`Select` 收起时列表仍留在页面里 | 一致性测试先还原这两处再比，并把依赖这一步的示例写死在测试里 |
+| `@ui-sdk/web` 是自定义元素，结构和 React 版不同，367 个组件名里有 14 个没有对应的元素 | 调研时担心的“目录和提示词不能直接用”没有发生：生成一张组件名到元素的表，在渲染器里加一层适配，目录和提示词原样复用 |
+| 有些自定义元素只在接入页面时读一次自己的子节点，流式期间子节点还没到齐 | 共用层告诉渲染器组件的结束标签到了没有，这类部件到齐后重画一次，流式结束时和一次性画出来的结果相同 |
+| 自定义元素得不到样式表和浏览器给 `<label>`、`<button>`、`<table>` 的默认样子 | 另加约 130 行 CSS 补回来 |
+| `@ui-sdk/web` 的 `Pagination` 页码是按钮，不是链接 | `getHref` 在那里不起作用，包的 README 里写明 |
+
+**对照检查时在共用层里发现的问题。** 和做 Vue 时一样，逐项过“这个框架会把属性名变成什么”又找出了几处，这次都在共用层，所以对已有的渲染器同样成立：
+
+- 回复可以用 `form` 属性把自己的控件挂到宿主页面的表单上，甚至提交它。五个渲染器都受影响。
+- `Pagination` 的 `getHref` 返回的地址没有检查，`javascript:` 地址在 Vue、Solid、Svelte 里会成为可点击的链接（React 自己会拦）。
+- `open(url)` 动作没有经过宿主的 `allowUrl`。
+- 动作在 `morph` 的过渡里执行时，事件已经派发完，`$value` 和 `$event` 读到的是空的。
+- 流式期间后来才声明的状态不会触发 `onStateChange`；表格里 id 重复的行、图表里写了两次的字段会得到相同的 key，排序后 React 会把一行画两次；加载失败的图片换了地址也不再重试。
+
+这些都修了并补了测试，前三条是安全问题，见架构文档的安全模型。npm 上的 0.2.0（React 和 Vue）带着这些问题，0.3.0 起修复。
+
+**验证。** 每个渲染器都有和 React 的一致性测试（见架构文档“测试守着什么”）。在桌面版 Chrome 里，把演示站切换到每个渲染器，和 React 对比六个演示：Solid 和 Svelte 逐元素比较位置、尺寸、颜色和字号；Web Components 的元素结构不同，比的是截图。再执行同一串 36 步操作，每一步之后的状态都和 React 相同。另用一组攻击标记检查没有脚本执行、没有外部请求。另外各写了一个仓库之外的应用，从打好的 tarball 安装，通过严格模式的类型检查并在生产构建下运行。
+
+**没有做的。** 这三个渲染器都没有在真实的应用里用过。服务端渲染：Solid 渲染器在服务端什么都不输出，Svelte 能输出 HTML 但水合没有测过，Web Components 渲染器只在浏览器里工作。目测只在桌面版 Chrome 里做过。
 
 ## 没有验证的部分
 
 - **没有用真实模型跑过。** 环境里没有模型密钥。提示词里的每个示例都由测试渲染过，六个演示是手写的 IUI 标记；模型在这份提示词下实际写得怎么样，没有数据。演示站的 Live 模式可以接任意 OpenAI 兼容端点，SSE 客户端只对着假端点测过。
 - **token 成本没有量过。** 默认系统提示词约 3.4 万字符。标记比 JSON 省多少、比 OpenUI Lang 多多少，没有做基准。
 - **OpenAI 的语法是从一段对话里看到的**，不是规范，文中标了“观察所得”的都属于这一类。
-- **Vue 渲染器是新的。** 它和 React 的一致性由测试和 Chrome 里的对比守着，但没有在真实的 Vue 应用里用过，服务端渲染后的水合也没有测过。Svelte、Solid、Web Components 的渲染器没有写，“[其他框架](#其他框架)”里的另外两条路线没有动手验证过。
+- **React 之外的四个渲染器是新的。** 它们和 React 的一致性由测试和 Chrome 里的对比守着，但都没有在真实的应用里用过，服务端渲染后的水合也没有测过。见“[其他框架](#其他框架)”。
 - **UI SDK 是 beta。** 以上结论对应 0.1.0-beta.13。
 - **浏览器。** 目测检查只在桌面版 Chrome 里做过；`morph` 依赖 View Transitions API，不支持的浏览器会直接切换。

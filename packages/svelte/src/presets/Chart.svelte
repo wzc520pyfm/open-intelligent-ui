@@ -10,6 +10,7 @@
   } from "@open-intelligent-ui/core/renderer"
   import { createAttachmentKey } from "svelte/attachments"
   import Nodes from "../render/Nodes.svelte"
+  import { pageId } from "../render/pageId.js"
   import { useTween } from "./tween.svelte.js"
 
   /**
@@ -23,7 +24,7 @@
   let props: ViewProps = $props()
 
   const uid = $props.id()
-  const id = `iui-chart-${uid.replace(/[^A-Za-z0-9_-]/g, "")}`
+  const id = pageId(`iui-chart-${uid.replace(/[^A-Za-z0-9_-]/g, "")}`)
 
   let width = $state(CHART_WIDTH)
   let active = $state<number | null>(null)

@@ -18,6 +18,7 @@
   import type { IntelligentUIProps } from "./types.js"
   import Boundary from "./render/Boundary.svelte"
   import Nodes from "./render/Nodes.svelte"
+  import { pageId } from "./render/pageId.js"
   import { type RenderContext, renderNodes } from "./render/render.js"
 
   /**
@@ -50,7 +51,7 @@
   }: IntelligentUIProps = $props()
 
   const uid = $props.id()
-  const id = uid.replace(/[^A-Za-z0-9]/g, "")
+  const id = pageId(uid.replace(/[^A-Za-z0-9]/g, ""))
 
   let toasts = $state.raw<Toast[]>([])
   const timers = new Set<ReturnType<typeof setTimeout>>()

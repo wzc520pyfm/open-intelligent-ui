@@ -2,6 +2,7 @@ import { IntelligentUI as ReactUI, preloadUiSdk as preloadReact } from "@open-in
 import { act, createElement } from "react"
 import { createRoot } from "react-dom/client"
 import { mount, unmount } from "svelte"
+import { claimId } from "@open-intelligent-ui/core/renderer"
 import { describe, expect, test, vi } from "vitest"
 import { preloadUiSdk } from "../src"
 import { UI_SDK_PROPS } from "../src/registry/ui-sdk.generated"
@@ -965,5 +966,56 @@ describe("safety: Svelte's own channels", () => {
 </Progress>`,
     })
     await until(() => expect(text(container)).toBe("[40] [] [] [undefined]"))
+  })
+})
+
+describe("several Svelte surfaces on one page", () => {
+  const reply = (color: string) =>
+    `<style>.note { color: ${color} }</style>\n\n<div class="note">Hello</div>\n\n<Chart type="area" data={[{ x: "a", y: 1 }, { x: "b", y: 3 }]} x="x" y="y" />`
+  const idOf = (container: HTMLElement) => container.getAttribute("data-iui-id") as string
+
+  test("each surface's styles are scoped by an id no other surface has", async () => {
+    const first = await draw({ source: reply("red") })
+    const second = await draw({ source: reply("blue") })
+    const ids = [idOf(first.container), idOf(second.container)]
+    expect(ids[0]).toBeTruthy()
+    expect(ids[1]).not.toBe(ids[0])
+    for (const [index, { container }] of [first, second].entries()) {
+      const css = [...container.querySelectorAll("style")].map((style) => style.textContent).join("\n")
+      expect(css).toContain(`[data-iui-id="${ids[index]}"]`)
+      expect(css).not.toContain(`[data-iui-id="${ids[1 - index]}"]`)
+    }
+    await until(() => expect(document.querySelectorAll("linearGradient").length).toBeGreaterThan(1))
+    const gradients = [...document.querySelectorAll("linearGradient")].map((gradient) => gradient.id)
+    expect(new Set(gradients).size).toBe(gradients.length)
+
+    first.view.unmount()
+    second.view.unmount()
+    // Both ids are free again.
+    for (const id of ids) {
+      const claim = claimId(id)
+      expect(claim.id).toBe(id)
+      claim.release()
+    }
+  })
+
+  test("an id a surface from another copy of Svelte holds is not taken twice", async () => {
+    // Svelte numbers its ids from a counter in the module, so a second copy of
+    // it on the page, in another bundle, hands out the same ones.
+    const probe = await draw({ source: "Hello" })
+    const [, prefix, count] = /^(\D+)(\d+)$/.exec(idOf(probe.container)) as RegExpExecArray
+    probe.view.unmount()
+    const next = `${prefix}${Number(count) + 1}`
+    const other = claimId(next)
+    expect(other.id).toBe(next)
+
+    const { view, container } = await draw({ source: reply("red") })
+    const id = idOf(container)
+    expect(id).not.toBe(next)
+    expect(id.startsWith(next)).toBe(true)
+    const css = [...container.querySelectorAll("style")].map((style) => style.textContent).join("\n")
+    expect(css).toContain(`[data-iui-id="${id}"]`)
+    view.unmount()
+    other.release()
   })
 })

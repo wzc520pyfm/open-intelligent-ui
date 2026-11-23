@@ -316,7 +316,10 @@ snippet.
 `ref` is called with the handle. `components` takes Solid components,
 which run once: read props where Solid tracks them.
 
-**No framework** (`@open-intelligent-ui/web`):
+**No framework** (`@open-intelligent-ui/web`). The page still needs a
+bundler such as Vite: the imports below are package names and a
+stylesheet, which a browser can't load by itself. The package README
+lists what an import map would need instead.
 
 ```html
 <intelligent-ui id="reply"></intelligent-ui>
@@ -406,7 +409,10 @@ JavaScript.
   form of yours by its id, and a button can't submit one.
 - A `<FileInputDropzone>` takes the files dropped on or pasted into it.
   The options that would make it listen to the whole page, `target` and
-  `pasteTarget`, are dropped.
+  `pasteTarget`, are dropped. One effect on your page remains: while a
+  reply shows a drop zone, UI SDK cancels file drops that land outside its
+  drop zones, so the browser doesn't open the file. A file drop target of
+  your own can stop taking files during that time.
 - `<style>` is scoped to its surface. `@import`, `url()` to other sites and
   unknown at-rules are removed, and `position: fixed` becomes `absolute`,
   so a surface can't draw over your page. The scope holds across the page,

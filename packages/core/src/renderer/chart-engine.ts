@@ -22,10 +22,10 @@ export interface ChartTheme {
   muted: string
   /** Grid lines and axes. */
   border: string
-  /** What the chart sits on. */
+  /** The page behind the surface. A chart is drawn on nothing, so what is under it shows. */
+  background: string
+  /** What floats above the chart: a tooltip's background. */
   surface: string
-  /** The tooltip's background. */
-  popover: string
   fontFamily: string
   fontSize: number
   dark: boolean
@@ -157,10 +157,10 @@ export function resolveColors(element: Element, values: string[]): string[] {
   }
 }
 
-const THEME_COLORS = ["foreground", "muted-foreground", "border", "surface", "background"]
+const THEME_COLORS = ["foreground", "muted-foreground", "border", "background", "surface"]
 
 function readTheme(element: Element): ChartTheme {
-  const [foreground, muted, border, surface, popover] = resolveColors(
+  const [foreground, muted, border, background, surface] = resolveColors(
     element,
     THEME_COLORS.map((name) => `var(--iui-color-${name})`)
   ) as [string, string, string, string, string]
@@ -169,39 +169,44 @@ function readTheme(element: Element): ChartTheme {
     foreground,
     muted,
     border,
+    background,
     surface,
-    popover,
     fontFamily: style?.fontFamily || "sans-serif",
     fontSize: 12,
     dark: style?.colorScheme === "dark",
   }
 }
 
-/** The spec an engine draws, from a chart's props and the element it is drawn in. */
-export function chartSpec(props: ViewProps, element: Element): ChartSpec {
+/** A chart as its props describe it, before anything is read from the page. */
+export type ChartDescription = Omit<ChartSpec, "theme">
+
+/**
+ * Reads a `<Chart>`'s props into rows, series and settings. Colors are as
+ * the design names them (`var(--iui-color-chart-1)`), which is what an
+ * engine that draws SVG or HTML wants; `chartSpec` resolves them for one
+ * that paints on a canvas.
+ */
+export function describeChart(props: ViewProps): ChartDescription {
   const type = typeName(props.type)
   const data = readChartData(props)
-  const round = type === "donut" || type === "pie"
+  const round = type === "donut" || type === "pie" || type === "funnel"
   const given = Array.isArray(props.colors) ? props.colors : []
-  const tones = data.rows.map(
-    (_, index) => color(given[index]) ?? `var(--iui-color-chart-${(index % 6) + 1})`
-  )
-  const resolved = resolveColors(element, [...data.series.map((item) => item.color), ...tones])
-  const series = data.series.map((item, index) => ({
-    key: item.key,
-    name: item.name,
-    color: resolved[index] as string,
-    values: item.values,
-  }))
   return {
     type,
     rows: data.rows,
     labels: data.labels,
-    series,
-    palette: resolved.slice(series.length),
-    height: Number(props.height) || (type === "spark" ? 36 : round ? 200 : 220),
+    series: data.series.map((item) => ({
+      key: item.key,
+      name: item.name,
+      color: item.color,
+      values: item.values,
+    })),
+    palette: data.rows.map(
+      (_, index) => color(given[index]) ?? `var(--iui-color-chart-${(index % 6) + 1})`
+    ),
+    height: chartHeight(props),
     stacked: flag(props.stacked),
-    legend: props.legend === undefined ? series.length > 1 || round : flag(props.legend),
+    legend: props.legend === undefined ? data.series.length > 1 || round : flag(props.legend),
     grid: props.grid === undefined ? true : flag(props.grid),
     valueLabels: flag(props.labels),
     selectable: typeof props.onSelect === "function",
@@ -213,9 +218,32 @@ export function chartSpec(props: ViewProps, element: Element): ChartSpec {
         unit: props.unit,
         locale: props.locale as string | undefined,
       }),
-    theme: readTheme(element),
     label: textValue(props["aria-label"]) ?? `${type} chart`,
     props,
+  }
+}
+
+/** How tall a chart is when markup doesn't say, by type. */
+function chartHeight(props: ViewProps): number {
+  const type = typeName(props.type)
+  const given = Number(props.height)
+  if (Number.isFinite(given) && given > 0) return Math.min(given, 2000)
+  if (type === "spark") return 36
+  return type === "donut" || type === "pie" ? 200 : 220
+}
+
+/** The spec an engine draws, from a chart's props and the element it is drawn in. */
+export function chartSpec(props: ViewProps, element: Element): ChartSpec {
+  const described = describeChart(props)
+  const resolved = resolveColors(element, [
+    ...described.series.map((item) => item.color),
+    ...described.palette,
+  ])
+  return {
+    ...described,
+    series: described.series.map((item, index) => ({ ...item, color: resolved[index] as string })),
+    palette: resolved.slice(described.series.length),
+    theme: readTheme(element),
   }
 }
 
@@ -349,8 +377,7 @@ export function engineChart(engine: ChartEngine): WidgetSetup {
     return (next) => {
       props = next as ViewProps
       const type = typeName(props.type)
-      const round = type === "donut" || type === "pie"
-      const height = Number(props.height) || (type === "spark" ? 36 : round ? 200 : 220)
+      const height = chartHeight(props)
       if (chart) refresh()
       return view("div", {
         pass,

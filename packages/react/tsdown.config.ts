@@ -1,7 +1,11 @@
 import { defineConfig } from "tsdown"
 
 export default defineConfig({
-  entry: { index: "src/index.ts", "ui-sdk": "src/registry/ui-sdk.ts" },
+  entry: {
+    index: "src/index.ts",
+    "ui-sdk": "src/registry/ui-sdk.ts",
+    recharts: "src/recharts.tsx",
+  },
   format: "esm",
   platform: "browser",
   dts: true,

@@ -15,12 +15,14 @@ export {
 } from "./chart"
 export {
   type ChartContext,
+  type ChartDescription,
   type ChartEngine,
   type ChartHandle,
   type ChartSeries,
   type ChartSpec,
   type ChartTheme,
   chartSpec,
+  describeChart,
   engineChart,
   engineDraws,
   resolveColors,

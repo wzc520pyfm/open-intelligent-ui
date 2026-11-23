@@ -21,8 +21,17 @@ window.matchMedia = ((query: string) => ({
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 40))
 
-async function drawnByReact(sample: Sample): Promise<string> {
+interface Drawn {
+  dom: string
+  /** What the renderer complained about, in no particular order. */
+  warnings: string[]
+}
+
+const distinct = (warnings: string[]) => [...new Set(warnings)].sort()
+
+async function drawnByReact(sample: Sample): Promise<Drawn> {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
+  const warnings: string[] = []
   const host = document.body.appendChild(document.createElement("div"))
   const root = createRoot(host)
   await act(async () => {
@@ -30,32 +39,35 @@ async function drawnByReact(sample: Sample): Promise<string> {
       createElement(ReactUI, {
         source: sample.source,
         tools: corpusTools(),
+        onWarning: (message: string) => warnings.push(message),
         ...(sample.initialState ? { initialState: sample.initialState } : {}),
       })
     )
   })
   await act(settle)
-  const drawn = describeDom(host.firstElementChild as Element)
+  const dom = describeDom(host.firstElementChild as Element)
   await act(async () => root.unmount())
   host.remove()
-  return drawn
+  return { dom, warnings: distinct(warnings) }
 }
 
-async function drawnByVue(sample: Sample): Promise<string> {
+async function drawnByVue(sample: Sample): Promise<Drawn> {
+  const warnings: string[] = []
   const view = mount(VueUI, {
     attachTo: document.body,
     props: {
       source: sample.source,
       tools: corpusTools(),
+      onWarning: (message: string) => warnings.push(message),
       ...(sample.initialState ? { initialState: sample.initialState } : {}),
     },
   })
   await flushPromises()
   await settle()
   await flushPromises()
-  const drawn = describeDom(view.element)
+  const dom = describeDom(view.element)
   view.unmount()
-  return drawn
+  return { dom, warnings: distinct(warnings) }
 }
 
 beforeAll(async () => {
@@ -71,7 +83,8 @@ test.each(CORPUS.map((sample) => [sample.name, sample] as const))(
   async (_name, sample) => {
     const react = await drawnByReact(sample)
     const vue = await drawnByVue(sample)
-    expect(react).not.toContain("iui-error")
-    expect(vue).toBe(react)
+    expect(react.dom).not.toContain("iui-error")
+    expect(vue.dom).toBe(react.dom)
+    expect(vue.warnings).toEqual(react.warnings)
   }
 )

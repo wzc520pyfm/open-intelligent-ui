@@ -49,7 +49,8 @@ const TOKEN_KEYS = [
   "components",
 ]
 const REFERENCE = /^\{([A-Za-z0-9_.-]+)\}$/
-const UNSAFE_VALUE = /[;{}<>\\]|url\s*\(|@import|expression\s*\(|\/\*/i
+const UNSAFE_VALUE =
+  /[;{}<>\\]|(?:url|image-set|image|src|expression)\s*\(|@import|\/\*/i
 
 function isTree(value: unknown): value is Tree {
   return typeof value === "object" && value !== null && !Array.isArray(value)

@@ -335,10 +335,24 @@ function reconcile(parent: Mounted, before: Mounted[], next: VNode[], svg: boole
       old.delete(key)
       return update(match, vnode)
     }
-    return create(vnode, parent, svg)
+    const fresh = create(vnode, parent, svg)
+    if (match) takePlace(fresh, match)
+    return fresh
   })
   for (const leftover of old.values()) remove(leftover)
   return result
+}
+
+/** Puts a node's DOM where the one it replaces stands, which may be among nodes that aren't the patcher's. */
+function takePlace(fresh: Mounted, stale: Mounted) {
+  const anchor = domOf([stale])[0]
+  const parent = anchor?.parentNode
+  if (!anchor || !parent || !placed.has(anchor)) return
+  for (const node of domOf([fresh])) {
+    parent.insertBefore(node, anchor)
+    placed.add(node)
+    record(node)
+  }
 }
 
 function update(mounted: Mounted, vnode: VNode): Mounted {
@@ -449,14 +463,20 @@ function place(parent: Node, children: Mounted[], end: Node | null = null) {
   const wanted = domOf(children)
   const ours = new Set(wanted)
   let pointer = parent.firstChild
+  let last: Node | null = null
   for (const node of wanted) {
     if (node.parentNode !== parent && placed.has(node) && node.parentNode) continue
     while (pointer && pointer !== end && !ours.has(pointer)) pointer = pointer.nextSibling
     if (node === pointer) {
       pointer = pointer.nextSibling
+      last = node
       continue
     }
-    parent.insertBefore(node, pointer ?? end)
+    // Next to the one before it, so what a custom element appended for itself stays last.
+    const before: Node | null = last ? last.nextSibling : (pointer ?? end)
+    if (before !== node) parent.insertBefore(node, before)
+    if (pointer === node) pointer = node.nextSibling
+    last = node
     placed.add(node)
     record(node)
   }

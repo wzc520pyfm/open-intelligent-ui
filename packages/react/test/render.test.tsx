@@ -422,6 +422,24 @@ describe("safety", () => {
     expect(container.innerHTML).not.toContain("pwn")
   })
 
+  test("a component can't be handed a URL the host wasn't asked about", async () => {
+    await preloadUiSdk("Button")
+    const asked: string[] = []
+    const { container } = render(
+      <IntelligentUI
+        source={`<state bag={{ srcSet: "https://evil.test/a.png 1x", imageSrcSet: "https://evil.test/b.png 1x", ping: "https://evil.test/ping", attributionSrc: "https://evil.test/c", poster: "https://evil.test/d.png", title: "ok" }} />
+<Button aria-label="Kept" {...bag} srcset="https://evil.test/e.png 2x" PING="https://evil.test/f">Keep</Button>`}
+        allowUrl={(url) => {
+          asked.push(url)
+          return false
+        }}
+      />
+    )
+    expect(screen.getByLabelText("Kept").getAttribute("title")).toBe("ok")
+    expect(container.innerHTML).not.toContain("evil.test")
+    expect(asked).toEqual(["https://evil.test/d.png"])
+  })
+
   test("the host can refuse URLs", () => {
     const { container } = render(
       <IntelligentUI

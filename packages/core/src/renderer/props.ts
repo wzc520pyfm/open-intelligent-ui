@@ -130,6 +130,13 @@ export const BLOCKED_PROPS = new Set([
   "is",
 ])
 
+/**
+ * Attributes that make the browser fetch or report to a URL, and that hold more than
+ * one URL or none the host could be asked about. A component passes what it doesn't
+ * know to its element, so these are dropped however they are spelled.
+ */
+const UNCHECKED_URL_PROPS = new Set(["srcset", "imagesrcset", "ping", "attributionsrc"])
+
 const DATA_PROPS = new Set(["variant", "size", "tone"])
 const MOTION_ATTRIBUTE = /^[a-z]+(?:-[a-z]+)*$/
 const PROP_NAME = /^[A-Za-z_][\w:-]*$/
@@ -353,6 +360,7 @@ export function buildProps(
 
   const assign = (name: string, value: unknown, fromStatic: boolean) => {
     if (BLOCKED_PROPS.has(name) || !PROP_NAME.test(name)) return
+    if (UNCHECKED_URL_PROPS.has(name.toLowerCase())) return
     if (name === "key") {
       if (value !== undefined && value !== null) key = String(value)
       return
@@ -464,9 +472,9 @@ export function buildProps(
       if (url !== undefined) props.href = url
       return
     }
-    if (name === "src") {
+    if (name === "src" || name === "poster") {
       const url = checkUrl(value, "media", ctx)
-      if (url !== undefined) props.src = url
+      if (url !== undefined) props[name] = url
       return
     }
     if (kind === "ui-sdk" && DATA_PROPS.has(name)) {

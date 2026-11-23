@@ -594,6 +594,26 @@ describe("safety", () => {
     expect(container.querySelector(".iui-error")).toBeNull()
   })
 
+  test("a component can't be handed a URL the host wasn't asked about", async () => {
+    await preloadUiSdk("Button")
+    const asked: string[] = []
+    const Plain = defineComponent({ render: () => h("video", { "aria-label": "Plain" }) })
+    const { container } = await draw({
+      source: `<state bag={{ srcSet: "https://evil.test/a.png 1x", imageSrcSet: "https://evil.test/b.png 1x", ping: "https://evil.test/ping", attributionSrc: "https://evil.test/c", poster: "https://evil.test/d.png", title: "ok" }} />
+<Button aria-label="Kept" {...bag} srcset="https://evil.test/e.png 2x" PING="https://evil.test/f">Keep</Button>
+<Plain {...bag} />`,
+      components: { Plain },
+      allowUrl: (url) => {
+        asked.push(url)
+        return false
+      },
+    })
+    expect(byLabel(container, "Kept").getAttribute("title")).toBe("ok")
+    expect(byLabel(container, "Plain").getAttribute("title")).toBe("ok")
+    expect(container.innerHTML).not.toContain("evil.test")
+    expect(new Set(asked)).toEqual(new Set(["https://evil.test/d.png"]))
+  })
+
   test("markup can't hook into Vue's own lifecycle", async () => {
     await preloadUiSdk("Button")
     const Plain = defineComponent({ props: { label: String }, render: () => h("span", "plain") })

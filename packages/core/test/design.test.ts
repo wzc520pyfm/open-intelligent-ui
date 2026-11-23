@@ -4,6 +4,7 @@ import {
   designToCss,
   parseDesign,
   parseInlineStyle,
+  safeStyleValue,
   safeUrl,
   scopeCss,
 } from "../src/design"
@@ -251,6 +252,39 @@ describe("scoped CSS", () => {
     expect(css.startsWith(".s {")).toBe(true)
   })
 
+  test("a name spelled with escapes is read as the browser reads it", () => {
+    const { css } = scopeCss(
+      String.raw`.a { position: f\69xed; pos\69tion: fixed; POSITION: f\000069 xed }
+.b { background: u\72l(https://x.dev/a.png); mask: \75rl(https://x.dev/b.png); cursor: \url(https://x.dev/c.png) }
+.c { background: \69mage-set("https://x.dev/d.png" 1x) }
+.sm\:flex { content: "\201C u\72l(" }`,
+      ".s"
+    )
+    expect(css).not.toMatch(/fixed/i)
+    expect(css).toContain(".a { position: absolute; position: absolute; POSITION: absolute }")
+    expect(css).toContain(".b { background: none; mask: none; cursor: none }")
+    expect(css).toContain('.c { background: none("https://x.dev/d.png" 1x) }')
+    expect(css).toContain(String.raw`.sm\:flex { content: "\201C u\72l(" }`)
+  })
+
+  test("position takes a keyword, since var() and attr() can stand for fixed", () => {
+    const { css } = scopeCss(
+      `.a { --p: fixed; position: var(--p) }
+.b { position: attr(data-p type(*)) }
+.c { position: fixed !important; background-position: center }
+.d { position: sticky; top: 0 }
+.e { position:relative }
+@supports (position: sticky) { .f { position: absolute } }`,
+      ".s"
+    )
+    expect(css).toContain(".a { --p: fixed; position: absolute(--p) }")
+    expect(css).toContain(".b { position: absolute(data-p type(*)) }")
+    expect(css).toContain(".c { position: absolute !important; background-position: center }")
+    expect(css).toContain(".d { position: sticky; top: 0 }")
+    expect(css).toContain(".e { position:relative }")
+    expect(css).toContain("@supports (position: sticky) {\n.f { position: absolute }\n}")
+  })
+
   test("a closing style tag can't end the stylesheet early", () => {
     const { css } = scopeCss(".a { color: red } </style><b>x</b>", ".s")
     expect(css).not.toContain("</style")
@@ -269,6 +303,23 @@ describe("inline styles and URLs", () => {
       "--gap": "calc(1px * (2 + 1))",
       position: "absolute",
     })
+  })
+
+  test("an inline style can't hide a name behind escapes, cssText or var()", () => {
+    expect(
+      parseInlineStyle(
+        String.raw`position: f\69xed; background: u\72l(https://x.dev/a.png); background-image: image-set("https://x.dev/b.png" 1x); color: r\65 d; top: 0`
+      )
+    ).toEqual({ position: "absolute", color: "red", top: "0" })
+    expect(parseInlineStyle("--p: fixed; position: var(--p); position: sticky !important")).toEqual({
+      "--p": "fixed",
+      position: "sticky !important",
+    })
+    expect(parseInlineStyle("position: var(--p)")).toEqual({ position: "absolute" })
+    expect(safeStyleValue("cssText", "position: fixed; inset: 0")).toBeNull()
+    expect(safeStyleValue("css-text", "position: fixed")).toBeNull()
+    expect(safeStyleValue("position", "relative")).toBe("relative")
+    expect(safeStyleValue("content", String.raw`"\201C"`)).toBe(String.raw`"\201C"`)
   })
 
   test("only safe URLs pass", () => {

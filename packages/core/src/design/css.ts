@@ -73,8 +73,62 @@ function statements(css: string): Statement[] {
   return out
 }
 
+const NAME_CHARACTER = /^[A-Za-z0-9_-]$/
+
+/**
+ * A backslash escape spells any character of a name, so to a browser
+ * `u\72l(` is `url(` and `f\69xed` is `fixed`. Escapes that spell a letter,
+ * a digit, `-` or `_` are written out here, so the checks read the names the
+ * browser reads. Quoted strings are left as they are.
+ */
+function plainNames(css: string): string {
+  if (!css.includes("\\")) return css
+  let out = ""
+  let i = 0
+  while (i < css.length) {
+    const ch = css[i] as string
+    if (ch === '"' || ch === "'") {
+      const end = skipString(css, i)
+      out += css.slice(i, end)
+      i = end
+    } else if (ch === "\\") {
+      const hex = /^[0-9a-f]{1,6}/i.exec(css.slice(i + 1, i + 7))?.[0]
+      const point = hex ? Number.parseInt(hex, 16) : Number.NaN
+      const spelled = hex
+        ? point <= 0x7f
+          ? String.fromCharCode(point)
+          : ""
+        : (css[i + 1] ?? "")
+      if (NAME_CHARACTER.test(spelled)) {
+        i += 1 + (hex ? hex.length : 1)
+        // One space after a hexadecimal escape only ends it.
+        if (hex && /[ \t\n\r\f]/.test(css[i] ?? "")) i++
+        out += spelled
+      } else {
+        out += css.slice(i, i + 2)
+        i += 2
+      }
+    } else {
+      out += ch
+      i++
+    }
+  }
+  return out
+}
+
+const POSITION = /^(?:static|relative|absolute|sticky|inherit|initial|unset|revert|revert-layer)$/i
+
+/**
+ * A `position` that can't pin an element to the window. Only the keywords
+ * are let through, since `var()` and `attr()` can stand for `fixed`.
+ */
+function safePosition(value: string): string {
+  const [keyword = "", ...rest] = value.split(/\s*!\s*/)
+  return POSITION.test(keyword) ? value : ["absolute", ...rest].join(" !")
+}
+
 function cleanValues(css: string): string {
-  return css
+  return plainNames(css)
     .replace(URL_CALL, (match, _quote, target: string) => {
       const url = target.trim()
       if (url.startsWith("#")) return match
@@ -84,7 +138,10 @@ function cleanValues(css: string): string {
     .replace(/image-set\s*\(/gi, "none(")
     .replace(/expression\s*\(/gi, "none(")
     .replace(/(-moz-binding|behavior)\s*:/gi, "--blocked:")
-    .replace(/(position\s*:\s*)fixed/gi, "$1absolute")
+    .replace(/((?:^|[;{\s(])position\s*:)([^;{}()]*)/gi, (match, lead: string, value: string) => {
+      const keyword = value.trim()
+      return keyword ? lead + value.replace(keyword, safePosition(keyword)) : match
+    })
     .replace(/@import\b[^;]*;?/gi, "")
 }
 
@@ -169,7 +226,7 @@ export function scopeCss(css: string, scope: string, id = ""): ScopedCss {
   return { css: [frames, scoped].filter(Boolean).join("\n"), dropped }
 }
 
-const UNSAFE_DECLARATION = /url\s*\(|expression\s*\(|@import|[<>{}]|\/\*/i
+const UNSAFE_DECLARATION = /url\s*\(|image-set\s*\(|expression\s*\(|@import|[<>{}]|\/\*/i
 
 /**
  * Reads an inline `style="..."` string into a style object. Custom properties
@@ -212,16 +269,17 @@ export function styleKey(name: string): string {
 /** Returns the value if it may be used for `property`, else null. */
 export function safeStyleValue(property: string, value: string): string | null {
   if (!/^-{0,2}[A-Za-z][\w-]*$/.test(property)) return null
+  // Not a property: assigning it rewrites the whole style from text.
+  if (/^css-?text$/i.test(property)) return null
   if (!value || value.length > 2000) return null
-  const urlFree = value.replace(URL_CALL, (match, _quote, target: string) =>
+  const plain = plainNames(value)
+  const urlFree = plain.replace(URL_CALL, (match, _quote, target: string) =>
     target.trim().startsWith("#") ? "" : match
   )
   if (UNSAFE_DECLARATION.test(urlFree)) return null
   if (/^(-moz-binding|behavior)$/i.test(property)) return null
-  if (/^position$/i.test(property) && /fixed/i.test(value)) {
-    return "absolute"
-  }
-  return value
+  if (/^position$/i.test(property)) return safePosition(plain.trim())
+  return plain
 }
 
 const SAFE_PROTOCOL = /^(?:https?:|mailto:|tel:)/i

@@ -134,7 +134,19 @@ export const HostFunctionComponent: Component<HostFunctionProps> = (instance) =>
     return out
   }
 
-  const childNodes = (): Node[] => [...(inner?.nodes() ?? []), marker]
+  // What the function returned last, and the children it has been handed so far.
+  let built: Node[] = []
+  const handed = new WeakSet<Node>()
+  let round = 0
+
+  const childNodes = (): Node[] => {
+    const list = [...(inner?.nodes() ?? []), marker]
+    for (const node of list) handed.add(node)
+    return list
+  }
+
+  /** Whether the marker is in what the function built, so a child put before it shows. */
+  const marked = (): boolean => built.some((node) => node === marker || node.contains(marker))
 
   instance.onUnmounted(() => {
     inner?.unmount()
@@ -145,13 +157,18 @@ export const HostFunctionComponent: Component<HostFunctionProps> = (instance) =>
     if (!marker.parentNode) holder.appendChild(marker)
     inner?.moveTo(marker.parentNode as Node, marker)
     inner?.render(instance.children)
+    // A function that left the marker out has nowhere for a later child to
+    // go, so it is asked again, this time with that child among the rest.
+    if (!marked() && inner?.nodes().some((node) => !handed.has(node))) round++
     return {
       kind: "raw",
       key: undefined,
-      signature: signature(instance.props.props),
+      signature: [signature(instance.props.props), round],
       create: () => {
         const node = instance.props.type(given(), childNodes())
-        return node instanceof Node ? node : null
+        const made = node instanceof Node ? node : null
+        built = made instanceof DocumentFragment ? [...made.childNodes] : made ? [made] : []
+        return made
       },
     }
   }

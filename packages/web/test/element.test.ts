@@ -91,6 +91,32 @@ describe("<intelligent-ui>", () => {
     expect(text(root)).toContain("z")
   })
 
+  test("a property that is cleared is gone from the surface", async () => {
+    const ui = element()
+    const calls = vi.fn(async () => ["x"])
+    ui.source = `<query id="q" tool="list" /><Hello />{#each q.data ?? [] as row}<text>{row}</text>{/each}
+<a href="https://other.test/b">link</a>`
+    ui.tools = { list: calls }
+    ui.components = { Hello: () => document.createElement("em") }
+    ui.allowUrl = () => false
+    document.body.append(ui)
+    await flushPromises()
+    const root = ui.firstElementChild as HTMLElement
+    expect(calls).toHaveBeenCalledTimes(1)
+    expect(root.querySelector("em")).not.toBeNull()
+    expect(byText(root, "link").hasAttribute("href")).toBe(false)
+
+    ui.tools = undefined
+    ui.components = undefined
+    ui.allowUrl = undefined
+    await flushPromises()
+    ui.refetch("q")
+    await flushPromises()
+    expect(calls).toHaveBeenCalledTimes(1)
+    expect(root.querySelector("em")).toBeNull()
+    expect(byText(root, "link").getAttribute("href")).toBe("https://other.test/b")
+  })
+
   test("a property set before the element was defined is picked up", async () => {
     const early = document.createElement("late-ui") as IntelligentUIElement
     made.push(early)
@@ -220,10 +246,11 @@ describe("mount()", () => {
 
   test("two copies of the package on one page give their surfaces and charts different ids", async () => {
     const chart = `<Chart type="area" data={[{ m: "a", v: 1 }, { m: "b", v: 2 }]} x="m" y="v" />`
+    const surfaces: { unmount(): void }[] = []
     const draw = async (copy: typeof import("../src")) => {
       const host = document.body.appendChild(document.createElement("div"))
       made.push(host)
-      copy.mount(host, { source: chart })
+      surfaces.push(copy.mount(host, { source: chart }))
       await flushPromises()
       return [
         host.querySelector(".iui-root")?.getAttribute("data-iui-id"),
@@ -242,6 +269,7 @@ describe("mount()", () => {
     expect(first.length).toBeGreaterThan(1)
     expect(second).toHaveLength(first.length)
     expect(new Set([...first, ...second]).size).toBe(first.length * 2)
+    for (const surface of surfaces) surface.unmount()
   })
 
   test("an id a surface from another renderer holds is not taken, and an id is given back", async () => {

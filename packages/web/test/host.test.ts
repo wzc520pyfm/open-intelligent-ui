@@ -122,6 +122,65 @@ describe("components of the host application", () => {
     expect(text(container)).toContain("why=button")
   })
 
+  test("a function that keeps only some of the nodes it was handed is asked again when more arrive", async () => {
+    const calls = vi.fn()
+    const Strip: HostFunction = (_props, children) => {
+      calls(children.length)
+      const out = document.createElement("ul")
+      out.className = "strip"
+      // Elements only: the text node that marks where later children go is left out.
+      for (const child of children) {
+        if (child instanceof Element) out.appendChild(document.createElement("li")).appendChild(child)
+      }
+      return out
+    }
+    const { container } = await draw({
+      source: `<state items={["a"]} n={0} />
+<Strip>{#each items as item (item)}<b>{item}{n}</b>{/each}</Strip>
+<button on:click={items = [...items, "b"]}>more</button>
+<button on:click={n += 1}>count</button>`,
+      components: { Strip },
+    })
+    const first = container.querySelector(".strip b")
+    expect(container.querySelector(".strip")?.textContent).toBe("a0")
+    await click(byText(container, "count"))
+    expect(calls).toHaveBeenCalledTimes(1)
+    expect(container.querySelector(".strip")?.textContent).toBe("a1")
+    await click(byText(container, "more"))
+    expect(calls).toHaveBeenCalledTimes(2)
+    expect(container.querySelector(".strip")?.textContent).toBe("a1b1")
+    expect(container.querySelectorAll(".strip li")).toHaveLength(2)
+    expect(container.querySelector(".strip b")).toBe(first)
+    await click(byText(container, "count"))
+    expect(calls).toHaveBeenCalledTimes(2)
+    expect(container.querySelector(".strip")?.textContent).toBe("a2b2")
+  })
+
+  test("a function may return several nodes, which are replaced and removed together", async () => {
+    const Pair: HostFunction = (props, children) => {
+      const out = document.createDocumentFragment()
+      const term = out.appendChild(document.createElement("dt"))
+      term.textContent = String(props.term)
+      out.appendChild(document.createElement("dd")).append(...children)
+      return out
+    }
+    const { container } = await draw({
+      source: `<state term="One" shown={true} n={0} />
+<dl>{#if shown}<Pair term={term}><i>{n}</i></Pair>{/if}</dl>
+<button on:click={term = "Two"}>rename</button>
+<button on:click={n += 1}>count</button>
+<button on:click={shown = false}>hide</button>`,
+      components: { Pair },
+    })
+    const list = container.querySelector("dl") as HTMLElement
+    expect(list.innerHTML).toBe("<dt>One</dt><dd><i>0</i></dd>")
+    await click(byText(container, "rename"))
+    await click(byText(container, "count"))
+    expect(list.innerHTML).toBe("<dt>Two</dt><dd><i>1</i></dd>")
+    await click(byText(container, "hide"))
+    expect(list.innerHTML).toBe("")
+  })
+
   test("a function that returns nothing or throws leaves the rest standing", async () => {
     const { container } = await draw({
       source: `<Nothing />\n\nbefore\n\n<Broken />\n\nafter`,

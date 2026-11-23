@@ -92,7 +92,12 @@ export class IntelligentUIElement extends Base implements IntelligentUIHandle {
   #resolved(): IntelligentUIOptions {
     const set = this.#options
     const scheme = this.#attribute("scheme")
+    // An option that was taken away is said as such: `update()` keeps what it isn't told about.
+    const cleared: Partial<IntelligentUIOptions> = Object.fromEntries(
+      PROPERTIES.map((name) => [name, undefined])
+    )
     return {
+      ...cleared,
       ...set,
       source: set.source ?? this.#attribute("source") ?? "",
       streaming: set.streaming ?? this.hasAttribute(ATTRIBUTES.streaming),

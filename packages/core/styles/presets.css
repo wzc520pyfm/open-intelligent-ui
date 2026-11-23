@@ -277,6 +277,12 @@
     gap: 0;
   }
 
+  /* Drawn by a chart engine: the element is the engine's, kept at the chart's height while it loads. */
+  .iui-chart-engine {
+    display: block;
+    position: relative;
+  }
+
   .iui-chart-plot {
     position: relative;
     width: 100%;

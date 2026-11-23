@@ -4,7 +4,7 @@ import {
   type ViewProps,
 } from "@open-intelligent-ui/core/renderer"
 import { type Child, type Component, component, fragment, h } from "../dom/node"
-import { PRESETS } from "../presets/presets"
+import { PARTS, PRESETS } from "../presets/presets"
 import { PRIMITIVES } from "../primitives/primitives"
 import { lookupUiSdk } from "../registry/ui-sdk"
 import type { UiSdkComponent } from "../ui-sdk/adapter"
@@ -18,6 +18,7 @@ import {
 } from "./host"
 import { nativeElement } from "./native"
 import { Presence } from "./Presence"
+import { widgetComponent } from "./widget"
 
 /** One of the renderer's own components: a primitive or a preset. */
 interface Own {
@@ -60,6 +61,7 @@ export const renderNodes = createRenderer<Child, Renderable>({
   primitives: own(PRIMITIVES),
   presets: own(PRESETS),
   lookup: lookupUiSdk,
+  widget: (setup) => ({ own: widgetComponent(setup, PARTS) }),
   fragment: (children, key) => fragment(children, key),
   element: (tag, props, key, children) => nativeElement(tag, props, key, children ?? []),
   component: draw,

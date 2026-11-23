@@ -1,6 +1,7 @@
 <script lang="ts">
   import { parse, Surface, type Surface as SurfaceType, type Tool } from "@open-intelligent-ui/core"
   import {
+    attachMotion,
     copyText,
     designCss,
     guard,
@@ -31,6 +32,7 @@
     design,
     scheme = "auto",
     components,
+    library,
     tools,
     callTool,
     onAction,
@@ -199,7 +201,14 @@
     return ran ? undefined : write(work)
   }
 
-  const designSheet = $derived(designCss(design, id))
+  const designSheet = $derived(designCss(design ?? library?.design, id))
+
+  // As soon as the surface is in the page, so nothing shows at rest and then plays its entrance.
+  $effect(() => {
+    const adapter = library?.motion
+    const element = root
+    return untrack(() => attachMotion(element, adapter))
+  })
   let sheets: { key: string; css: string } | undefined
   const modelSheet = $derived.by(() => {
     void doc
@@ -223,6 +232,7 @@
       templateDepth: 0,
       options: {
         components: components ?? {},
+        library,
         streaming,
         report,
         invoke,

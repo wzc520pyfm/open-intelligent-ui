@@ -163,6 +163,20 @@
     pointer-events: none;
   }
 
+  /*
+   * A motion adapter (`library.motion`) plays all of the above itself: the
+   * renderer marks the surface and the CSS entrances and exits stand down.
+   * What an adapter doesn't play (transitions, skeletons, UI SDK parts) stays.
+   */
+  .iui-root[data-iui-motion-engine] > :where(.iui-el, p, ul, ol, blockquote, table, h1, h2, h3, h4, h5, h6, figure),
+  .iui-root[data-iui-motion-engine][data-streaming] :where(.iui-el, li, tr),
+  .iui-root[data-iui-motion-engine] [data-iui-motion],
+  .iui-root[data-iui-motion-engine] [data-iui-stagger] > :where(*),
+  .iui-root[data-iui-motion-engine] .iui-presence > :where(*),
+  .iui-root[data-iui-motion-engine] .iui-presence[data-iui-exit] > :where(*) {
+    animation: none;
+  }
+
   @keyframes iui-fade {
     from {
       opacity: 0;

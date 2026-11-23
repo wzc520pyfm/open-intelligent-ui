@@ -1,6 +1,7 @@
 import {
   type Design,
   type Diagnostic,
+  type Library,
   parse,
   type StorageLike,
   Surface,
@@ -9,6 +10,7 @@ import {
   type ToolEvent,
 } from "@open-intelligent-ui/core"
 import {
+  attachMotion,
   copyText,
   designCss as readDesignCss,
   guard,
@@ -30,6 +32,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -40,6 +43,8 @@ import { getUiSdkVersion, subscribeUiSdk } from "./registry/ui-sdk"
 import { Boundary } from "./render/Boundary"
 import { type AnyComponent, type RenderContext, renderNodes } from "./render/render"
 import { alphanumeric, usePageId } from "./render/usePageId"
+
+const useBeforePaint = typeof document === "undefined" ? useEffect : useLayoutEffect
 
 export interface IntelligentUIHandle {
   /** The surface's current state, as plain data. */
@@ -64,6 +69,13 @@ export interface IntelligentUIProps {
   scheme?: "light" | "dark" | "auto"
   /** Your own components, usable in markup by their PascalCase name. */
   components?: Record<string, ComponentType<never>>
+  /**
+   * What your product adds, made with `defineLibrary`: components with
+   * their descriptions, the engines that draw charts and play motion, and
+   * the design. Give the same library to `buildSystemPrompt`.
+   */
+  // biome-ignore lint/suspicious/noExplicitAny: a library holds components of any props
+  library?: Library<ComponentType<any>> | undefined
   /** Functions the surface reads with `<query>` and writes with `call()`. */
   tools?: Record<string, Tool>
   /** Called for tools not found in `tools`. */
@@ -110,7 +122,8 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
   const {
     source,
     streaming = false,
-    design,
+    library,
+    design = library?.design,
     scheme = "auto",
     components,
     allowUrl,
@@ -268,6 +281,10 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
 
   const designCss = useMemo(() => readDesignCss(design, id), [design, id])
 
+  // Before the first paint, so nothing shows at rest and then plays its entrance.
+  const motion = library?.motion
+  useBeforePaint(() => attachMotion(rootElement.current, motion), [motion])
+
   const sheetKey = surface.styles.join("\u0000")
   const modelCss = useMemo(() => readModelCss(sheetKey.split("\u0000"), id), [sheetKey, id])
 
@@ -278,6 +295,7 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
     templateDepth: 0,
     options: {
       components: (components ?? {}) as Record<string, AnyComponent>,
+      library,
       streaming,
       report,
       invoke,

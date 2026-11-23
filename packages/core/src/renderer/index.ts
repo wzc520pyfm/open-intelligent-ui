@@ -14,12 +14,37 @@ export {
   readChartData,
 } from "./chart"
 export {
+  type ChartContext,
+  type ChartEngine,
+  type ChartHandle,
+  type ChartSeries,
+  type ChartSpec,
+  type ChartTheme,
+  chartSpec,
+  engineChart,
+  engineDraws,
+  resolveColors,
+} from "./chart-engine"
+export {
   type FormatOptions,
   formatValue,
+  prefersReducedMotion,
   tween,
   tweenless,
 } from "./format"
 export { type ClaimedId, claimId } from "./ids"
+export {
+  attachMotion,
+  bezierOf,
+  MOTION_PRESET_NAMES,
+  type MotionAdapter,
+  type MotionKeyframes,
+  type MotionKind,
+  type MotionPlayback,
+  type MotionPreset,
+  type MotionTiming,
+  motionRuntime,
+} from "./motion"
 export {
   COPIED_LIFETIME,
   type CodeState,
@@ -93,3 +118,4 @@ export {
   type ViewOptions,
   view,
 } from "./view"
+export { startWidget, WIDGET_REPORT, type WidgetHost, type WidgetInstance } from "./widget"

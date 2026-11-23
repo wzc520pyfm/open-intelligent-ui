@@ -1,5 +1,12 @@
 import { DEFAULT_DESIGN } from "../design/default.generated"
 import { type Design, describeDesignTokens, parseDesign } from "../design/design"
+import type {
+  ChartEngineSpec,
+  ComponentSpec,
+  Library,
+  LibrarySpec,
+  MotionSpec,
+} from "../library/library"
 import { CRAFT_GUIDE, LANGUAGE_GUIDE, MOTION_GUIDE, PRIMITIVES_GUIDE } from "./guide"
 import { CORE_COMPONENTS, RECIPES, UNSUPPORTED } from "./recipes"
 import {
@@ -38,9 +45,20 @@ export interface PromptOptions {
    */
   components?: "core" | "all" | string[]
   tools?: PromptTool[]
+  /**
+   * What the product adds: its own components, its chart and motion engines
+   * and its design, as given to `<IntelligentUI library>`, or the plain data
+   * `librarySpec` makes of it. The prompt describes each component from its
+   * definition, so it can't say more than the renderer does.
+   */
+  library?: Library | LibrarySpec
+  /** Components described by hand. Prefer `library`, which also checks what markup passes. */
   hostComponents?: PromptComponent[]
-  /** Leave out the motion section, for surfaces that shouldn't animate. */
-  motion?: boolean
+  /**
+   * False leaves out the motion section, for surfaces that shouldn't
+   * animate. Text replaces the section: a motion guide of your own.
+   */
+  motion?: boolean | string
   /** Product-specific instructions, added at the end. */
   instructions?: string
 }
@@ -92,8 +110,10 @@ function bindings(entry: CatalogEntry): string[] {
  */
 export function describeComponent(
   name: string,
-  options: { props?: boolean } = {}
+  options: { props?: boolean; library?: Library | LibrarySpec } = {}
 ): string | null {
+  const own = options.library?.components.find((component) => component.name === name)
+  if (own) return libraryComponent(own, "##").join("\n").trimEnd()
   const entry = findEntry(name)
   if (!entry) return null
   const lines = [`## ${entry.name}`, "", entry.description, ""]
@@ -235,20 +255,97 @@ function toolsSection(tools: PromptTool[] | undefined): string {
   return lines.join("\n").trimEnd()
 }
 
-function hostComponentsSection(components: PromptComponent[] | undefined): string {
-  if (!components?.length) return ""
+const inline = (value: unknown) => {
+  try {
+    return `\`${JSON.stringify(value)}\``
+  } catch {
+    return ""
+  }
+}
+
+/** One of the product's components as the model reads it: props, events, bindings, children, an example. */
+function libraryComponent(component: ComponentSpec, heading: string): string[] {
+  const lines = [`${heading} ${component.name}`, "", component.description || "A component of this product."]
+  const details: string[] = []
+  for (const prop of component.props) {
+    const notes = [
+      `\`${prop.type}\``,
+      prop.required ? "required" : "",
+      prop.default !== undefined ? `default ${inline(prop.default)}` : "",
+    ].filter(Boolean)
+    const about = prop.description ? ` ${prop.description}` : ""
+    details.push(`- \`${prop.name}\`: ${notes.join(", ")}.${about}`)
+  }
+  for (const event of component.events) {
+    const payload = event.payload ? ` \`$value\` is ${event.payload}.` : ""
+    details.push(`- \`on:${event.name}\`: ${event.description ?? "reported by the component."}${payload}`)
+  }
+  const bound = component.props.filter((prop) => prop.bindable)
+  if (bound.length) {
+    details.push(`- Bind state with ${bound.map((prop) => `\`bind:${prop.name}\``).join(", ")}.`)
+  }
+  details.push(
+    component.children
+      ? `- Children: ${component.children}.`
+      : "- Takes no children; self-close it."
+  )
+  lines.push("", ...details)
+  const [first] = component.examples
+  if (first) lines.push("", fence(first))
+  lines.push("")
+  return lines
+}
+
+function productComponentsSection(
+  library: Library | LibrarySpec | undefined,
+  components: PromptComponent[] | undefined
+): string {
+  const defined = (library?.components ?? []).filter((component) => component.prompt)
+  if (!defined.length && !components?.length) return ""
   const lines = [
     "# Components from this product",
     "",
     "Prefer these over building the same thing yourself.",
     "",
   ]
-  for (const component of components) {
+  if (defined.length) {
+    lines.push(
+      "Each takes only the props, events and bindings listed for it, besides",
+      "`class`, `style`, `motion`, `show` and `aria-*`. Anything else is dropped.",
+      ""
+    )
+    for (const component of defined) lines.push(...libraryComponent(component, "###"))
+  }
+  for (const component of components ?? []) {
     lines.push(`### ${component.name}`, "", component.description)
     if (component.example) lines.push("", fence(component.example))
     lines.push("")
   }
   return lines.join("\n").trimEnd()
+}
+
+/** What the engine that draws `<Chart>` adds to the preset's description. */
+function chartsSection(engine: ChartEngineSpec | undefined): string {
+  if (!engine) return ""
+  const extra = Object.entries(engine.extra ?? {})
+  if (!extra.length && !engine.guide) return ""
+  const lines = [`## Charts here`, "", `\`<Chart>\` is drawn with ${engine.name}. It takes the props above.`]
+  if (extra.length) {
+    lines.push("", "`type` also takes:", "")
+    for (const [type, about] of extra) lines.push(`- \`${type}\`: ${about}`)
+  }
+  if (engine.guide) lines.push("", engine.guide.trim())
+  return lines.join("\n")
+}
+
+function motionSection(option: PromptOptions["motion"], engine: MotionSpec | undefined): string {
+  if (option === false) return ""
+  const guide = typeof option === "string" ? option : (engine?.guide ?? MOTION_GUIDE)
+  const presets = Object.entries(engine?.presets ?? {})
+  if (!presets.length) return guide
+  const lines = [guide.trim(), "", '`motion="…"` also takes these, made for this product:', ""]
+  for (const [name, preset] of presets) lines.push(`- \`${name}\`: ${preset.description}`)
+  return lines.join("\n")
 }
 
 function designSection(input: string | Design | undefined): string {
@@ -276,16 +373,22 @@ function designSection(input: string | Design | undefined): string {
  * the design system and the tools.
  */
 export function buildSystemPrompt(options: PromptOptions = {}): string {
+  const { library } = options
+  const instructions = [library?.instructions, options.instructions]
+    .map((text) => text?.trim())
+    .filter(Boolean)
+    .join("\n\n")
   const sections = [
     LANGUAGE_GUIDE,
     PRIMITIVES_GUIDE,
+    chartsSection(library?.charts),
     componentsSection(options.components),
-    hostComponentsSection(options.hostComponents),
-    options.motion === false ? "" : MOTION_GUIDE,
+    productComponentsSection(library, options.hostComponents),
+    motionSection(options.motion, library?.motion),
     CRAFT_GUIDE,
-    designSection(options.design),
+    designSection(options.design ?? library?.design),
     toolsSection(options.tools),
-    options.instructions ? `# For this product\n\n${options.instructions.trim()}` : "",
+    instructions ? `# For this product\n\n${instructions}` : "",
   ]
   return `${sections
     .map((section) => section.trim())

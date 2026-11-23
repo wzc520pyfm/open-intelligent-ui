@@ -5,7 +5,7 @@ import {
 import { PRESETS } from "../presets/presets"
 import { PRIMITIVES } from "../primitives/primitives"
 import { lookupUiSdk } from "../registry/ui-sdk"
-import { widgetOf } from "./component"
+import { widgetComponent, widgetOf } from "./component"
 import { solidDialect } from "./dialect"
 import { type AnyComponent, element, type Node } from "./node"
 
@@ -17,6 +17,7 @@ export const renderNodes = createRenderer<Node, AnyComponent>({
   primitives: PRIMITIVES,
   presets: PRESETS,
   lookup: lookupUiSdk,
+  widget: widgetComponent,
   fragment: (children, key) => ({ kind: "fragment", key, children }),
   element: (tag, props, key, children) => ({
     kind: "element",

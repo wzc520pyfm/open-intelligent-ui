@@ -12,6 +12,8 @@ import {
   safeUrl,
   styleKey,
 } from "../index"
+import { acceptsAttribute, type ComponentSpec } from "../library/library"
+import { checkProp } from "../library/schema"
 
 export type ElementKind = "html" | "svg" | "primitive" | "component" | "ui-sdk"
 
@@ -388,12 +390,18 @@ function checkUrl(
  * - `motion`, `delay`, `stagger` and `morph` become animation hooks for CSS.
  * - `let:name` is left to the renderer, which turns children into a function.
  * - Anything that could run script or load a hidden resource is dropped.
+ *
+ * With `spec`, the description of a component from the host's library, the
+ * component gets only what it declared: an attribute it doesn't know is
+ * dropped and reported, a value of the wrong kind is dropped and reported,
+ * and a prop left out takes its declared default.
  */
 export function buildProps(
   node: ElementNode,
   kind: ElementKind,
   ctx: PropsContext,
-  dialect: PropsDialect
+  dialect: PropsDialect,
+  spec?: ComponentSpec | undefined
 ): ElementProps {
   const props: Record<string, unknown> = {}
   const classes: string[] = []
@@ -411,6 +419,19 @@ export function buildProps(
   }
 
   const dropped = (name: string) => refused(name) || (kind === "ui-sdk" && listensToPage(tag, name))
+
+  const strict = spec?.strict === true ? spec : undefined
+  /** Whether the component declared `name`, an attribute as markup writes it. Reports the ones it didn't. */
+  const declared = (name: string): boolean => {
+    if (!strict || acceptsAttribute(strict, name)) return true
+    const what = name.startsWith("on:")
+      ? `the event "${name.slice(3)}"`
+      : name.startsWith("bind:")
+        ? `a bindable prop "${name.slice(5)}"`
+        : `the prop "${name}"`
+    ctx.report(`<${tag}> doesn't have ${what}`)
+    return false
+  }
 
   const assign = (name: string, value: unknown, fromStatic: boolean) => {
     if (dropped(name)) return
@@ -522,6 +543,17 @@ export function buildProps(
       return
     }
 
+    if (strict) {
+      const prop = strict.props.find((item) => item.name === name)
+      if (!prop) return
+      const checked = checkProp(prop, value)
+      if (!checked.ok) {
+        ctx.report(`<${tag}> takes ${checked.expected} for "${name}"`)
+        return
+      }
+      value = checked.value
+    }
+
     // Components and primitives take their props as written, except the ones
     // that hold a URL: a component may hand those to an element as they are.
     const lower = name.toLowerCase()
@@ -557,11 +589,13 @@ export function buildProps(
       const spread = evalAttr(value, ctx)
       if (isPlain(spread)) {
         for (const [key, item] of Object.entries(spread)) {
-          if (typeof item !== "function") assign(key, item, false)
+          if (typeof item !== "function" && declared(key)) assign(key, item, false)
         }
       }
       continue
     }
+
+    if (!declared(name)) continue
 
     const colon = name.indexOf(":")
     const directive = colon > 0 ? name.slice(0, colon) : ""
@@ -630,6 +664,16 @@ export function buildProps(
       typeof existing === "function"
         ? chain(fn, existing as (...args: unknown[]) => unknown)
         : fn
+  }
+  if (strict) {
+    for (const prop of strict.props) {
+      const name = dialect.prop(prop.name)
+      if (props[name] !== undefined) continue
+      if (prop.default !== undefined) props[name] = prop.default
+      else if (prop.required && !node.attrs.some((attr) => attr.name === prop.name || attr.name === `bind:${prop.name}` || attr.name === "...")) {
+        ctx.report(`<${tag}> needs "${prop.name}"`)
+      }
+    }
   }
   if (classes.length) props[dialect.className] = classes.join(" ")
   if (Object.keys(style).length) props.style = style

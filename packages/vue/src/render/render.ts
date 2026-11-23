@@ -6,11 +6,12 @@ import {
   lazyRecord,
 } from "@open-intelligent-ui/core/renderer"
 import { type Component, camelize, Fragment, h, shallowRef, type VNodeChild } from "vue"
-import { PRESETS } from "../presets/presets"
+import { PARTS, PRESETS } from "../presets/presets"
 import { PRIMITIVES } from "../primitives/primitives"
 import { lookupUiSdk } from "../registry/ui-sdk"
 import { vueDialect } from "./dialect"
 import { Presence } from "./Presence"
+import { isWidget, widgetComponent } from "./widget"
 
 export type RenderContext = CoreRenderContext<Component>
 
@@ -73,7 +74,7 @@ const OWN = new Set<Component>([...Object.values(PRIMITIVES), ...Object.values(P
  * a prop: the renderer's own components, and functions that declare none.
  */
 function declared(type: Component): Set<string> | null {
-  if (OWN.has(type)) return null
+  if (OWN.has(type) || isWidget(type)) return null
   const later = type as { __asyncLoader?: () => Promise<unknown>; __asyncResolved?: Component }
   if (later.__asyncLoader) {
     if (later.__asyncResolved) return declared(later.__asyncResolved)
@@ -144,6 +145,7 @@ export const renderNodes = createRenderer<VNodeChild, Component>({
   primitives: PRIMITIVES,
   presets: PRESETS,
   lookup: lookupUiSdk,
+  widget: (setup) => widgetComponent(setup, PARTS),
   fragment: (children, key) => h(Fragment, { key }, children),
   element: (tag, props, key, children) =>
     h(tag, { ...withoutHooks(props), key }, children ?? undefined),

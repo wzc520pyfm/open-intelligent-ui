@@ -10,7 +10,7 @@ import { lookupUiSdk } from "../registry/ui-sdk"
 import { UI_SDK_PROPS } from "../registry/ui-sdk.generated"
 import { svelteDialect } from "./dialect"
 import type { AnyComponent, RenderNode } from "./node"
-import { componentProps, nativeProps } from "./props"
+import { componentProps, nativeProps, type SelectOption, selectProps } from "./props"
 
 export type RenderContext = CoreRenderContext<AnyComponent>
 
@@ -37,6 +37,29 @@ function lookup(name: string): Lookup<AnyComponent> {
   return found
 }
 
+/** The options of a `<select>`, wherever in its children they are. */
+function optionsOf(nodes: readonly unknown[], found: SelectOption[] = []): SelectOption[] {
+  for (const node of nodes) {
+    if (node === null || typeof node !== "object") continue
+    if (Array.isArray(node)) {
+      optionsOf(node, found)
+      continue
+    }
+    const given = node as Exclude<RenderNode, string>
+    if (given.kind === "fragment") optionsOf(given.children, found)
+    else if (given.kind === "presence") optionsOf([given.child], found)
+    else if (given.kind !== "element" || !given.children) continue
+    else if (given.tag === "optgroup") optionsOf(given.children, found)
+    else if (given.tag === "option") {
+      // Without a `value` an option's value is its text.
+      const text = given.children.filter((child) => typeof child === "string").join("")
+      const value = given.props.value ?? text.trim().replace(/\s+/g, " ")
+      found.push({ value: String(value), disabled: given.props.disabled !== undefined })
+    }
+  }
+  return found
+}
+
 function component(
   type: AnyComponent,
   props: Record<string, unknown>,
@@ -59,7 +82,7 @@ export const renderNodes = createRenderer<RenderNode, AnyComponent>({
   element: (tag, props, key, children) => ({
     kind: "element",
     tag,
-    props: nativeProps(props),
+    props: tag === "select" ? selectProps(props, optionsOf(children ?? [])) : nativeProps(props, tag),
     key,
     children,
   }),

@@ -20,14 +20,16 @@ function fromView(view: View, key: string): Item | null {
     // Handlers markup passed down are named the way the views read them, `onClick`.
     props[/^on[A-Z]/.test(name) ? name.toLowerCase() : name] = value
   }
-  for (const symbol of Object.getOwnPropertySymbols(view.pass)) props[symbol] = view.pass[symbol as never]
   Object.assign(props, view.attrs)
   for (const [name, listener] of Object.entries(view.on)) props[`on${name}`] = listener
+  const given = nativeProps(props, view.tag)
+  // An attachment one of the renderer's own parts made. Markup can't make a symbol.
+  for (const symbol of Object.getOwnPropertySymbols(view.pass)) given[symbol] = view.pass[symbol as never]
   const empty = view.children.length === 0 && VOID.has(view.tag)
   return {
     kind: "element",
     tag: view.tag,
-    props: nativeProps(props),
+    props: given,
     key,
     children: empty ? null : view.children,
   }

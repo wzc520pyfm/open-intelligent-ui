@@ -65,43 +65,160 @@ function attributeText(value: unknown): string | undefined {
   }
 }
 
-/** Attributes whose presence is their meaning. Svelte sets these from a boolean. */
-const BOOLEAN_ATTRIBUTES = new Set([
-  "checked",
+// How React reads a value by the attribute it is for. Svelte reads it by
+// its type instead: a string is an attribute, anything else a property.
+// Markup is written once for every renderer, so React's reading is kept.
+
+/** Present or absent: any truthy value is `""`. */
+const PRESENCE = new Set([
+  "allowfullscreen",
+  "async",
+  "autoplay",
+  "controls",
+  "default",
+  "defer",
   "disabled",
+  "disablepictureinpicture",
+  "disableremoteplayback",
+  "formnovalidate",
   "hidden",
-  "multiple",
+  "inert",
+  "itemscope",
+  "loop",
+  "nomodule",
+  "novalidate",
   "open",
+  "playsinline",
   "readonly",
   "required",
   "reversed",
-  "selected",
+  "scoped",
+  "seamless",
 ])
+/** Attributes whose `true` and `false` are words. Elsewhere a boolean is no value at all. */
+const WORDS = new Set([
+  "contenteditable",
+  "draggable",
+  "spellcheck",
+  "value",
+  "defaultvalue",
+  "autoreverse",
+  "externalresourcesrequired",
+  "focusable",
+  "preservealpha",
+])
+const PRESENCE_OR_TEXT = new Set(["capture", "download"])
+const POSITIVE = new Set(["cols", "rows", "size", "span"])
+const NUMERIC = new Set(["rowspan", "start"])
+/** Properties React sets on the element that has them. */
+const STATE: Record<string, ReadonlySet<string>> = {
+  checked: new Set(["input"]),
+  multiple: new Set(["input", "select"]),
+  muted: new Set(["audio", "video"]),
+  selected: new Set(["option"]),
+}
+/** Elements whose `value` is what the reader typed or picked. */
+const CONTROLS = new Set(["input", "textarea", "select", "option"])
 
 /**
- * What an HTML or SVG element is given. Svelte sets a DOM property, not an
- * attribute, when a value isn't a string and the element has a property of
- * that name, so everything but a real boolean attribute is made text first:
- * a number or a list then lands where the same value lands in React.
+ * What an HTML or SVG element is given: text for an attribute, a boolean for
+ * the few properties that are state, a listener under `on…`.
+ *
+ * Svelte sets a DOM property when a value isn't a string and the element has
+ * a property of that name. Markup must not reach properties, and a number or
+ * a list has to land where it lands in React, so everything is made text
+ * here, by React's rules.
  */
-export function nativeProps(props: Record<string | symbol, unknown>): Record<string | symbol, unknown> {
+export function nativeProps(
+  props: Record<string | symbol, unknown>,
+  tag?: string
+): Record<string | symbol, unknown> {
   const out: Record<string | symbol, unknown> = {}
+  // Svelte assigns `value` to the element whatever it is, and a `<progress>`
+  // throws on a value that isn't a number. Under a name Svelte doesn't
+  // know, it is the attribute it is in React.
+  const valueName = tag !== undefined && !CONTROLS.has(tag) ? "VALUE" : "value"
   for (const [name, value] of Object.entries(props)) {
     if (value === undefined || value === null) continue
+    const lower = name.toLowerCase()
+    if (lower.startsWith("on")) {
+      // Svelte listens under any name that starts with `on`, and an element
+      // would run the text of an `ONCLICK` attribute. Only a listener goes there.
+      if (typeof value === "function" && /^on[a-z]+$/.test(name)) out[name] = value
+      continue
+    }
+    if (typeof value === "function" || typeof value === "symbol") continue
+    // Svelte focuses an element it is told to. Where the reader's focus is isn't markup's to say.
+    if (lower === "autofocus") continue
     if (name === "style") {
       const style = cssText(value)
       if (style) out.style = style
-    } else if (typeof value === "function") {
-      if (/^on[a-z]+$/.test(name)) out[name] = value
-    } else if (typeof value === "string") out[name] = value
-    else if (typeof value === "boolean" && BOOLEAN_ATTRIBUTES.has(name)) out[name] = value
-    else {
-      const text = attributeText(value)
-      if (text !== undefined) out[name] = text
+      continue
     }
+    const state = STATE[lower]
+    if (state && tag !== undefined && (state.has(tag) || lower === "multiple" || lower === "muted")) {
+      // In upper case Svelte takes `selected` for a property like the rest.
+      if (state.has(tag)) out[lower === "selected" ? "SELECTED" : name] = Boolean(value)
+      continue
+    }
+    if (lower === "defaultchecked") {
+      out[name] = Boolean(value)
+      continue
+    }
+    if (PRESENCE.has(lower)) {
+      if (value) out[name] = ""
+      continue
+    }
+    const given = name === "value" ? valueName : name
+    if (typeof value === "boolean") {
+      if (PRESENCE_OR_TEXT.has(lower)) {
+        if (value) out[given] = ""
+      } else if (lower.startsWith("aria-") || lower.startsWith("data-") || WORDS.has(lower)) {
+        out[given] = String(value)
+      } else if ((POSITIVE.has(lower) || NUMERIC.has(lower)) && (value || NUMERIC.has(lower))) {
+        out[given] = String(value)
+      }
+      continue
+    }
+    const text = typeof value === "string" ? value : attributeText(value)
+    if (text === undefined) continue
+    if (POSITIVE.has(lower) || NUMERIC.has(lower)) {
+      const number = Number(typeof value === "object" ? text : value)
+      if (Number.isNaN(number) || (POSITIVE.has(lower) && number < 1)) continue
+    }
+    out[given] = text
   }
-  // An attachment a part of the renderer put there itself.
-  for (const key of Object.getOwnPropertySymbols(props)) out[key] = props[key]
+  return out
+}
+
+/** An `<option>` as its `<select>` sees it. */
+export interface SelectOption {
+  value: string
+  disabled: boolean
+}
+
+/**
+ * What a `<select>` is given. Svelte picks the options by `value`, a list
+ * for one that takes several. Where nothing matches it would pick none;
+ * React leaves the first option that can be picked, and so does this.
+ * `defaultvalue` is where the select starts, which is all `value` is to
+ * Svelte, since it sets it again only when it changes.
+ */
+export function selectProps(
+  props: Record<string, unknown>,
+  options: readonly SelectOption[]
+): Record<string | symbol, unknown> {
+  const { value = props.defaultvalue, defaultvalue: _, ...rest } = props
+  const out = nativeProps(rest, "select")
+  if (value === undefined || value === null) return out
+  if (out.multiple === true) {
+    if (Array.isArray(value)) out.value = value.map((item) => attributeText(item) ?? "")
+    return out
+  }
+  const text = attributeText(value)
+  if (text === undefined) return out
+  const first = options.find((option) => !option.disabled)
+  out.value = options.some((option) => option.value === text) || !first ? text : first.value
   return out
 }
 
@@ -182,25 +299,26 @@ export function componentProps(props: Props, known: ReadonlySet<string> | null):
     const name = written === "htmlFor" ? "for" : written
     if (name.startsWith("bind:")) {
       if (typeof value === "function") bound.push([name.slice(5), value as Handler])
+    } else if (/^on/i.test(name)) {
+      if (typeof value !== "function" || !/^on[A-Z]/.test(name)) continue
+      const event = handlerName(name)
+      out[event] = chain(out[event], value as Handler)
     } else if (name === "style") {
       const style = cssText(value)
       if (style) out.style = style
-    } else if (typeof value === "function") {
-      const event = handlerName(name)
-      out[event] = chain(out[event], value as Handler)
     } else if (typeof value === "string" || name === "class") out[name] = value
     else if (PROPERTY_SINKS.has(name.toLowerCase()) || (known && !known.has(name))) {
-      const attribute = asAttribute(name, value)
+      // A function has no text an attribute could hold.
+      const attribute = typeof value === "function" ? undefined : asAttribute(name, value)
       if (attribute !== undefined) out[name] = attribute
     } else out[name] = value
   }
 
   for (const [name, write] of bound) {
-    if (known) {
-      // UI SDK calls `onValueChange` and then assigns the prop. The call
-      // has written state already, so the assignment is only kept.
-      continue
-    }
+    // UI SDK calls `onValueChange`, which has written state by the time it
+    // assigns the prop, so its assignment is only kept. A component of the
+    // host's written with `$bindable` has nothing but the assignment.
+    if (known) continue
     let held = out[name]
     Object.defineProperty(out, name, {
       enumerable: true,
@@ -213,21 +331,21 @@ export function componentProps(props: Props, known: ReadonlySet<string> | null):
     })
   }
 
-  if (known) hold(out, known)
+  if (known) hold(out, known, new Set(bound.map(([name]) => name)))
   return out
 }
 
 /**
  * A UI SDK prop that has a `default…` twin or an `on…Change` callback is one
- * the component assigns when the user changes it. Written in markup with no
- * handler for the change, it is a value the surface holds, as it is in
- * React: the assignment is refused, and UI SDK then keeps what was given.
+ * the component assigns when the user changes it. Written in markup without
+ * `bind:`, it is a value the surface holds, as it is in React: the
+ * assignment is refused, and UI SDK then keeps what it was given until
+ * state gives it something else.
  */
-function hold(out: Props, known: ReadonlySet<string>): void {
+function hold(out: Props, known: ReadonlySet<string>, bound: ReadonlySet<string>): void {
   for (const name of Object.keys(out)) {
-    const changed = `on${capitalized(name)}Change`
-    if (!known.has(changed) && !known.has(`default${capitalized(name)}`)) continue
-    if (typeof out[changed] === "function") continue
+    if (bound.has(name)) continue
+    if (!known.has(`on${capitalized(name)}Change`) && !known.has(`default${capitalized(name)}`)) continue
     const value = out[name]
     Object.defineProperty(out, name, {
       enumerable: true,

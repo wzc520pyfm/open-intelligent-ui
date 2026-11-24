@@ -57,8 +57,9 @@ semicolons, double quotes, two spaces.
   the same demos on one renderer each.
 - `apps/playground/src/library`: the product library the "Your components"
   demo uses, and the chart and motion engines the site can switch between.
-- `design/`: the three designs. `design/third-party` holds DESIGN.md files
-  other libraries publish, kept as published; don't edit them.
+- `design/`: the shipped designs (Paper, Noir, Heritage, Signal).
+  `design/third-party` holds DESIGN.md files other libraries publish, kept as
+  published; don't edit them.
 - `skills/`: skills for coding agents. `docs/`: research, spec, architecture,
   and `extending.md` for everything a product can replace or register.
 

@@ -1,4 +1,4 @@
-import { exitAnimations, lazyRecord } from "@open-intelligent-ui/core/renderer"
+import { lazyRecord, whenExitDone } from "@open-intelligent-ui/core/renderer"
 import { insert } from "@solidjs/web"
 import {
   createComponent,
@@ -549,9 +549,7 @@ class PresenceMount implements Mounted {
     // The exit styles have to be applied before their animations exist.
     queueMicrotask(() => {
       if (this.run !== mine) return
-      const exit = exitAnimations(this.wrapper?.element ?? null)
-      if (exit) void exit.then(done)
-      else done()
+      void whenExitDone(this.wrapper?.element ?? null).then(done)
     })
   }
 

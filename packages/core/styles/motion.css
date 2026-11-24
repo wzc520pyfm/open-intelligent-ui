@@ -151,15 +151,16 @@
     --iui-i: 11;
   }
 
-  /* `show={cond}`: enter when it turns true, leave before unmounting. */
-  .iui-root .iui-presence > :where(*) {
+  /* `show={cond}`: enter when it turns true, leave before unmounting.
+   * Named `motion="…"` on the child keeps its own entrance; exit always leaves. */
+  .iui-root .iui-presence > :where(*:not([data-iui-motion])) {
     animation: iui-rise var(--iui-motion-surface-enter-duration)
       var(--iui-motion-surface-enter-easing) both;
   }
 
   .iui-root .iui-presence[data-iui-exit] > :where(*) {
     animation: iui-leave var(--iui-motion-surface-exit-duration)
-      var(--iui-motion-surface-exit-easing) both;
+      var(--iui-motion-surface-exit-easing) both !important;
     pointer-events: none;
   }
 
@@ -195,49 +196,50 @@
   @keyframes iui-rise {
     from {
       opacity: 0;
-      translate: 0 8px;
+      translate: 0 10px;
     }
   }
 
   @keyframes iui-drop {
     from {
       opacity: 0;
-      translate: 0 -8px;
+      translate: 0 -10px;
     }
   }
 
   @keyframes iui-scale {
     from {
       opacity: 0;
-      scale: 0.96;
+      scale: 0.97;
     }
   }
 
   @keyframes iui-slide-left {
     from {
       opacity: 0;
-      translate: 16px 0;
+      translate: 14px 0;
     }
   }
 
   @keyframes iui-slide-right {
     from {
       opacity: 0;
-      translate: -16px 0;
+      translate: -14px 0;
     }
   }
 
   @keyframes iui-blur {
     from {
       opacity: 0;
-      filter: blur(6px);
+      filter: blur(8px);
+      translate: 0 6px;
     }
   }
 
   @keyframes iui-pop {
     from {
       opacity: 0;
-      scale: 0.8;
+      scale: 0.86;
     }
   }
 
@@ -262,14 +264,22 @@
   @keyframes iui-leave {
     to {
       opacity: 0;
-      translate: 0 -4px;
+      translate: 0 6px;
+      scale: 0.985;
     }
   }
 
   @supports (view-transition-name: none) {
     ::view-transition-group(*) {
       animation-duration: var(--iui-motion-layout-duration, 320ms);
-      animation-timing-function: var(--iui-motion-layout-easing, cubic-bezier(0.2, 0, 0, 1));
+      animation-timing-function: var(--iui-motion-layout-easing, cubic-bezier(0.22, 1, 0.36, 1));
+    }
+
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation-duration: var(--iui-motion-layout-duration, 320ms);
+      animation-timing-function: var(--iui-motion-layout-easing, cubic-bezier(0.22, 1, 0.36, 1));
+      mix-blend-mode: normal;
     }
   }
 

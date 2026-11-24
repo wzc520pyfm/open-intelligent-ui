@@ -5,6 +5,7 @@ import claim from "./claim.iui?raw"
 import dashboard from "./dashboard.iui?raw"
 import gears from "./gears.iui?raw"
 import invest from "./invest.iui?raw"
+import showcase from "./showcase.iui?raw"
 import trip from "./trip.iui?raw"
 import workbench from "./workbench.iui?raw"
 
@@ -25,6 +26,14 @@ export interface Demo {
 }
 
 export const DEMOS: Demo[] = [
+  {
+    id: "showcase",
+    title: "Showcase",
+    caption: "Charts, cards, dashboards and forms with silky view switches",
+    prompt: "Show me a polished surface I can flip between charts, cards, dashboards and forms.",
+    source: showcase,
+    theme: "noir",
+  },
   {
     id: "gears",
     title: "Explain",
@@ -53,6 +62,7 @@ export const DEMOS: Demo[] = [
     caption: "Stats, charts and a table that filter each other",
     prompt: "How did sales do in Q4?",
     source: dashboard,
+    theme: "noir",
   },
   {
     id: "workbench",

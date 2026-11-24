@@ -417,8 +417,11 @@ export function App() {
     if (!next) return
     setMode("demos")
     setDemo(next)
-    if (next.theme) setThemeId(next.theme)
-    else if (demo.theme) setThemeId("paper")
+    if (next.theme) {
+      setThemeId(next.theme)
+      // Noir is dark-first; flip the chrome so the showcase lands looking right.
+      if (next.theme === "noir") setScheme("dark")
+    } else if (demo.theme) setThemeId("paper")
   }
 
   const chooseRenderer = (next: RendererId) => {

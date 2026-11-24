@@ -1,4 +1,4 @@
-import { exitAnimations } from "@open-intelligent-ui/core/renderer"
+import { whenExitDone } from "@open-intelligent-ui/core/renderer"
 import { defineComponent, h, nextTick, ref, watch } from "vue"
 
 /**
@@ -34,9 +34,7 @@ export const Presence = defineComponent({
         // The exit styles have to be applied before their animations exist.
         void nextTick(() => {
           if (run !== mine) return
-          const exit = exitAnimations(element.value)
-          if (exit) void exit.then(done)
-          else done()
+          void whenExitDone(element.value).then(done)
         })
       }
     )

@@ -746,7 +746,7 @@ describe("motion hooks", () => {
     expect(row?.style.getPropertyValue("--iui-stagger")).toBe("")
   })
 
-  test("show mounts and unmounts with state", () => {
+  test("show mounts and unmounts with state", async () => {
     const { container } = render(
       <IntelligentUI
         source={`<state open={false} />
@@ -758,7 +758,7 @@ describe("motion hooks", () => {
     fireEvent.click(screen.getByText("Toggle"))
     expect(container.querySelector(".iui-card")?.textContent).toBe("Details")
     fireEvent.click(screen.getByText("Toggle"))
-    expect(container.querySelector(".iui-card")).toBeNull()
+    await waitFor(() => expect(container.querySelector(".iui-card")).toBeNull())
   })
 })
 

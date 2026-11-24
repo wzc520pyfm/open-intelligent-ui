@@ -288,6 +288,18 @@ come from state or a query, or need sorting.
   as "Overview" or "Interactive Dashboard". No emoji as icons; use `<icon>`.
 - **Use the design system.** Color names, spacing tokens and typography
   come from the design below. One accent. Status colors only for status.
+- **Give the surface depth.** Prefer a quiet page background with surface
+  cards, soft borders and occasional `elevated` panels. Leave air between
+  sections (16–24px). Dense data belongs inside tables and charts, not in
+  cramped chrome.
+- **Compose, don't tile.** A strong surface often splits prose and visuals
+  (`<grid columns={2}>` or a short column beside a chart stack), or leads
+  with a staggered row of stats before the detail. Comparable choices sit in
+  one grid; don't scatter orphan cards.
+- **Arrive with intent.** Put `stagger` on the first group of stats or
+  options. Use `show={…}` when the reader switches views so panels enter
+  and leave instead of popping. One `motion="pop"` for the result that
+  matters is enough.
 - **Stay readable while writing.** Put `<state>` first, then the most
   important block, then detail. Every block should make sense on its own as
   it appears.

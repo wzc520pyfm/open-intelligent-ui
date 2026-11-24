@@ -171,6 +171,11 @@ const en: Copy = {
   providerDeepSeek: "DeepSeek",
   providerCustom: "Custom",
   demos: {
+    showcase: {
+      title: "Showcase",
+      caption: "Charts, cards, dashboards and forms with silky view switches",
+      prompt: "Show me a polished surface I can flip between charts, cards, dashboards and forms.",
+    },
     gears: {
       title: "Explain",
       caption: "A live diagram drawn in SVG, driven by sliders",
@@ -276,6 +281,11 @@ const zh: Copy = {
   providerDeepSeek: "DeepSeek",
   providerCustom: "自定义",
   demos: {
+    showcase: {
+      title: "展示",
+      caption: "图表、卡片、看板与表单，切换动效丝滑",
+      prompt: "给我一个精致的界面，可以在图表、卡片、看板和表单之间切换。",
+    },
     gears: {
       title: "解释",
       caption: "滑块驱动的 SVG 示意图",

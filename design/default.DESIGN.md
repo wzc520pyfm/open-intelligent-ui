@@ -179,7 +179,7 @@ Motion explains what changed; it never performs.
 - **state-change** (120ms): hover, press, toggle, selection. Color and opacity
   only.
 - **surface-enter** (260ms, decelerating): content arriving. Fade in and rise
-  8px. Streamed blocks enter one after another as they arrive.
+  10px. Streamed blocks enter one after another as they arrive.
 - **surface-exit** (160ms, accelerating): content leaving. Faster than it came.
 - **layout** (320ms): things changing size or place, such as a panel opening.
 - **emphasis** (520ms, slight overshoot): one moment per surface at most, such

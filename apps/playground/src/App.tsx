@@ -721,7 +721,7 @@ export function App() {
               }}
             >
               <div className="pg-column" data-width={width}>
-                <InputGroup className="w-full items-end! rounded-3xl bg-background py-2 pr-2 pl-4 shadow-sm">
+                <InputGroup className="pg-composer w-full items-end! rounded-3xl border border-separator bg-background py-2 pr-2 pl-4 shadow-sm">
                   <InputGroup.TextArea
                     ref={draftRef}
                     rows={1}
@@ -768,9 +768,18 @@ export function App() {
           </div>
         </main>
 
-        {inspecting && roomy ? (
-          <aside aria-label={copy.inspect} className="w-[24rem] shrink-0 border-l border-separator bg-background pt-2">
-            {inspector}
+        {roomy ? (
+          <aside
+            aria-label={copy.inspect}
+            aria-hidden={!inspecting}
+            inert={!inspecting ? true : undefined}
+            className={
+              inspecting
+                ? "pg-inspect pg-inspect-open shrink-0 overflow-hidden border-l border-separator bg-background pt-2"
+                : "pg-inspect shrink-0 overflow-hidden border-l border-transparent bg-background pt-2"
+            }
+          >
+            <div className="pg-inspect-pane h-full w-[24rem]">{inspector}</div>
           </aside>
         ) : null}
       </div>

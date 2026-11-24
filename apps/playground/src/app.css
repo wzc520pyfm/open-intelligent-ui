@@ -86,9 +86,9 @@ body {
   tab-size: 2;
 }
 
-/* Match the surface card edge so the composer stays visible on the dotted stage. */
+/* Same quiet edge as .pg-surface cards — visible on the stage, not a bright outline. */
 .pg-composer {
-  border-color: color-mix(in oklab, var(--separator) 55%, var(--foreground) 45%);
+  border-color: var(--separator);
 }
 
 .pg-inspect {

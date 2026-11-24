@@ -30,44 +30,100 @@
   totalSpend={sumBy(spend, "spend")}
   totalSales={sumBy(spend, "revenue")}
   roi={(totalSales - totalSpend) / totalSpend}
+  perDollar={totalSales / totalSpend}
 />
 
-<title level={2}>Ad Spend vs Sales</title>
+<style>
+  .panel {
+    border: 1px solid var(--iui-color-border);
+    border-radius: 1.5rem;
+    background: var(--iui-color-surface);
+    padding: 1.15rem 1.25rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .panel-head { margin-bottom: 0.85rem; }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    padding: 0.35rem 0 1rem;
+    border-bottom: 1px solid var(--iui-color-border);
+  }
+  .metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.25rem 1rem 0.15rem 0;
+    border-right: 1px solid var(--iui-color-border);
+    min-width: 0;
+  }
+  .metric:last-child { border-right: none; padding-right: 0; }
+  .metric:first-child { padding-left: 0; }
+  .section {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--iui-color-border);
+  }
+  .section:last-child { border-bottom: none; padding-bottom: 0; }
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 1.25rem;
+  }
+  @media (max-width: 640px) {
+    .metrics { grid-template-columns: 1fr; }
+    .metric { border-right: none; border-bottom: 1px solid var(--iui-color-border); padding: 0.7rem 0; }
+    .metric:last-child { border-bottom: none; }
+    .split { grid-template-columns: 1fr; }
+  }
+</style>
 
-<grid columns={3} gap={2} stagger>
-  <card padding={3} gap={1}>
-    <text size="sm" color="muted">Total spend</text>
-    <text size="xl" weight="bold" tabular>{"$" + num(totalSpend, 2) + "Mn"}</text>
-    <badge color="success" size="sm">+4.8%</badge>
-  </card>
-  <card padding={3} gap={1}>
-    <text size="sm" color="muted">Total sales</text>
-    <text size="xl" weight="bold" tabular>{"$" + num(totalSales, 2) + "Mn"}</text>
-    <badge color="success" size="sm">+10.7%</badge>
-  </card>
-  <card padding={3} gap={1}>
-    <text size="sm" color="muted">ROI</text>
-    <text size="xl" weight="bold" tabular><Number value={roi} format="percent" digits={1} /></text>
-    <text size="sm" color="muted">Return on investment</text>
-  </card>
-</grid>
+<div class="panel" motion="pop">
+  <div class="panel-head" motion="blur">
+    <title level={2}>Ad Spend vs Sales</title>
+    <text size="sm" color="muted">Across all regions in 2025 (YTD), every $1 of ad spend returned ${num(perDollar, 2)} in sales.</text>
+  </div>
 
-<card padding={4} gap={3}>
-  <title level={3}>Spend vs revenue, 2025</title>
-  <Chart type="bar" data={spend} x="month" y={["spend", "revenue"]} names={{ spend: "Spend", revenue: "Revenue" }} format="currency" currency="USD" unit="M" height={200} legend aria-label="Monthly spend and revenue in millions of dollars" />
-</card>
+  <div class="metrics" stagger={50}>
+    <div class="metric" motion="blur">
+      <text size="xl" weight="bold" tabular>{"$" + num(totalSpend, 2) + "Mn"}</text>
+      <row gap={2}><badge color="success" size="sm">+4.8%</badge></row>
+      <text size="sm" color="muted">Total spend</text>
+    </div>
+    <div class="metric" motion="blur">
+      <text size="xl" weight="bold" tabular>{"$" + num(totalSales, 2) + "Mn"}</text>
+      <row gap={2}><badge color="success" size="sm">+10.7%</badge></row>
+      <text size="sm" color="muted">Total sales</text>
+    </div>
+    <div class="metric" motion="blur">
+      <text size="xl" weight="bold" tabular><Number value={roi} format="percent" digits={1} /></text>
+      <text size="sm" color="muted">Return on investment</text>
+    </div>
+  </div>
 
-<grid columns={2} gap={3}>
-  <card padding={4} gap={3}>
-    <title level={3}>Share of global spend</title>
-    <Chart type="donut" data={regions} x="region" y="value" format="currency" currency="USD" unit="M" height={160} legend aria-label="Spend by region in millions of dollars" />
-  </card>
-  <card padding={4} gap={3}>
-    <row>
-      <title level={3}>Sales and spend over time</title>
+  <div class="section" motion="blur">
+    <row gap={2} style="margin-bottom: 0.55rem">
+      <title level={3}>Spend vs revenue, 2025</title>
       <spacer />
-      <badge color="accent" size="sm">3× since 2015</badge>
     </row>
-    <Chart type="line" data={years} x="year" y={["sales", "spend"]} names={{ sales: "Sales", spend: "Spend" }} format="currency" currency="USD" unit="M" height={160} legend aria-label="Sales and spend from 2015 to 2025 in millions of dollars" />
-  </card>
-</grid>
+    <Chart type="bar" data={spend} x="month" y={["spend", "revenue"]} names={{ spend: "Spend", revenue: "Revenue" }} format="currency" currency="USD" unit="M" height={210} legend aria-label="Monthly spend and revenue in millions of dollars" />
+  </div>
+
+  <div class="section">
+    <div class="split">
+      <box gap={2} motion="blur">
+        <title level={3}>Share of global spend</title>
+        <Chart type="donut" data={regions} x="region" y="value" format="currency" currency="USD" unit="M" height={170} legend aria-label="Spend by region in millions of dollars" />
+      </box>
+      <box gap={2} motion="blur">
+        <row gap={2}>
+          <title level={3}>Sales and spend over time</title>
+          <spacer />
+          <badge color="accent" size="sm" motion="pop">3× since 2015</badge>
+        </row>
+        <Chart type="area" data={years} x="year" y={["sales", "spend"]} names={{ sales: "Sales", spend: "Spend" }} format="currency" currency="USD" unit="M" height={170} legend aria-label="Sales and spend from 2015 to 2025 in millions of dollars" />
+      </box>
+    </div>
+  </div>
+</div>

@@ -189,7 +189,7 @@ const en: Copy = {
     forms: {
       title: "Forms",
       caption: "A trip planner with tags, steppers, interest chips and a budget slider",
-      prompt: "Help me plan a week in Portugal.",
+      prompt: "Help me plan my next vacation.",
     },
     gears: {
       title: "Explain",
@@ -314,7 +314,7 @@ const zh: Copy = {
     forms: {
       title: "表单",
       caption: "行程规划：标签、步进器、兴趣选项与预算滑块",
-      prompt: "帮我计划一周葡萄牙行程。",
+      prompt: "帮我规划下次旅行。",
     },
     gears: {
       title: "解释",

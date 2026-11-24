@@ -138,8 +138,12 @@ const BUILT_IN: Record<string, BuiltIn> = {
   scale: enter({ opacity: [0, 1], scale: [0.97, 1] }),
   "slide-left": enter({ opacity: [0, 1], x: [14, 0] }),
   "slide-right": enter({ opacity: [0, 1], x: [-14, 0] }),
-  blur: enter({ opacity: [0, 1], blur: [8, 0], y: [6, 0] }),
-  pop: { keyframes: { opacity: [0, 1], scale: [0.86, 1] }, kind: "emphasis", token: "emphasis" },
+  blur: enter({ opacity: [0.15, 1], blur: [2, 0] }),
+  pop: {
+    keyframes: { opacity: [0, 1], y: [10, 0], scale: [0.98, 1] },
+    kind: "emphasis",
+    token: "emphasis",
+  },
   draw: {
     keyframes: { strokeDashoffset: [1, 0] },
     kind: "draw",

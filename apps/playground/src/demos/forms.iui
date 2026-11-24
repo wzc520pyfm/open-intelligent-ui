@@ -1,20 +1,54 @@
-<state interests={["food", "culture"]} stay="boutique" budget={1750} adults={2} children={0} />
+<state interests={["food", "culture"]} stay={["boutique", "apartment"]} budgetMin={1000} budget={2500} adults={2} children={0} />
 <derive interestOptions={[
   { id: "food", label: "Food", icon: "utensils" },
   { id: "culture", label: "Culture", icon: "landmark" },
   { id: "beaches", label: "Beaches", icon: "waves" },
   { id: "nightlife", label: "Nightlife", icon: "music" },
-  { id: "outdoors", label: "Outdoors", icon: "tree-pine" },
-  { id: "shopping", label: "Shopping", icon: "shopping-bag" }
+  { id: "outdoors", label: "Hiking", icon: "tree-pine" },
+  { id: "shopping", label: "Relaxing", icon: "coffee" }
 ]} />
 
 <style>
-  .nowrap { white-space: nowrap; overflow-wrap: normal; }
-  .chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .panel {
+    border: 1px solid var(--iui-color-border);
+    border-radius: 1.5rem;
+    background: var(--iui-color-surface);
+    padding: 1.2rem 1.3rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.05rem;
+  }
+  .rule {
+    border: none;
+    border-top: 1px dashed var(--iui-color-border);
+    margin: 0;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2.5rem;
+    padding: 0.4rem 0.65rem;
+    border-radius: var(--iui-radius-md);
+    border: 1px solid var(--iui-color-border);
+    background: var(--iui-color-muted);
+  }
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    padding: 0.45rem 0.7rem;
+    border-radius: var(--iui-radius-md);
+    border: 1px solid var(--iui-color-border);
+    background: var(--iui-color-muted);
+  }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 0.45rem; }
   .chip-row button,
   .stay-pick {
     appearance: none;
-    border: 1px solid var(--iui-color-border);
+    border: 1px solid transparent;
     border-radius: 999px;
     padding: 0.45rem 0.8rem;
     background: var(--iui-color-muted);
@@ -28,117 +62,147 @@
       scale var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
   }
   .chip-row button[aria-pressed="true"] {
-    border-color: var(--iui-color-primary);
-    background: color-mix(in oklab, var(--iui-color-primary) 12%, var(--iui-color-surface));
+    border-color: var(--iui-color-foreground);
+    background: color-mix(in oklab, var(--iui-color-surface) 80%, transparent);
   }
   .stay-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.65rem;
+    gap: 0.55rem;
   }
   .stay-pick {
     border-radius: var(--iui-radius-lg);
-    padding: 0.9rem 0.6rem;
+    padding: 0.85rem 0.45rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.4rem;
     text-align: center;
+    border: 1px solid var(--iui-color-border);
+    white-space: nowrap;
   }
   .stay-pick[aria-pressed="true"] {
-    border-color: var(--iui-color-primary);
-    background: color-mix(in oklab, var(--iui-color-primary) 10%, var(--iui-color-surface));
+    border-color: var(--iui-color-foreground);
+    border-width: 2px;
+    background: color-mix(in oklab, var(--iui-color-surface) 85%, transparent);
+  }
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 1rem;
+  }
+  @media (max-width: 640px) {
+    .split { grid-template-columns: 1fr; }
+    .stay-grid { grid-template-columns: 1fr; }
   }
 </style>
 
-<title level={2}>Plan a week in Portugal</title>
-
-<card padding={4} gap={4}>
-  <box gap={2}>
-    <text size="sm" weight="medium">Destinations</text>
-    <row gap={2} wrap>
-      <badge color="accent"><icon name="map-pin" size="sm" /> Lisbon</badge>
-      <badge color="info"><icon name="map-pin" size="sm" /> Porto</badge>
-    </row>
+<div class="panel" motion="pop">
+  <box gap={1} motion="blur">
+    <title level={2}>Plan your next vacation</title>
+    <text size="sm" color="muted">Tell me a little about the trip and I'll build the itinerary.</text>
   </box>
-  <grid columns={2} gap={3}>
-    <box gap={1}>
-      <text size="sm" weight="medium">Check-in / Check-out</text>
-      <row gap={2}>
-        <badge variant="soft"><icon name="calendar" size="sm" /> Apr 12</badge>
-        <badge variant="soft"><icon name="calendar" size="sm" /> Apr 19</badge>
-      </row>
+
+  <box gap={2} motion="blur">
+    <text size="sm" weight="medium">Destinations</text>
+    <div class="tags">
+      <badge color="info"><icon name="bus" size="sm" /> Lisbon ×</badge>
+      <badge color="accent"><icon name="map-pin" size="sm" /> Porto ×</badge>
+      <text size="sm" color="muted">Add a city…</text>
+      <spacer />
+      <icon name="chevrons-up-down" size="sm" color="muted" />
+    </div>
+  </box>
+
+  <hr class="rule" />
+
+  <grid columns={2} gap={3} motion="blur">
+    <box gap={2}>
+      <text size="sm" weight="medium">Check-in</text>
+      <div class="field"><icon name="calendar" size="sm" color="muted" /><text size="sm">Tue, May 12</text></div>
     </box>
-    <box gap={1}>
-      <text size="sm" weight="medium">Travelers</text>
-      <row gap={3}>
-        <row gap={2} class="nowrap">
-          <text size="sm" color="muted">Adults</text>
-          <NumberInput min={1} max={8} bind:value={adults}>
-            <NumberInputGroup>
-              <NumberInputDecrement aria-label="Fewer adults">−</NumberInputDecrement>
-              <NumberInputControl aria-label="Adults" style="width: 2.5rem; text-align: center" />
-              <NumberInputIncrement aria-label="More adults">+</NumberInputIncrement>
-            </NumberInputGroup>
-          </NumberInput>
-        </row>
-        <row gap={2} class="nowrap">
-          <text size="sm" color="muted">Children</text>
-          <NumberInput min={0} max={6} bind:value={children}>
-            <NumberInputGroup>
-              <NumberInputDecrement aria-label="Fewer children">−</NumberInputDecrement>
-              <NumberInputControl aria-label="Children" style="width: 2.5rem; text-align: center" />
-              <NumberInputIncrement aria-label="More children">+</NumberInputIncrement>
-            </NumberInputGroup>
-          </NumberInput>
-        </row>
-      </row>
+    <box gap={2}>
+      <text size="sm" weight="medium">Check-out</text>
+      <div class="field"><icon name="calendar" size="sm" color="muted" /><text size="sm">Mon, May 18</text></div>
     </box>
   </grid>
-  <box gap={2}>
-    <text size="sm" weight="medium">Interests</text>
-    <div class="chip-row">
-      {#each interestOptions as opt (opt.id)}
-        <button type="button" aria-pressed={interests.includes(opt.id)} on:click={interests = toggle(interests, opt.id)}>
-          <icon name={opt.icon} size="sm" /> {opt.label}
+
+  <grid columns={2} gap={3} motion="blur">
+    <box gap={2}>
+      <text size="sm" weight="medium">Adults</text>
+      <NumberInput min={1} max={8} bind:value={adults}>
+        <NumberInputGroup>
+          <NumberInputDecrement aria-label="Fewer adults">−</NumberInputDecrement>
+          <NumberInputControl aria-label="Adults" style="width: 2.5rem; text-align: center" />
+          <NumberInputIncrement aria-label="More adults">+</NumberInputIncrement>
+        </NumberInputGroup>
+      </NumberInput>
+    </box>
+    <box gap={2}>
+      <text size="sm" weight="medium">Children</text>
+      <NumberInput min={0} max={6} bind:value={children}>
+        <NumberInputGroup>
+          <NumberInputDecrement aria-label="Fewer children">−</NumberInputDecrement>
+          <NumberInputControl aria-label="Children" style="width: 2.5rem; text-align: center" />
+          <NumberInputIncrement aria-label="More children">+</NumberInputIncrement>
+        </NumberInputGroup>
+      </NumberInput>
+    </box>
+  </grid>
+
+  <hr class="rule" />
+
+  <div class="split" motion="blur">
+    <box gap={2}>
+      <text size="sm" weight="medium">Interests</text>
+      <div class="chip-row">
+        {#each interestOptions as opt (opt.id)}
+          <button type="button" aria-pressed={interests.includes(opt.id)} on:click={interests = toggle(interests, opt.id)}>
+            {#if interests.includes(opt.id)}<icon name="check" size="sm" />{:else}<icon name={opt.icon} size="sm" />{/if}
+            {opt.label}
+          </button>
+        {/each}
+      </div>
+    </box>
+    <box gap={2}>
+      <text size="sm" weight="medium">Stay</text>
+      <div class="stay-grid">
+        <button type="button" class="stay-pick" aria-pressed={stay.includes("boutique")} on:click={stay = toggle(stay, "boutique")}>
+          <icon name="building-2" size="lg" />
+          <text size="sm" weight="medium">Boutique hotel</text>
         </button>
-      {/each}
-    </div>
-  </box>
-  <box gap={2}>
-    <text size="sm" weight="medium">Stay</text>
-    <div class="stay-grid">
-      <button type="button" class="stay-pick" aria-pressed={stay == "boutique"} on:click={stay = "boutique"}>
-        <icon name="building-2" size="lg" />
-        <text size="sm" weight="medium">Boutique hotel</text>
-      </button>
-      <button type="button" class="stay-pick" aria-pressed={stay == "apartment"} on:click={stay = "apartment"}>
-        <icon name="home" size="lg" />
-        <text size="sm" weight="medium">Apartment</text>
-      </button>
-      <button type="button" class="stay-pick" aria-pressed={stay == "resort"} on:click={stay = "resort"}>
-        <icon name="palmtree" size="lg" />
-        <text size="sm" weight="medium">Resort</text>
-      </button>
-    </div>
-  </box>
-  <box gap={1}>
+        <button type="button" class="stay-pick" aria-pressed={stay.includes("apartment")} on:click={stay = toggle(stay, "apartment")}>
+          <icon name="home" size="lg" />
+          <text size="sm" weight="medium">Apartment</text>
+        </button>
+        <button type="button" class="stay-pick" aria-pressed={stay.includes("resort")} on:click={stay = toggle(stay, "resort")}>
+          <icon name="palmtree" size="lg" />
+          <text size="sm" weight="medium">Resort</text>
+        </button>
+      </div>
+    </box>
+  </div>
+
+  <hr class="rule" />
+
+  <box gap={2} motion="blur">
     <row>
-      <text size="sm" weight="medium">Budget</text>
+      <text size="sm" weight="medium">Budget per person</text>
       <spacer />
-      <text size="sm" tabular>{currency(500)}–{currency(budget)}</text>
+      <text size="sm" tabular>{currency(budgetMin)} – {currency(budget)}</text>
     </row>
-    <Slider min={500} max={5000} step={50} bind:value={budget}>
+    <Slider min={0} max={5000} step={50} bind:value={budget}>
       <SliderControl><SliderTrack><SliderIndicator /><SliderThumb aria-label="Trip budget" /></SliderTrack></SliderControl>
     </Slider>
     <row>
-      <text size="xs" color="muted">$500</text>
+      <text size="xs" color="muted">$0</text>
       <spacer />
-      <text size="xs" color="muted">$5,000</text>
+      <text size="xs" color="muted">$5,000+</text>
     </row>
   </box>
-  <row gap={2} wrap>
+
+  <row gap={2} wrap motion="blur">
     <Button variant="solid" on:click={send("Plan my trip", { interests, stay, budget, adults, children })}>Plan my trip</Button>
     <Button on:click={send("Save this trip for later")}>Save for later</Button>
   </row>
-</card>
+</div>

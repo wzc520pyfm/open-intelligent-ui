@@ -102,17 +102,17 @@ motion:
     duration: 160ms
     timingFunction: cubic-bezier(0.2, 0, 0, 1)
   surface-enter:
-    duration: 340ms
-    timingFunction: cubic-bezier(0.16, 1, 0.3, 1)
+    duration: 300ms
+    timingFunction: cubic-bezier(0.22, 1, 0.36, 1)
   surface-exit:
     duration: 180ms
     timingFunction: cubic-bezier(0.4, 0, 1, 1)
   layout:
-    duration: 380ms
+    duration: 360ms
     timingFunction: cubic-bezier(0.22, 1, 0.36, 1)
   emphasis:
-    duration: 560ms
-    timingFunction: cubic-bezier(0.34, 1.35, 0.64, 1)
+    duration: 350ms
+    timingFunction: cubic-bezier(0.22, 1, 0.36, 1)
 components:
   card:
     backgroundColor: "{colors.dark.surface}"
@@ -174,12 +174,13 @@ status chips.
 Motion should feel silky and deliberate — still purposeful, never decorative.
 
 - **state-change** (160ms): hover, press, toggle. Color, opacity, a 1px lift.
-- **surface-enter** (340ms, decelerating): content arrives with a short rise
-  (10–12px). Stagger siblings 40–60ms apart; keep a whole group under ~400ms.
+- **surface-enter** (300ms, `cubic-bezier(0.22, 1, 0.36, 1)`): content
+  arrives with a soft blur-in or a short rise (≈10px). Stagger siblings
+  50–60ms apart; keep a whole group under ~400ms.
 - **surface-exit** (180ms, accelerating): leave faster than enter.
-- **layout** (380ms): panel swaps, shared-element moves, progress fills.
-- **emphasis** (560ms, slight overshoot): one moment per surface — a result
-  landing, a goal reached.
+- **layout** (360ms): panel swaps, shared-element moves, progress fills.
+- **emphasis** (350ms, same expo-out curve): one moment per surface — a
+  board popping in, a chip landing on a chart.
 
 Prefer `show={…}` over `{#if}` when the reader opens and closes panels so
 enter and exit stay animated. Numbers count; charts grow from the baseline.

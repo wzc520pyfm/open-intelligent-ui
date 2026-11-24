@@ -230,16 +230,16 @@
 
   @keyframes iui-blur {
     from {
-      opacity: 0;
-      filter: blur(8px);
-      translate: 0 6px;
+      opacity: 0.15;
+      filter: blur(2px);
     }
   }
 
   @keyframes iui-pop {
     from {
       opacity: 0;
-      scale: 0.86;
+      translate: 0 10px;
+      scale: 0.98;
     }
   }
 

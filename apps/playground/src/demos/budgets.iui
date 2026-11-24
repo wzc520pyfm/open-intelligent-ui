@@ -1,3 +1,163 @@
+<style>
+  .board {
+    border: 1px solid var(--iui-color-border);
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--iui-color-surface);
+  }
+  .board-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--iui-color-border);
+  }
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.95rem 1rem 0.8rem;
+    border-right: 1px solid var(--iui-color-border);
+    border-bottom: 1px solid var(--iui-color-border);
+    min-width: 0;
+  }
+  .kpi .label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi:last-child { border-right: none; }
+  .kpi-icon {
+    width: 1.375rem;
+    height: 1.375rem;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: linear-gradient(145deg, var(--iui-color-accent), color-mix(in oklab, var(--iui-color-accent) 55%, white));
+    flex: 0 0 auto;
+  }
+  .kpi-note {
+    margin-top: 0.15rem;
+    padding-top: 0.55rem;
+    border-top: 1px dashed color-mix(in oklab, var(--iui-color-border) 85%, transparent);
+    font-size: 0.6875rem;
+    color: var(--iui-color-muted-foreground);
+  }
+  .board-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(14rem, 1fr);
+  }
+  .board-main {
+    border-right: 1px solid var(--iui-color-border);
+    min-width: 0;
+  }
+  .board-panel {
+    padding: 1rem 1.05rem 1.1rem;
+    border-bottom: 1px solid var(--iui-color-border);
+  }
+  .board-panel:last-child { border-bottom: none; }
+  .board-side {
+    padding: 1rem 1.05rem 1.1rem;
+    min-width: 0;
+  }
+  .cash-plot {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
+    align-items: end;
+    height: 7.5rem;
+    margin-top: 0.65rem;
+  }
+  .cash-month {
+    display: grid;
+    grid-template-columns: repeat(16, minmax(0, 1fr));
+    gap: 1.5px;
+    height: 100%;
+    align-items: end;
+  }
+  .cash-col {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 2px;
+    height: 100%;
+  }
+  .cash-col i {
+    display: block;
+    height: 8px;
+    border-radius: 1.6px;
+    background: color-mix(in oklab, var(--iui-color-foreground) 8%, transparent);
+    animation: cash-cell 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--mi, 0) * 90ms + var(--ci, 0) * 10ms);
+  }
+  .cash-col i.in { background: #8cc4fb; }
+  .cash-col i.out { background: #2b8cf6; }
+  .cash-labels {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
+    margin-top: 0.45rem;
+  }
+  .dept-bar {
+    height: 8px;
+    border-radius: 99px;
+    background: color-mix(in oklab, var(--iui-color-accent) 14%, transparent);
+    overflow: hidden;
+  }
+  .dept-bar > i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #2b8cf6, #8cc4fb);
+    transform-origin: left center;
+    animation: bar-fill 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .nowrap { white-space: nowrap; overflow-wrap: normal; }
+  .invoice-scroll { overflow-x: auto; }
+  .invoice-row {
+    display: grid;
+    grid-template-columns: 7.5rem 5.5rem 5.5rem 4.5rem 4.5rem 5.5rem;
+    gap: 0.55rem;
+    align-items: center;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--iui-color-border);
+    font-size: 0.8125rem;
+    min-width: 36rem;
+  }
+  .invoice-row.head {
+    color: var(--iui-color-muted-foreground);
+    font-size: 0.75rem;
+    padding-top: 0;
+    border-bottom-color: color-mix(in oklab, var(--iui-color-border) 80%, transparent);
+  }
+  .invoice-row:last-child { border-bottom: none; }
+  .vendor-chip {
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    font-size: 0.65rem;
+    font-weight: 600;
+    background: var(--iui-color-muted);
+    color: var(--iui-color-foreground);
+    flex: 0 0 auto;
+  }
+  @keyframes cash-cell {
+    from { opacity: 0; transform: scaleY(0.4); }
+  }
+  @keyframes bar-fill {
+    from { transform: scaleX(0); }
+  }
+  @media (max-width: 720px) {
+    .kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kpi:nth-child(2n) { border-right: none; }
+    .board-body { grid-template-columns: 1fr; }
+    .board-main { border-right: none; }
+  }
+</style>
+
 <state cash={[
   { month: "Aug", inn: 182, out: 146 },
   { month: "Sep", inn: 198, out: 161 },
@@ -5,96 +165,191 @@
   { month: "Nov", inn: 231, out: 175 }
 ]} />
 <state depts={[
-  { name: "Engineering", spent: 312, budget: 360 },
-  { name: "Sales", spent: 188, budget: 210 },
-  { name: "Marketing", spent: 142, budget: 160 },
-  { name: "Ops", spent: 96, budget: 120 }
+  { name: "Engineering", spent: 316, budget: 516 },
+  { name: "Sales", spent: 248, budget: 320 },
+  { name: "Marketing", spent: 186, budget: 240 },
+  { name: "Product", spent: 172, budget: 210 },
+  { name: "Success", spent: 128, budget: 160 },
+  { name: "Ops", spent: 96, budget: 140 },
+  { name: "Legal", spent: 54, budget: 80 },
+  { name: "Facilities", spent: 42, budget: 70 }
 ]} />
+<derive
+  spentTotal={sumBy(depts, "spent")}
+  budgetTotal={sumBy(depts, "budget")}
+/>
 
-<box gap={4}>
-  <row wrap gap={2}>
+<div class="board" motion="pop">
+  <div class="board-head">
     <title level={2}>Q4 budget</title>
     <spacer />
-    <badge variant="soft" size="sm"><icon name="refresh-cw" size="sm" /> Just refreshed</badge>
-    <Button size="sm">This quarter</Button>
-    <Button size="sm" variant="solid">Export</Button>
-  </row>
+    <badge variant="soft" size="sm"><icon name="refresh-cw" size="sm" motion="spin" /> Updated 1m ago</badge>
+    <Button size="sm"><icon name="calendar" size="sm" /> This quarter</Button>
+    <Button size="sm"><icon name="download" size="sm" /> Export</Button>
+  </div>
 
-  <grid columns={4} gap={2} stagger>
-    <card padding={3} gap={1}>
-      <row gap={2}><icon name="trending-up" size="sm" color="accent" /><text size="sm" color="muted">Revenue</text></row>
-      <text size="xl" weight="bold" tabular>$1.25M</text>
-      <badge color="success" size="sm">+8.1%</badge>
-    </card>
-    <card padding={3} gap={1}>
-      <row gap={2}><icon name="wallet" size="sm" color="accent" /><text size="sm" color="muted">Operating spend</text></row>
-      <text size="xl" weight="bold" tabular>$815k</text>
-      <badge color="success" size="sm">4.0% under</badge>
-    </card>
-    <card padding={3} gap={1}>
-      <row gap={2}><icon name="pie-chart" size="sm" color="accent" /><text size="sm" color="muted">Gross margin</text></row>
-      <text size="xl" weight="bold" tabular>62.6%</text>
-      <badge color="success" size="sm">+1.2 pt</badge>
-    </card>
-    <card padding={3} gap={1}>
-      <row gap={2}><icon name="timer" size="sm" color="accent" /><text size="sm" color="muted">Runway</text></row>
-      <text size="xl" weight="bold" tabular>22 mo</text>
-      <badge color="success" size="sm">+2 mo</badge>
-    </card>
-  </grid>
+  <div class="kpi-strip" stagger={55}>
+    <div class="kpi" motion="blur">
+      <row gap={2}>
+        <span class="kpi-icon"><icon name="landmark" size="sm" /></span>
+        <text size="sm" color="muted" class="label">Revenue</text>
+        <spacer />
+        <icon name="ellipsis" size="sm" color="muted" />
+      </row>
+      <row gap={2} wrap>
+        <text size="xl" weight="bold" tabular>$1.24M</text>
+        <badge color="success" size="sm">+8.1%</badge>
+      </row>
+      <div class="kpi-note">Quarter to date</div>
+    </div>
+    <div class="kpi" motion="blur">
+      <row gap={2}>
+        <span class="kpi-icon"><icon name="receipt" size="sm" /></span>
+        <text size="sm" color="muted" class="label">Operating spend</text>
+        <spacer />
+        <icon name="ellipsis" size="sm" color="muted" />
+      </row>
+      <row gap={2} wrap>
+        <text size="xl" weight="bold" tabular>$815k</text>
+        <badge color="success" size="sm">4.0% under</badge>
+      </row>
+      <div class="kpi-note">Against budget</div>
+    </div>
+    <div class="kpi" motion="blur">
+      <row gap={2}>
+        <span class="kpi-icon"><icon name="pie-chart" size="sm" /></span>
+        <text size="sm" color="muted" class="label">Gross margin</text>
+        <spacer />
+        <icon name="ellipsis" size="sm" color="muted" />
+      </row>
+      <row gap={2} wrap>
+        <text size="xl" weight="bold" tabular>62.6%</text>
+        <badge color="success" size="sm">+1.2 pt</badge>
+      </row>
+      <div class="kpi-note">Trailing twelve months</div>
+    </div>
+    <div class="kpi" motion="blur">
+      <row gap={2}>
+        <span class="kpi-icon"><icon name="timer" size="sm" /></span>
+        <text size="sm" color="muted" class="label">Runway</text>
+        <spacer />
+        <icon name="ellipsis" size="sm" color="muted" />
+      </row>
+      <row gap={2} wrap>
+        <text size="xl" weight="bold" tabular>22 mo</text>
+        <badge color="success" size="sm">+2 mo</badge>
+      </row>
+      <div class="kpi-note">At current burn</div>
+    </div>
+  </div>
 
-  <grid columns={3} gap={3}>
-    <grid-item span={2}>
-      <card padding={4} gap={3}>
-        <title level={3}>Cash flow</title>
-        <Chart
-          type="bar"
-          data={cash}
-          x="month"
-          y={["inn", "out"]}
-          names={{ inn: "Cash in", out: "Cash out" }}
-          format="compact"
-          currency="USD"
-          unit="k"
-          height={180}
-          legend
-          aria-label="Monthly cash in and cash out in thousands of dollars"
-        />
-      </card>
-    </grid-item>
-    <card padding={4} gap={3}>
-      <title level={3}>Budget vs actual</title>
-      <box gap={3}>
-        {#each depts as dept (dept.name)}
+  <div class="board-body">
+    <div class="board-main">
+      <div class="board-panel" motion="blur">
+        <row gap={2}>
+          <title level={3}>Cash flow</title>
+          <spacer />
+          <row gap={3}>
+            <row gap={1}><box width={10} height={10} radius="sm" style="background: #8cc4fb" /><text size="xs" color="muted">Cash in</text></row>
+            <row gap={1}><box width={10} height={10} radius="sm" style="background: #2b8cf6" /><text size="xs" color="muted">Cash out</text></row>
+          </row>
+        </row>
+        <div class="cash-plot" aria-label="Monthly cash in and cash out as a block chart">
+          {#each cash as row, mi (row.month)}
+            <div class="cash-month" style="--mi: {mi}">
+              {#each range(0, 16) as c}
+                <div class="cash-col" style="--ci: {c}">
+                  {#each range(0, 12) as r}
+                    <i class="{r < max(2, floor(row.out / 24) + (c % 3) - 1) ? "out" : r < max(3, floor(row.inn / 20) + (c % 5) - 2) ? "in" : "ghost"}"></i>
+                  {/each}
+                </div>
+              {/each}
+            </div>
+          {/each}
+        </div>
+        <div class="cash-labels">
+          {#each cash as row (row.month)}
+            <text size="xs" color="muted" align="center">{row.month}</text>
+          {/each}
+        </div>
+      </div>
+
+      <div class="board-panel" motion="blur">
+        <title level={3}>Recent invoices</title>
+        <div class="invoice-scroll">
+        <div class="invoice-row head">
+          <text>Vendor</text>
+          <text>Category</text>
+          <text>Invoice</text>
+          <text>Due</text>
+          <text>Amount</text>
+          <text>Status</text>
+        </div>
+        <div class="invoice-row">
+          <row gap={2} class="nowrap"><span class="vendor-chip">V</span><text weight="medium">Vercel</text></row>
+          <text color="muted" class="nowrap">Infra</text>
+          <text tabular color="muted" class="nowrap">INV-2041</text>
+          <text color="muted" class="nowrap">Nov 12</text>
+          <text tabular class="nowrap">$4,200</text>
+          <badge color="success" size="sm">Paid</badge>
+        </div>
+        <div class="invoice-row">
+          <row gap={2} class="nowrap"><span class="vendor-chip">S</span><text weight="medium">Snowflake</text></row>
+          <text color="muted" class="nowrap">Data</text>
+          <text tabular color="muted" class="nowrap">INV-2048</text>
+          <text color="muted" class="nowrap">Nov 18</text>
+          <text tabular class="nowrap">$12,800</text>
+          <badge color="info" size="sm">Scheduled</badge>
+        </div>
+        <div class="invoice-row">
+          <row gap={2} class="nowrap"><span class="vendor-chip">F</span><text weight="medium">Figma</text></row>
+          <text color="muted" class="nowrap">Design</text>
+          <text tabular color="muted" class="nowrap">INV-2052</text>
+          <text color="muted" class="nowrap">Nov 22</text>
+          <text tabular class="nowrap">$960</text>
+          <badge color="success" size="sm">Paid</badge>
+        </div>
+        <div class="invoice-row">
+          <row gap={2} class="nowrap"><span class="vendor-chip">D</span><text weight="medium">Datadog</text></row>
+          <text color="muted" class="nowrap">Observability</text>
+          <text tabular color="muted" class="nowrap">INV-2055</text>
+          <text color="muted" class="nowrap">Nov 28</text>
+          <text tabular class="nowrap">$6,100</text>
+          <badge color="danger" size="sm">Overdue</badge>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="board-side" motion="blur">
+      <row gap={2}>
+        <title level={3}>Budget vs actual</title>
+        <spacer />
+        <badge color="success" size="sm">+4.0%</badge>
+      </row>
+      <box gap={3} style="margin-top: 0.85rem">
+        {#each depts as dept, i (dept.name)}
           <box gap={1}>
             <row gap={2}>
-              <text size="sm" weight="medium">{dept.name}</text>
+              <text size="sm" color="muted">{dept.name}</text>
               <spacer />
-              <text size="xs" tabular color="muted">${dept.spent}k / ${dept.budget}k</text>
+              <row gap={1} class="nowrap">
+                <text size="sm" tabular weight="medium">${dept.spent}k</text>
+                <text size="sm" tabular color="muted">of ${dept.budget}k</text>
+              </row>
             </row>
-            <Progress value={dept.spent} max={dept.budget} aria-label="{dept.name} spend versus budget">
-              <ProgressTrack><ProgressIndicator /></ProgressTrack>
-            </Progress>
+            <div class="dept-bar"><i style="width: {percent(dept.spent / dept.budget)}; animation-delay: {i * 40}ms"></i></div>
           </box>
         {/each}
+        <box gap={1} style="padding-top: 0.35rem; border-top: 1px solid var(--iui-color-border)">
+          <row gap={2}>
+            <text size="sm" weight="semibold">Total</text>
+            <spacer />
+            <text size="sm" tabular weight="semibold" class="nowrap">$1.24M of $1.74M</text>
+          </row>
+          <div class="dept-bar"><i style="width: {percent(spentTotal / budgetTotal)}; animation-delay: 320ms"></i></div>
+        </box>
       </box>
-    </card>
-  </grid>
-
-  <card padding={4} gap={3}>
-    <title level={3}>Recent invoices</title>
-    <DataTable data={[
-      { vendor: "Vercel", category: "Infra", id: "INV-2041", due: "Nov 12", amount: 4200, status: "paid" },
-      { vendor: "Snowflake", category: "Data", id: "INV-2048", due: "Nov 18", amount: 12800, status: "scheduled" },
-      { vendor: "Figma", category: "Design", id: "INV-2052", due: "Nov 22", amount: 960, status: "paid" },
-      { vendor: "Datadog", category: "Observability", id: "INV-2055", due: "Nov 28", amount: 6100, status: "overdue" }
-    ]} rowKey="id" columns={[
-      { key: "vendor", label: "Vendor" },
-      { key: "category", label: "Category" },
-      { key: "id", label: "Invoice" },
-      { key: "due", label: "Due" },
-      { key: "amount", label: "Amount", format: "currency", align: "right" },
-      { key: "status", label: "Status", badge: { paid: "success", scheduled: "info", overdue: "danger" } }
-    ]} />
-  </card>
-</box>
+    </div>
+  </div>
+</div>

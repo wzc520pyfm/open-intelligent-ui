@@ -172,6 +172,7 @@ export function mount(target: Element, initial: IntelligentUIOptions): MountedUI
   })
 
   let doc: IuiDocument = parse(options.source, { streaming: options.streaming === true })
+  let stableBlocks: ReturnType<typeof renderNodes> = []
   // The surface has to know the new document before anything is drawn from it.
   surface.update(doc)
 
@@ -281,6 +282,8 @@ export function mount(target: Element, initial: IntelligentUIOptions): MountedUI
         [node]
       )
     })
+    if (blocks.length > 0 || !streaming) stableBlocks = blocks
+    const visible = streaming && blocks.length === 0 ? stableBlocks : blocks
 
     const design = designText()
     const sheet = modelSheets()
@@ -292,6 +295,7 @@ export function mount(target: Element, initial: IntelligentUIOptions): MountedUI
           "data-iui-id": id,
           "data-iui-scheme": options.scheme ?? "auto",
           "data-streaming": streaming ? "" : undefined,
+          "data-empty": visible.length === 0 ? "" : undefined,
         },
         hooks: {
           mounted: (target) => {
@@ -304,7 +308,7 @@ export function mount(target: Element, initial: IntelligentUIOptions): MountedUI
       [
         design ? h("style", { key: "design" }, styleText(design)) : null,
         sheet ? h("style", { key: "model" }, styleText(sheet)) : null,
-        ...blocks,
+        ...visible,
         h(
           "div",
           {

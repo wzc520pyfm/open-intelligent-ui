@@ -254,6 +254,13 @@
       typeof node === "string" ? { key: `#${index}`, text: node } : { key: node.key, node }
     )
   })
+
+  let stableBlocks = $state<typeof blocks>([])
+  const visible = $derived.by(() => {
+    const next = blocks
+    if (next.length > 0 || !streaming) stableBlocks = next
+    return streaming && next.length === 0 ? stableBlocks : next
+  })
 </script>
 
 <div
@@ -263,9 +270,10 @@
   data-iui-id={id}
   data-iui-scheme={scheme}
   data-streaming={streaming ? "" : undefined}
+  data-empty={visible.length === 0 ? "" : undefined}
   >{#if designSheet}<svelte:element this={"style"}>{styleText(designSheet)}</svelte:element
     >{/if}{#if modelSheet}<svelte:element this={"style"}>{styleText(modelSheet)}</svelte:element
-    >{/if}{#each blocks as block (block.key)}{#if block.node}<Boundary
+    >{/if}{#each visible as block (block.key)}{#if block.node}<Boundary
         resetKey={source}
         quiet={streaming}
         onError={onBlockError}><Nodes nodes={block.node} /></Boundary

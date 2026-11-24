@@ -679,29 +679,35 @@ export function App() {
                     >
                       {turn.text}
                     </div>
-                  ) : thinking && turn.id === streamingId && !turn.text ? (
-                    <div key={turn.id} data-pg="note" className="flex items-center gap-2 self-start text-sm text-muted">
-                      <Spinner size="sm" />
-                      {copy.thinking}
-                    </div>
                   ) : (
-                    <Surface
-                      key={`${renderer}:${turn.id}`}
-                      renderer={renderer}
-                      handle={turn.id === latestSurface?.id ? handle : undefined}
-                      source={turn.text}
-                      streaming={turn.id === streamingId}
-                      design={theme.design}
-                      scheme={scheme}
-                      tools={tools}
-                      library={library}
-                      onAction={onAction}
-                      onTool={onTool}
-                      onWarning={onWarning}
-                      onStateChange={turn.id === latestSurface?.id ? setSurfaceState : undefined}
-                      failed={copy.rendererFailed}
-                      retry={copy.retry}
-                    />
+                    <div key={turn.id} className="pg-reply contents">
+                      {turn.id === streamingId ? (
+                        <div
+                          data-pg="pending"
+                          className="flex items-center gap-2 self-start text-sm text-muted"
+                        >
+                          <Spinner size="sm" />
+                          {thinking ? copy.thinking : copy.writing}
+                        </div>
+                      ) : null}
+                      <Surface
+                        key={`${renderer}:${turn.id}`}
+                        renderer={renderer}
+                        handle={turn.id === latestSurface?.id ? handle : undefined}
+                        source={turn.text}
+                        streaming={turn.id === streamingId}
+                        design={theme.design}
+                        scheme={scheme}
+                        tools={tools}
+                        library={library}
+                        onAction={onAction}
+                        onTool={onTool}
+                        onWarning={onWarning}
+                        onStateChange={turn.id === latestSurface?.id ? setSurfaceState : undefined}
+                        failed={copy.rendererFailed}
+                        retry={copy.retry}
+                      />
+                    </div>
                   )
                 )}
               </div>

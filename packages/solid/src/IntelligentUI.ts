@@ -199,6 +199,7 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
   })
   let now = untrack(given)
   let doc = parse(now.source, { streaming: now.streaming })
+  let stableBlocks: Node[] = []
   // The surface has to know the new document before anything is drawn from it.
   surface.update(doc)
 
@@ -279,6 +280,8 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
         onError: onBlockError,
       }
     })
+    if (blocks.length > 0 || !now.streaming) stableBlocks = blocks
+    const visible = now.streaming && blocks.length === 0 ? stableBlocks : blocks
 
     const design = designSheets()
     const sheet = modelSheets()
@@ -294,11 +297,12 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
           "data-iui-id": id,
           "data-iui-scheme": now.scheme,
           "data-streaming": now.streaming ? "" : undefined,
+          "data-empty": visible.length === 0 ? "" : undefined,
         },
         [
           design ? element("style", {}, [styleText(design)], "design") : null,
           sheet ? element("style", {}, [styleText(sheet)], "model") : null,
-          { kind: "fragment", key: "blocks", children: blocks },
+          { kind: "fragment", key: "blocks", children: visible },
           element(
             "div",
             {

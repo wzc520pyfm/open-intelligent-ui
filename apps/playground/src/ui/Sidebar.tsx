@@ -10,7 +10,8 @@ import {
   SquareKanban,
 } from "lucide-react"
 import type { Demo } from "../demos"
-import type { Copy, DemoCopy } from "../i18n"
+import { LOCALES, type Copy, type DemoCopy, type Locale } from "../i18n"
+import { Segmented } from "./controls"
 
 const ICONS: Record<string, LucideIcon> = {
   gears: Cog,
@@ -53,14 +54,19 @@ export function Sidebar(props: {
   demoCopy: (demo: Demo) => DemoCopy
   selected: string
   onSelect: (id: string) => void
+  locale: Locale
+  onLocale: (locale: Locale) => void
 }) {
   const { copy } = props
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto px-3 py-5">
-      <div className="flex flex-col gap-2 px-3">
-        <h1 className="text-lg leading-tight font-semibold tracking-tight text-balance text-foreground">
-          {copy.tagline}
-        </h1>
+      <div className="flex flex-col gap-3 px-3">
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-lg leading-tight font-semibold tracking-tight text-balance text-foreground">
+            {copy.tagline}
+          </h1>
+          <Segmented label="Language" value={props.locale} options={LOCALES} onChange={props.onLocale} />
+        </div>
         <p className="text-[13px] leading-relaxed text-muted">{copy.intro}</p>
       </div>
       <ListBox
@@ -100,7 +106,7 @@ export function Sidebar(props: {
           />
         </ListBox.Section>
       </ListBox>
-      <div className="mt-auto flex items-center gap-4 px-3 text-xs text-muted">
+      <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 px-3 text-xs text-muted">
         <Link
           className="text-xs text-muted"
           href="https://github.com/wzc520pyfm/open-intelligent-ui#readme"
@@ -111,12 +117,21 @@ export function Sidebar(props: {
         </Link>
         <Link
           className="text-xs text-muted"
+          href="https://github.com/wzc520pyfm/open-intelligent-ui"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub
+        </Link>
+        <Link
+          className="text-xs text-muted"
           href="https://www.npmjs.com/package/@open-intelligent-ui/react"
           target="_blank"
           rel="noreferrer"
         >
           npm
         </Link>
+        <span>v{__VERSION__}</span>
         <span>MIT</span>
       </div>
     </div>

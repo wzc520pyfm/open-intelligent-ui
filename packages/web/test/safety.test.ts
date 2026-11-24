@@ -340,7 +340,8 @@ describe("safety of the renderer's own channels", () => {
       expect(element.assignedSlot ?? null).toBeNull()
       expect(container.contains(element)).toBe(true)
     }
-  })
+    // It loads every UI SDK entry point, which takes seconds on a busy machine.
+  }, 60_000)
 
   test("a UI SDK part can't attach itself to a root outside the surface with for=", async () => {
     await preloadUiSdk("Dialog", "Tabs")

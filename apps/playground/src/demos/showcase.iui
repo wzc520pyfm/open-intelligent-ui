@@ -209,59 +209,43 @@
 </style>
 
 <box class="showcase" gap={4}>
-  <box show={view == "charts"} class="showcase-panel" gap={4} motion="blur" role="tabpanel" id="showcase-charts" aria-labelledby="showcase-tab-charts">
-    <div class="showcase-split">
-      <div class="showcase-copy">
-        <title level={2}>Ad Spend vs Sales</title>
-        <text color="muted">Year to date, every dollar of media is buying more revenue than last spring. North America still leads absolute spend; Europe is catching up on efficiency.</text>
-        <ul>
-          <li>Average campaign spend: <text weight="semibold" color="foreground">$4.2M</text></li>
-          <li>Blended CAC down <text weight="semibold" color="success">12%</text> vs Q1</li>
-          <li>Top creative family: "City nights" — 1.8× ROAS</li>
-        </ul>
-        <title level={4}>North America</title>
-        <text size="sm" color="muted">Spend concentrated in search and short video. Retail media is the fastest-growing line.</text>
-        <title level={4}>Europe</title>
-        <text size="sm" color="muted">Lower absolute spend, higher return. Germany and the UK drive most of the lift.</text>
-      </div>
-      <box gap={3}>
-        <grid columns={3} gap={2} stagger>
-          <card padding={3} gap={1}>
-            <text size="sm" color="muted">Total spend</text>
-            <text size="xl" weight="bold" tabular>{"$" + num(totalSpend, 2) + "Mn"}</text>
-            <badge color="success" size="sm">+4.8%</badge>
-          </card>
-          <card padding={3} gap={1}>
-            <text size="sm" color="muted">Total sales</text>
-            <text size="xl" weight="bold" tabular>{"$" + num(totalSales, 2) + "Mn"}</text>
-            <badge color="success" size="sm">+10.7%</badge>
-          </card>
-          <card padding={3} gap={1}>
-            <text size="sm" color="muted">ROI</text>
-            <text size="xl" weight="bold" tabular><Number value={roi} format="percent" digits={1} /></text>
-            <text size="sm" color="muted">Return on investment</text>
-          </card>
-        </grid>
-        <card padding={4} gap={3}>
-          <title level={3}>Spend vs revenue, 2025</title>
-          <Chart type="bar" data={spend} x="month" y={["spend", "revenue"]} names={{ spend: "Spend", revenue: "Revenue" }} format="currency" currency="USD" unit="M" height={200} legend aria-label="Monthly spend and revenue in millions of dollars" />
-        </card>
-        <grid columns={2} gap={3}>
-          <card padding={4} gap={3}>
-            <title level={3}>Share of global spend</title>
-            <Chart type="donut" data={regions} x="region" y="value" format="currency" currency="USD" unit="M" height={160} legend aria-label="Spend by region in millions of dollars" />
-          </card>
-          <card padding={4} gap={3}>
-            <row>
-              <title level={3}>Sales and spend over time</title>
-              <spacer />
-              <badge color="accent" size="sm">3× since 2015</badge>
-            </row>
-            <Chart type="line" data={years} x="year" y={["sales", "spend"]} names={{ sales: "Sales", spend: "Spend" }} format="currency" currency="USD" unit="M" height={160} legend aria-label="Sales and spend from 2015 to 2025 in millions of dollars" />
-          </card>
-        </grid>
-      </box>
-    </div>
+  <box show={view == "charts"} class="showcase-panel" gap={3} motion="blur" role="tabpanel" id="showcase-charts" aria-labelledby="showcase-tab-charts">
+    <title level={2}>Ad Spend vs Sales</title>
+    <grid columns={3} gap={2} stagger>
+      <card padding={3} gap={1}>
+        <text size="sm" color="muted">Total spend</text>
+        <text size="xl" weight="bold" tabular>{"$" + num(totalSpend, 2) + "Mn"}</text>
+        <badge color="success" size="sm">+4.8%</badge>
+      </card>
+      <card padding={3} gap={1}>
+        <text size="sm" color="muted">Total sales</text>
+        <text size="xl" weight="bold" tabular>{"$" + num(totalSales, 2) + "Mn"}</text>
+        <badge color="success" size="sm">+10.7%</badge>
+      </card>
+      <card padding={3} gap={1}>
+        <text size="sm" color="muted">ROI</text>
+        <text size="xl" weight="bold" tabular><Number value={roi} format="percent" digits={1} /></text>
+        <text size="sm" color="muted">Return on investment</text>
+      </card>
+    </grid>
+    <card padding={4} gap={3}>
+      <title level={3}>Spend vs revenue, 2025</title>
+      <Chart type="bar" data={spend} x="month" y={["spend", "revenue"]} names={{ spend: "Spend", revenue: "Revenue" }} format="currency" currency="USD" unit="M" height={200} legend aria-label="Monthly spend and revenue in millions of dollars" />
+    </card>
+    <grid columns={2} gap={3}>
+      <card padding={4} gap={3}>
+        <title level={3}>Share of global spend</title>
+        <Chart type="donut" data={regions} x="region" y="value" format="currency" currency="USD" unit="M" height={160} legend aria-label="Spend by region in millions of dollars" />
+      </card>
+      <card padding={4} gap={3}>
+        <row>
+          <title level={3}>Sales and spend over time</title>
+          <spacer />
+          <badge color="accent" size="sm">3× since 2015</badge>
+        </row>
+        <Chart type="line" data={years} x="year" y={["sales", "spend"]} names={{ sales: "Sales", spend: "Spend" }} format="currency" currency="USD" unit="M" height={160} legend aria-label="Sales and spend from 2015 to 2025 in millions of dollars" />
+      </card>
+    </grid>
   </box>
 
   <box show={view == "cards"} class="showcase-panel" gap={4} motion="rise" role="tabpanel" id="showcase-cards" aria-labelledby="showcase-tab-cards">

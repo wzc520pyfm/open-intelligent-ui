@@ -74,6 +74,8 @@ const Steps = defineWidget<StepsProps>({
             view("span", {
               "aria-hidden": "true",
               style: {
+                display: "block",
+                width: "100%",
                 height: "4px",
                 borderRadius: "999px",
                 background: stage === "todo" ? "var(--iui-color-border)" : "var(--iui-color-accent)",
@@ -86,6 +88,9 @@ const Steps = defineWidget<StepsProps>({
               "span",
               {
                 style: {
+                  display: "block",
+                  width: "100%",
+                  textAlign: "center",
                   fontSize: "var(--iui-font-small-size)",
                   fontWeight: stage === "current" ? 600 : 400,
                   color: stage === "todo" ? "var(--iui-color-muted-foreground)" : "var(--iui-color-foreground)",

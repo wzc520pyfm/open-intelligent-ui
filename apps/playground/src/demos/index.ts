@@ -1,11 +1,14 @@
 import type { Library } from "@open-intelligent-ui/core"
 import { PRODUCT } from "../library/product"
 import board from "./board.iui?raw"
+import budgets from "./budgets.iui?raw"
+import cards from "./cards.iui?raw"
+import charts from "./charts.iui?raw"
 import claim from "./claim.iui?raw"
 import dashboard from "./dashboard.iui?raw"
+import forms from "./forms.iui?raw"
 import gears from "./gears.iui?raw"
 import invest from "./invest.iui?raw"
-import showcase from "./showcase.iui?raw"
 import trip from "./trip.iui?raw"
 import workbench from "./workbench.iui?raw"
 
@@ -27,11 +30,35 @@ export interface Demo {
 
 export const DEMOS: Demo[] = [
   {
-    id: "showcase",
-    title: "Showcase",
-    caption: "Charts, cards, dashboards and forms with silky view switches",
-    prompt: "Show me a polished surface I can flip between charts, cards, dashboards and forms.",
-    source: showcase,
+    id: "charts",
+    title: "Charts",
+    caption: "KPIs with bar, donut and line charts that share the same data",
+    prompt: "How does ad spend compare to sales this year?",
+    source: charts,
+    theme: "noir",
+  },
+  {
+    id: "cards",
+    title: "Cards",
+    caption: "Hotel picks with image cards, chips and a featured booking panel",
+    prompt: "Suggest modern hotels in Paris for a long weekend.",
+    source: cards,
+    theme: "noir",
+  },
+  {
+    id: "budgets",
+    title: "Dashboards",
+    caption: "A Q4 budget board: KPIs, cash flow, department bars and invoices",
+    prompt: "Show me the Q4 budget dashboard.",
+    source: budgets,
+    theme: "noir",
+  },
+  {
+    id: "forms",
+    title: "Forms",
+    caption: "A trip planner with tags, steppers, interest chips and a budget slider",
+    prompt: "Help me plan a week in Portugal.",
+    source: forms,
     theme: "noir",
   },
   {

@@ -171,10 +171,25 @@ const en: Copy = {
   providerDeepSeek: "DeepSeek",
   providerCustom: "Custom",
   demos: {
-    showcase: {
-      title: "Showcase",
-      caption: "Charts, cards, dashboards and forms with silky view switches",
-      prompt: "Show me a polished surface I can flip between charts, cards, dashboards and forms.",
+    charts: {
+      title: "Charts",
+      caption: "KPIs with bar, donut and line charts that share the same data",
+      prompt: "How does ad spend compare to sales this year?",
+    },
+    cards: {
+      title: "Cards",
+      caption: "Hotel picks with image cards, chips and a featured booking panel",
+      prompt: "Suggest modern hotels in Paris for a long weekend.",
+    },
+    budgets: {
+      title: "Dashboards",
+      caption: "A Q4 budget board: KPIs, cash flow, department bars and invoices",
+      prompt: "Show me the Q4 budget dashboard.",
+    },
+    forms: {
+      title: "Forms",
+      caption: "A trip planner with tags, steppers, interest chips and a budget slider",
+      prompt: "Help me plan a week in Portugal.",
     },
     gears: {
       title: "Explain",
@@ -281,10 +296,25 @@ const zh: Copy = {
   providerDeepSeek: "DeepSeek",
   providerCustom: "自定义",
   demos: {
-    showcase: {
-      title: "展示",
-      caption: "图表、卡片、看板与表单，切换动效丝滑",
-      prompt: "给我一个精致的界面，可以在图表、卡片、看板和表单之间切换。",
+    charts: {
+      title: "图表",
+      caption: "共用数据的 KPI、柱状图、环图与折线",
+      prompt: "今年广告花费和销售额怎么比？",
+    },
+    cards: {
+      title: "卡片",
+      caption: "酒店卡片、信息条与精选预订面板",
+      prompt: "推荐几家适合长周末的巴黎现代酒店。",
+    },
+    budgets: {
+      title: "仪表盘",
+      caption: "第四季度预算：KPI、现金流、部门进度与发票",
+      prompt: "给我看第四季度预算仪表盘。",
+    },
+    forms: {
+      title: "表单",
+      caption: "行程规划：标签、步进器、兴趣选项与预算滑块",
+      prompt: "帮我计划一周葡萄牙行程。",
     },
     gears: {
       title: "解释",

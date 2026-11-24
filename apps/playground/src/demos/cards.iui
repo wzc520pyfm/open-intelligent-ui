@@ -1,0 +1,101 @@
+<state hotels={[
+  { id: "marais", name: "Hôtel du Marais", rating: 4.8, price: "€€€", tag: "Free Wifi", color: "success", blurb: "Quiet courtyard near the Seine." },
+  { id: "latin", name: "Maison Latin", rating: 4.6, price: "€€", tag: "Family-friendly", color: "accent", blurb: "Steps from the Luxembourg Gardens." },
+  { id: "opera", name: "Opera House Inn", rating: 4.9, price: "€€€€", tag: "Top pick", color: "warning", blurb: "Rooftop breakfast and a piano bar." }
+]} />
+<derive picked={hotels.find(h => h.id == "opera")} />
+
+<style>
+  .hotel-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--iui-radius-lg);
+    min-height: 9.5rem;
+    background: linear-gradient(160deg, var(--iui-color-muted), var(--iui-color-surface));
+    border: 1px solid var(--iui-color-border);
+  }
+  .hotel-card .art {
+    position: absolute;
+    inset: 0;
+    opacity: 0.85;
+  }
+  .hotel-card .meta {
+    position: absolute;
+    inset: auto 0.6rem 0.6rem 0.6rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: var(--iui-radius-md);
+    background: color-mix(in oklab, var(--iui-color-background) 72%, transparent);
+    backdrop-filter: blur(8px);
+  }
+</style>
+
+<title level={2}>Modern hotels in Paris</title>
+
+<grid columns={3} gap={2} stagger>
+  {#each hotels as hotel (hotel.id)}
+    <div class="hotel-card">
+      <svg class="art" viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        {#if hotel.id == "marais"}
+          <rect width="160" height="120" fill="var(--iui-color-chart-1)" opacity="0.35" />
+          <path d="M0 120 L0 78 L28 54 L52 70 L78 42 L110 66 L140 50 L160 62 L160 120 Z" fill="var(--iui-color-chart-1)" opacity="0.55" />
+        {:else if hotel.id == "latin"}
+          <rect width="160" height="120" fill="var(--iui-color-chart-3)" opacity="0.35" />
+          <path d="M0 120 L0 78 L28 54 L52 70 L78 42 L110 66 L140 50 L160 62 L160 120 Z" fill="var(--iui-color-chart-3)" opacity="0.55" />
+        {:else}
+          <rect width="160" height="120" fill="var(--iui-color-chart-2)" opacity="0.35" />
+          <path d="M0 120 L0 78 L28 54 L52 70 L78 42 L110 66 L140 50 L160 62 L160 120 Z" fill="var(--iui-color-chart-2)" opacity="0.55" />
+        {/if}
+      </svg>
+      <badge color={hotel.color} size="sm" style="position: absolute; top: 0.55rem; left: 0.55rem">{hotel.tag}</badge>
+      <div class="meta">
+        <text size="sm" weight="semibold">{hotel.name}</text>
+        <row gap={2}>
+          <text size="xs" color="muted">★ {hotel.rating}</text>
+          <spacer />
+          <text size="xs" weight="medium">{hotel.price}</text>
+        </row>
+      </div>
+    </div>
+  {/each}
+</grid>
+
+<row gap={2} wrap>
+  <badge variant="soft" color="info"><icon name="sun" size="sm" /> Sunny, 24°</badge>
+  <badge variant="soft"><icon name="train-front" size="sm" /> 4 min to Métro</badge>
+  <badge variant="soft"><icon name="wallet" size="sm" /> EUR · Visa OK</badge>
+</row>
+
+<card variant="elevated" padding={0} overflow="hidden">
+  <row wrap>
+    <box flex={1} minWidth={180} minHeight={160} style="position: relative; overflow: hidden">
+      <svg viewBox="0 0 280 160" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style="display: block; min-height: 160px">
+        <defs>
+          <linearGradient id="opera" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--iui-color-chart-2)" stop-opacity="0.55" />
+            <stop offset="100%" stop-color="var(--iui-color-chart-1)" stop-opacity="0.35" />
+          </linearGradient>
+        </defs>
+        <rect width="280" height="160" fill="url(#opera)" />
+        <path d="M0 160 L0 110 L40 88 L72 108 L110 70 L150 98 L190 78 L230 104 L280 86 L280 160 Z" fill="var(--iui-color-chart-2)" opacity="0.45" />
+        <rect x="96" y="42" width="88" height="70" rx="6" fill="var(--iui-color-surface)" opacity="0.55" />
+        <path d="M96 78 H184 M118 42 V112 M158 42 V112" stroke="var(--iui-color-foreground)" stroke-width="2" opacity="0.35" />
+        <circle cx="220" cy="36" r="14" fill="var(--iui-color-chart-3)" opacity="0.7" />
+      </svg>
+    </box>
+    <box padding={4} gap={2} width={260} maxWidth="100%">
+      <badge color="warning" size="sm"><icon name="trophy" size="sm" /> Top pick</badge>
+      <title level={3}>{picked.name}</title>
+      <text size="sm" color="muted">{picked.blurb}</text>
+      <row gap={1} wrap>
+        <badge size="sm">Piano bar</badge>
+        <badge size="sm">Rooftop</badge>
+        <badge size="sm">★ {picked.rating}</badge>
+      </row>
+      <row gap={2}>
+        <text weight="semibold">{picked.price}</text>
+        <spacer />
+        <Button variant="solid" on:click={send("Book " + picked.name)}>Book</Button>
+      </row>
+    </box>
+  </row>
+</card>

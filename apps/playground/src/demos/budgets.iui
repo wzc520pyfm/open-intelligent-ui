@@ -1,0 +1,128 @@
+<state cash={[
+  { month: "Aug", inn: 182, out: 146 },
+  { month: "Sep", inn: 198, out: 161 },
+  { month: "Oct", inn: 214, out: 168 },
+  { month: "Nov", inn: 231, out: 175 }
+]} />
+<state depts={[
+  { name: "Engineering", spent: 312, budget: 360 },
+  { name: "Sales", spent: 188, budget: 210 },
+  { name: "Marketing", spent: 142, budget: 160 },
+  { name: "Ops", spent: 96, budget: 120 }
+]} />
+
+<style>
+  .nowrap { white-space: nowrap; overflow-wrap: normal; }
+  .cash-bars { display: grid; gap: 0.55rem; }
+  .cash-row { display: grid; grid-template-columns: 2.5rem 1fr; gap: 0.55rem; align-items: center; }
+  .cash-cells { display: flex; gap: 2px; height: 1.35rem; align-items: end; }
+  .cash-cells span {
+    flex: 1;
+    border-radius: 2px;
+    min-height: 4px;
+    transition: height var(--iui-motion-layout-duration) var(--iui-motion-layout-easing);
+  }
+  .cash-cells .inn { background: var(--iui-color-chart-1); }
+  .cash-cells .out { background: color-mix(in oklab, var(--iui-color-foreground) 22%, transparent); }
+  .dept-bar {
+    height: 6px;
+    border-radius: 99px;
+    background: var(--iui-color-muted);
+    overflow: hidden;
+  }
+  .dept-bar > i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--iui-color-accent);
+    transition: width var(--iui-motion-layout-duration) var(--iui-motion-layout-easing);
+  }
+</style>
+
+<row wrap gap={2}>
+  <title level={2}>Q4 budget</title>
+  <spacer />
+  <badge variant="soft" size="sm"><icon name="refresh-cw" size="sm" /> Just refreshed</badge>
+  <Button size="sm">This quarter</Button>
+  <Button size="sm" variant="solid">Export</Button>
+</row>
+
+<grid columns={4} gap={2} stagger>
+  <card padding={3} gap={1}>
+    <row gap={2}><icon name="trending-up" size="sm" color="accent" /><text size="sm" color="muted">Revenue</text></row>
+    <text size="xl" weight="bold" tabular><Number value={1250000} format="currency" digits={0} /></text>
+    <badge color="success" size="sm">+8.1%</badge>
+  </card>
+  <card padding={3} gap={1}>
+    <row gap={2}><icon name="wallet" size="sm" color="accent" /><text size="sm" color="muted">Operating spend</text></row>
+    <text size="xl" weight="bold" tabular><Number value={815000} format="currency" digits={0} /></text>
+    <badge color="success" size="sm">4.0% under</badge>
+  </card>
+  <card padding={3} gap={1}>
+    <row gap={2}><icon name="pie-chart" size="sm" color="accent" /><text size="sm" color="muted">Gross margin</text></row>
+    <text size="xl" weight="bold" tabular>62.6%</text>
+    <badge color="success" size="sm">+1.2 pt</badge>
+  </card>
+  <card padding={3} gap={1}>
+    <row gap={2}><icon name="timer" size="sm" color="accent" /><text size="sm" color="muted">Runway</text></row>
+    <text size="xl" weight="bold" tabular>22 mo</text>
+    <badge color="success" size="sm">+2 mo</badge>
+  </card>
+</grid>
+
+<grid columns={3} gap={3}>
+  <grid-item span={2}>
+    <card padding={4} gap={3}>
+      <title level={3}>Cash flow</title>
+      <div class="cash-bars">
+        {#each cash as row (row.month)}
+          <div class="cash-row">
+            <text size="sm" color="muted">{row.month}</text>
+            <div class="cash-cells" aria-label="{row.month}: cash in {row.inn}, cash out {row.out}">
+              {#each range(0, 12) as i}
+                <span class="inn" style="height: {max(8, row.inn / 12 - i * 2)}px"></span>
+                <span class="out" style="height: {max(6, row.out / 12 - i * 1.5)}px"></span>
+              {/each}
+            </div>
+          </div>
+        {/each}
+      </div>
+      <row gap={3}>
+        <row gap={1}><box width={8} height={8} radius="sm" background="chart-1" /><text size="xs" color="muted">Cash in</text></row>
+        <row gap={1}><box width={8} height={8} radius="sm" background="border" /><text size="xs" color="muted">Cash out</text></row>
+      </row>
+    </card>
+  </grid-item>
+  <card padding={4} gap={3}>
+    <title level={3}>Budget vs actual</title>
+    <box gap={3}>
+      {#each depts as dept (dept.name)}
+        <box gap={1}>
+          <row gap={3}>
+            <text size="sm" weight="medium" class="nowrap">{dept.name}</text>
+            <spacer />
+            <text size="sm" tabular color="muted" class="nowrap">{currency(dept.spent * 1000)} / {currency(dept.budget * 1000)}</text>
+          </row>
+          <div class="dept-bar"><i style="width: {percent(dept.spent / dept.budget)}"></i></div>
+        </box>
+      {/each}
+    </box>
+  </card>
+</grid>
+
+<card padding={4} gap={3}>
+  <title level={3}>Recent invoices</title>
+  <DataTable data={[
+    { vendor: "Vercel", category: "Infra", id: "INV-2041", due: "Nov 12", amount: 4200, status: "paid" },
+    { vendor: "Snowflake", category: "Data", id: "INV-2048", due: "Nov 18", amount: 12800, status: "scheduled" },
+    { vendor: "Figma", category: "Design", id: "INV-2052", due: "Nov 22", amount: 960, status: "paid" },
+    { vendor: "Datadog", category: "Observability", id: "INV-2055", due: "Nov 28", amount: 6100, status: "overdue" }
+  ]} rowKey="id" columns={[
+    { key: "vendor", label: "Vendor" },
+    { key: "category", label: "Category" },
+    { key: "id", label: "Invoice" },
+    { key: "due", label: "Due" },
+    { key: "amount", label: "Amount", format: "currency", align: "right" },
+    { key: "status", label: "Status", badge: { paid: "success", scheduled: "info", overdue: "danger" } }
+  ]} />
+</card>

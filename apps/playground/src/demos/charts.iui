@@ -1,0 +1,73 @@
+<state spend={[
+  { month: "Jan", spend: 0.48, revenue: 0.92 },
+  { month: "Feb", spend: 0.52, revenue: 1.05 },
+  { month: "Mar", spend: 0.61, revenue: 1.18 },
+  { month: "Apr", spend: 0.58, revenue: 1.24 },
+  { month: "May", spend: 0.66, revenue: 1.41 },
+  { month: "Jun", spend: 0.71, revenue: 1.55 },
+  { month: "Jul", spend: 0.69, revenue: 1.62 },
+  { month: "Aug", spend: 0.74, revenue: 1.78 },
+  { month: "Sep", spend: 0.78, revenue: 1.91 },
+  { month: "Oct", spend: 0.82, revenue: 2.08 },
+  { month: "Nov", spend: 0.88, revenue: 2.24 }
+]} />
+<state regions={[
+  { region: "USA", value: 2.04 },
+  { region: "India", value: 1.31 },
+  { region: "UK", value: 1.17 },
+  { region: "Germany", value: 0.95 },
+  { region: "Other", value: 1.83 }
+]} />
+<state years={[
+  { year: "2015", sales: 4.8, spend: 3.1 },
+  { year: "2017", sales: 6.2, spend: 3.4 },
+  { year: "2019", sales: 8.1, spend: 3.9 },
+  { year: "2021", sales: 10.4, spend: 4.6 },
+  { year: "2023", sales: 13.2, spend: 5.8 },
+  { year: "2025", sales: 16.2, spend: 7.3 }
+]} />
+<derive
+  totalSpend={sumBy(spend, "spend")}
+  totalSales={sumBy(spend, "revenue")}
+  roi={(totalSales - totalSpend) / totalSpend}
+/>
+
+<title level={2}>Ad Spend vs Sales</title>
+
+<grid columns={3} gap={2} stagger>
+  <card padding={3} gap={1}>
+    <text size="sm" color="muted">Total spend</text>
+    <text size="xl" weight="bold" tabular>{"$" + num(totalSpend, 2) + "Mn"}</text>
+    <badge color="success" size="sm">+4.8%</badge>
+  </card>
+  <card padding={3} gap={1}>
+    <text size="sm" color="muted">Total sales</text>
+    <text size="xl" weight="bold" tabular>{"$" + num(totalSales, 2) + "Mn"}</text>
+    <badge color="success" size="sm">+10.7%</badge>
+  </card>
+  <card padding={3} gap={1}>
+    <text size="sm" color="muted">ROI</text>
+    <text size="xl" weight="bold" tabular><Number value={roi} format="percent" digits={1} /></text>
+    <text size="sm" color="muted">Return on investment</text>
+  </card>
+</grid>
+
+<card padding={4} gap={3}>
+  <title level={3}>Spend vs revenue, 2025</title>
+  <Chart type="bar" data={spend} x="month" y={["spend", "revenue"]} names={{ spend: "Spend", revenue: "Revenue" }} format="currency" currency="USD" unit="M" height={200} legend aria-label="Monthly spend and revenue in millions of dollars" />
+</card>
+
+<grid columns={2} gap={3}>
+  <card padding={4} gap={3}>
+    <title level={3}>Share of global spend</title>
+    <Chart type="donut" data={regions} x="region" y="value" format="currency" currency="USD" unit="M" height={160} legend aria-label="Spend by region in millions of dollars" />
+  </card>
+  <card padding={4} gap={3}>
+    <row>
+      <title level={3}>Sales and spend over time</title>
+      <spacer />
+      <badge color="accent" size="sm">3× since 2015</badge>
+    </row>
+    <Chart type="line" data={years} x="year" y={["sales", "spend"]} names={{ sales: "Sales", spend: "Spend" }} format="currency" currency="USD" unit="M" height={160} legend aria-label="Sales and spend from 2015 to 2025 in millions of dollars" />
+  </card>
+</grid>

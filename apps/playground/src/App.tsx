@@ -558,8 +558,8 @@ export function App() {
         ) : null}
 
         <main className="@container flex min-w-0 flex-1 flex-col">
-          <div className="flex shrink-0 flex-wrap items-start gap-2 border-b border-separator bg-background px-3 py-2 sm:px-4">
-            <Chip size="sm" variant="soft" color={streaming ? "accent" : "success"} className="order-1" data-pg="status" data-live={streaming}>
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-separator bg-background px-3 py-2 sm:px-4">
+            <Chip size="sm" variant="soft" color={streaming ? "accent" : "success"} className="order-1 self-center" data-pg="status" data-live={streaming}>
               {streaming ? <Spinner size="sm" color="current" className="size-3" /> : <Check className="size-3" aria-hidden="true" />}
               {status}
             </Chip>
@@ -581,12 +581,14 @@ export function App() {
               />
               <Picker
                 label={copy.charts}
+                className="hidden sm:flex"
                 value={charts}
                 onChange={setChartsId}
                 options={CHARTS.filter((item) => !item.only || item.only === renderer)}
               />
               <Picker
                 label={copy.motion}
+                className="hidden sm:flex"
                 value={motionId}
                 onChange={setMotionId}
                 options={MOTIONS}
@@ -594,6 +596,7 @@ export function App() {
               {mode === "demos" ? (
                 <Picker
                   label={copy.speed}
+                  className="hidden sm:flex"
                   value={speed}
                   onChange={setSpeed}
                   options={[

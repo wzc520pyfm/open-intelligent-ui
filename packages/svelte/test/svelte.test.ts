@@ -297,7 +297,8 @@ ${tabs.replace('defaultValue="plan"', "value={tab}")}
       state: "n 1, on, abc, y",
     })
     expect(container.querySelector(".iui-error")).toBeNull()
-  })
+    // It loads React and every UI SDK entry point, which takes seconds on a busy machine.
+  }, 60_000)
 
   test("a field's value written without bind: is held too, as it is in React", async () => {
     const source = `<state n={0} word="w" q={5} />

@@ -26,6 +26,12 @@ UI SDK is different: it ships component *behaviors* (focus, keyboard, selection,
 | Motion skill | Which change gets which motion, and a way to review it frame by frame | `skills/motion/`; markup attributes `motion`, `show`, `stagger`, `morph` |
 | Small presets | Content widgets UI SDK does not have | 15 layout primitives; `Chart`, `Stat`, `Number`, `DataTable`, `CodeBlock`, `Skeleton` |
 
+### Why not HTML?
+
+A2UI and OpenUI both argue against letting the model emit a full HTML page (often with JS in an iframe). We agree — and we need our own wording, because IUI *does* allow whitelisted HTML and SVG as drawing material. What we reject is the *contract* “model writes an executable page; host sandboxes it.”
+
+That contract fails on safety without isolation, design-system continuity, real widget behavior (focus, keyboard, a11y), client-side state and tools, streaming half-trees, and cross-framework renderers. Catalog GenUI fixes those by locking the model to registered components; open-ended HTML/JS frees the shape and loses the rest. This project sits in the gap A2UI named: freer than catalog composition, without running arbitrary code. Full argument: [`docs/research.md`](docs/research.md#为什么不是-html).
+
 Research and trade-offs, including UI SDK compatibility results, are in [`docs/research.md`](docs/research.md).
 
 ## What the markup looks like

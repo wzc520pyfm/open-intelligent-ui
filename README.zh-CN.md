@@ -26,6 +26,12 @@ UI SDK 提供的是另一种东西：组件的行为（焦点、键盘、选中�
 | 动效 skill | 什么变化配什么动效，以及在浏览器里逐帧检查的方法 | `skills/motion/`，标记属性 `motion`、`show`、`stagger`、`morph` |
 | 少量预置 | UI SDK 没有的内容类组件 | 15 个布局原语，`Chart`、`Stat`、`Number`、`DataTable`、`CodeBlock`、`Skeleton` |
 
+### 为什么不是 HTML？
+
+A2UI 和 OpenUI 都反对模型直接吐出一整页 HTML（往往还带着 JS，塞进 iframe）。我们同意——但必须单独说清：IUI **允许**白名单里的 HTML 和 SVG 当画材。我们反对的是那份契约本身：「模型写可执行的网页，宿主用沙箱兜着」。
+
+这份契约在几件事上同时垮掉：不靠隔离的安全、设计系统能不能跟进去、真正的控件行为（焦点、键盘、无障碍）、端侧状态和工具、半截树的流式渲染、以及跨框架落地。目录式 GenUI 用「只能用注册过的组件」修好了这些，却锁死了外形；开端 HTML/JS 放开外形，其余又丢回去。本方案占的是 A2UI 点过却没填的空档：比从目录组合更自由，又不执行任意代码。完整论证见 [`docs/research.md`](docs/research.md#为什么不是-html)。
+
 调研过程和取舍依据在 [`docs/research.md`](docs/research.md)，包括 UI SDK 兼容性的实测结果。
 
 ## 标记长什么样

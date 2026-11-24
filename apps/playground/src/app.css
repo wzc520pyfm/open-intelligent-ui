@@ -86,9 +86,13 @@ body {
   tab-size: 2;
 }
 
-/* Same quiet edge as .pg-surface cards — visible on the stage, not a bright outline. */
+/* Lifted off the stage like a card — HeroUI surface sits above background. */
 .pg-composer {
+  --input-group-bg: var(--surface);
+  --input-group-bg-hover: var(--surface-hover);
+  --input-group-bg-focus: var(--surface);
   border-color: var(--separator);
+  background-color: var(--surface);
 }
 
 .pg-inspect {

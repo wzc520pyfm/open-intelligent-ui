@@ -721,7 +721,7 @@ export function App() {
               }}
             >
               <div className="pg-column" data-width={width}>
-                <InputGroup className="pg-composer w-full items-end! rounded-3xl border border-separator bg-background py-2 pr-2 pl-4 shadow-sm">
+                <InputGroup className="pg-composer w-full items-end! rounded-3xl border border-separator py-2 pr-2 pl-4 shadow-sm">
                   <InputGroup.TextArea
                     ref={draftRef}
                     rows={1}

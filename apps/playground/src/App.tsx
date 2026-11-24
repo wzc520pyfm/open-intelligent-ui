@@ -557,13 +557,14 @@ export function App() {
           </nav>
         ) : null}
 
-        <main className="flex min-w-0 flex-1 flex-col">
+        <main className="@container flex min-w-0 flex-1 flex-col">
           <div className="flex shrink-0 flex-wrap items-start gap-2 border-b border-separator bg-background px-3 py-2 sm:px-4">
-            <Chip size="sm" variant="soft" color={streaming ? "accent" : "success"} data-pg="status" data-live={streaming}>
+            <Chip size="sm" variant="soft" color={streaming ? "accent" : "success"} className="order-1" data-pg="status" data-live={streaming}>
               {streaming ? <Spinner size="sm" color="current" className="size-3" /> : <Check className="size-3" aria-hidden="true" />}
               {status}
             </Chip>
-            <div className="flex min-w-[min(100%,18rem)] flex-1 flex-wrap items-center gap-2">
+            {/* Narrow main: status + actions on row 1, pickers below. Wide main: one row. */}
+            <div className="order-3 flex w-full min-w-0 flex-wrap items-center gap-2 @[58rem]:order-2 @[58rem]:w-auto @[58rem]:flex-1">
               <span title={copy.rendererHint}>
                 <Picker
                   label={copy.renderer}
@@ -604,9 +605,10 @@ export function App() {
                 />
               ) : null}
             </div>
-            <div className="ml-auto flex shrink-0 items-center gap-2">
+            <div className="order-2 ml-auto flex min-w-0 max-w-full items-center gap-2 @[58rem]:order-3">
               <Segmented
                 label={copy.width}
+                className="shrink-0"
                 iconOnly
                 value={width}
                 onChange={setWidth}
@@ -620,6 +622,7 @@ export function App() {
                 <Button
                   size="sm"
                   variant="secondary"
+                  className="shrink-0"
                   data-pg="replay"
                   aria-label={copy.replay}
                   onPress={() => playDemo(demo, speed, demoCopy(demo).prompt)}

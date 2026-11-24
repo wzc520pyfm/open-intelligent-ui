@@ -277,6 +277,12 @@
     gap: 0;
   }
 
+  /* Drawn by a chart engine: the element is the engine's, kept at the chart's height while it loads. */
+  .iui-chart-engine {
+    display: block;
+    position: relative;
+  }
+
   .iui-chart-plot {
     position: relative;
     width: 100%;
@@ -361,18 +367,35 @@
       top var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
   }
 
-  .iui-chart-tooltip > strong {
+  /* The tooltip of a chart engine. The engine places it; this is how it looks. */
+  .iui-chart-tip {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.375rem 0.625rem;
+    border: 1px solid var(--iui-color-border);
+    border-radius: var(--iui-radius-md);
+    background: var(--iui-color-surface);
+    box-shadow: var(--iui-shadow-md);
+    color: var(--iui-color-foreground);
+    font-family: var(--iui-font-sans);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+
+  :is(.iui-chart-tooltip, .iui-chart-tip) > strong {
     font-weight: 600;
   }
 
-  .iui-chart-tooltip > span {
+  :is(.iui-chart-tooltip, .iui-chart-tip) > span {
     display: flex;
     align-items: center;
     gap: 0.4em;
     color: var(--iui-color-muted-foreground);
   }
 
-  .iui-chart-tooltip b {
+  :is(.iui-chart-tooltip, .iui-chart-tip) b {
     margin-inline-start: auto;
     padding-inline-start: 0.75em;
     color: var(--iui-color-foreground);

@@ -174,9 +174,52 @@ Svelte and Solid look like React and Vue; each package's README has its example 
 
 A model writes the same markup for all five, and the prompt is the same. React, Vue and Solid draw it to the same DOM. Svelte draws the same DOM apart from a few elements `@ui-sdk/svelte` places differently. The web renderer draws UI SDK components as custom elements (`<ui-tabs>`), with the same roles, names, states and look.
 
-The [demo site](https://open-intelligent-ui-one.vercel.app) switches between the five on one reply. `pnpm dev:vue`, `pnpm dev:svelte`, `pnpm dev:solid` and `pnpm dev:web` each run the six demos on one renderer alone.
+The [demo site](https://open-intelligent-ui-one.vercel.app) switches between the five on one reply. `pnpm dev:vue`, `pnpm dev:svelte`, `pnpm dev:solid` and `pnpm dev:web` each run the same demos on one renderer alone.
 
 The packages are ESM with type declarations; the React entry is marked `"use client"`. Tools, theming, host components, state and the safety model: [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md).
+
+## Customize
+
+What a product adds or replaces goes in one `library`, which the renderer and the prompt both read. The model is told about exactly what the renderer can draw.
+
+```ts
+import { defineComponent, defineLibrary, defineWidget, view } from "@open-intelligent-ui/core"
+import { echartsCharts } from "@open-intelligent-ui/core/charts"
+import { motionAdapter } from "@open-intelligent-ui/core/motion"
+import { animate } from "motion"
+
+const OrderCard = defineComponent({
+  name: "OrderCard",
+  description: "One order with its status and total. Use it wherever an order is shown.",
+  props: { order: { type: "object", required: true }, tone: ["neutral", "urgent"] },
+  events: { open: "The card was pressed; $value is the order id." },
+  example: `<OrderCard order={order} on:open={picked = $value} />`,
+  component: OrderCardView,
+})
+
+export const library = defineLibrary({
+  design: herouiDesignMd,                           // any DESIGN.md, HeroUI's included
+  components: [OrderCard, Steps],                   // your components, and widgets written once for all five renderers
+  charts: echartsCharts(() => import("echarts")),   // or g2Charts, rechartsCharts, your own engine
+  motion: motionAdapter(animate),                   // or gsapAdapter, waapiAdapter, your own adapter
+})
+```
+
+```tsx
+<IntelligentUI source={replySoFar} library={library} />
+
+buildSystemPrompt({ library })   // describes OrderCard and Steps from their definitions
+```
+
+| To change | Use | The prompt |
+| --- | --- | --- |
+| The design | `design`: a DESIGN.md, one written for another library (its CSS variables are read), or `designFromCss(themeCss)` | Lists the design's tokens and its guidance |
+| Fixed components the model must use | `defineComponent`: a framework component with declared props, events and an example | A section per component, generated from the definition |
+| More preset widgets | `defineWidget`: drawn with framework-neutral views, so one definition runs in React, Vue, Svelte, Solid and Web Components | The same |
+| What draws `<Chart>` | `echartsCharts`, `g2Charts`, `rechartsCharts` (React), or a `ChartEngine` of your own | Adds the chart types the engine brings |
+| What plays motion | `motionAdapter`, `gsapAdapter`, `waapiAdapter`, or `createMotionAdapter` | Adds the entrances you define |
+
+Markup passes a registered component only the props it declares, with values of the declared type. `librarySpec(library)` writes the library as JSON, for a server that builds the prompt without loading the UI, and `validateLibrary(library)` checks descriptions and examples in a test. Every option: [`docs/extending.md`](docs/extending.md).
 
 ## Layout
 
@@ -191,7 +234,7 @@ packages/web      Web Components renderer, on @ui-sdk/web: <intelligent-ui> and 
 packages/open-intelligent-ui   The unscoped npm name; re-exports packages/core
 apps/playground   Demo site (React), with a switch that draws a reply with any of the five renderers
 apps/vue-demo, apps/svelte-demo, apps/solid-demo, apps/web-demo   The same demos on one renderer each
-design/           Three DESIGN.md files: Paper, Heritage, Signal
+design/           Three DESIGN.md files: Paper, Heritage, Signal. third-party/ holds HeroUI's, as published
 skills/           Agent skills: intelligent-ui and motion
 docs/             Research, language spec, architecture
 scripts/          UI SDK catalog generation, skill references, design lint
@@ -204,6 +247,7 @@ scripts/          UI SDK catalog generation, skill references, design lint
 | [`docs/research.md`](docs/research.md) | A2UI, OpenUI, OpenAI Intelligent UI, UI SDK, DESIGN.md; compatibility tests; presets and state syntax |
 | [`docs/spec.md`](docs/spec.md) | IUI markup language |
 | [`docs/architecture.md`](docs/architecture.md) | How the pieces fit, data flow, safety model, tests |
+| [`docs/extending.md`](docs/extending.md) | Replacing the design, charts and motion; registering components and widgets; how the prompt follows |
 | [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | For agents: writing and integrating interfaces |
 | [`skills/motion/SKILL.md`](skills/motion/SKILL.md) | For agents: designing and reviewing motion |
 

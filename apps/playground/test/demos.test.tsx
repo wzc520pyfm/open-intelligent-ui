@@ -23,6 +23,7 @@ async function mount(id: string) {
     <IntelligentUI
       source={demo.source}
       tools={createTicketTools(0)}
+      library={demo.library}
       onWarning={(message) => warnings.push(message)}
       onDiagnostics={(list) => {
         diagnostics.length = 0
@@ -56,11 +57,16 @@ describe("playground demos", () => {
     })
     const errors: string[] = []
     const view = render(
-      <IntelligentUI source="" streaming tools={createTicketTools(0)} />
+      <IntelligentUI source="" streaming tools={createTicketTools(0)} library={demo.library} />
     )
     for (let end = 0; end < demo.source.length; end += 37) {
       view.rerender(
-        <IntelligentUI source={demo.source.slice(0, end)} streaming tools={createTicketTools(0)} />
+        <IntelligentUI
+          source={demo.source.slice(0, end)}
+          streaming
+          tools={createTicketTools(0)}
+          library={demo.library}
+        />
       )
       const error = view.container.querySelector(".iui-error")
       if (error) errors.push(`${end}: ${error.textContent}`)
@@ -133,6 +139,25 @@ describe("playground demos", () => {
     fireEvent.input(input, { target: { value: "Write docs" } })
     fireEvent.keyDown(input, { key: "Enter" })
     await waitFor(() => expect(lanes()[0]?.querySelectorAll(".ticket")).toHaveLength(3))
+    expect(view.warnings).toEqual([])
+  })
+
+  test("claim: the product's own components show the claim and report what was pressed", async () => {
+    const view = await mount("claim")
+    const stages = () =>
+      [...view.container.querySelectorAll(".acme-steps li")].map((item) => item.getAttribute("data-stage"))
+    expect(stages()).toEqual(["done", "current", "todo", "todo"])
+    expect(view.container.querySelectorAll(".acme-check")).toHaveLength(4)
+    expect(text(view.container)).toContain("Mei Tanaka")
+    // A stage is a button: pressing it sets the state the markup bound it to.
+    fireEvent.click(screen.getByText("4. Paid"))
+    await waitFor(() => expect(stages()).toEqual(["done", "done", "done", "current"]))
+    fireEvent.click(screen.getByRole("button", { name: /Approve/ }))
+    await waitFor(() => expect(text(view.container)).toContain("Approved"))
+    expect(stages()).toEqual(["done", "done", "current", "todo"])
+    expect(view.sent).toEqual([
+      { text: "Approve Mei's claim, with the hotel overage noted", data: { total: 3518, excess: 128 } },
+    ])
     expect(view.warnings).toEqual([])
   })
 })

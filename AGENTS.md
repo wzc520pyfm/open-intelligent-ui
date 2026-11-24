@@ -27,7 +27,15 @@ semicolons, double quotes, two spaces.
 
 - `packages/core`: parser (`src/markup`), expression interpreter (`src/expr`),
   state store (`src/runtime`), DESIGN.md and CSS safety (`src/design`),
-  system prompt (`src/prompt`). No framework, no DOM, no Node APIs.
+  system prompt (`src/prompt`), what a product registers (`src/library`:
+  `defineComponent`, `defineWidget`, `defineLibrary`). No framework, no DOM,
+  no Node APIs.
+- `packages/core/src/charts` (`@open-intelligent-ui/core/charts`) and
+  `packages/core/src/motion` (`@open-intelligent-ui/core/motion`): adapters
+  that put another engine behind `<Chart>` and behind motion. They never
+  import the engine; the product passes it in.
+  `packages/react/src/recharts.tsx` (`@open-intelligent-ui/react/recharts`)
+  is the one adapter a framework owns.
 - `packages/core/src/renderer` (`@open-intelligent-ui/core/renderer`): what
   every renderer shares. Directives and props (`props.ts`), the tree walk
   (`render.ts`), primitives, presets and charts as framework-neutral views
@@ -47,7 +55,12 @@ semicolons, double quotes, two spaces.
   how the site draws a reply with a renderer that isn't React.
 - `apps/vue-demo`, `apps/solid-demo`, `apps/svelte-demo`, `apps/web-demo`:
   the same demos on one renderer each.
-- `skills/`: skills for coding agents. `docs/`: research, spec, architecture.
+- `apps/playground/src/library`: the product library the "Your components"
+  demo uses, and the chart and motion engines the site can switch between.
+- `design/`: the three designs. `design/third-party` holds DESIGN.md files
+  other libraries publish, kept as published; don't edit them.
+- `skills/`: skills for coding agents. `docs/`: research, spec, architecture,
+  and `extending.md` for everything a product can replace or register.
 
 ## Releasing
 
@@ -82,6 +95,13 @@ otherwise.
   guide in `packages/core/src/prompt/guide.ts` in the same commit, then run
   `pnpm generate:skills`. Tests render every example in the guides, the docs
   and the skills, and fail when a generated reference is stale.
+- **An extension is described once.** A registered component, a widget, a
+  chart engine and a motion adapter each carry what the prompt says about
+  them, and `buildSystemPrompt({ library })` writes it from there. Don't add
+  a way to extend the renderer that the prompt can't read. A widget or an
+  adapter belongs in core when the framework doesn't decide it;
+  `packages/core/test/library-suite.ts` runs the same checks on all five
+  renderers.
 - **Renderers must agree.** One reply has to look and behave the same in
   all five. Put a change in `packages/core/src/renderer` when the framework
   doesn't decide it; when it does, change every renderer package.

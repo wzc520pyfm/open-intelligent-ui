@@ -1,6 +1,7 @@
 import {
   type Design,
   type Diagnostic,
+  type Library,
   parse,
   type StorageLike,
   Surface,
@@ -9,6 +10,7 @@ import {
   type ToolEvent,
 } from "@open-intelligent-ui/core"
 import {
+  attachMotion,
   claimId,
   copyText,
   designCss,
@@ -61,6 +63,12 @@ export interface IntelligentUIProps {
   scheme?: "light" | "dark" | "auto"
   /** Your own components, usable in markup by their PascalCase name. */
   components?: Record<string, AnyComponent>
+  /**
+   * What your product adds, made with `defineLibrary`: components with
+   * their descriptions, the engines that draw charts and play motion, and
+   * the design. Give the same library to `buildSystemPrompt`.
+   */
+  library?: Library<AnyComponent>
   /** Functions the surface reads with `<query>` and writes with `call()`. */
   tools?: Record<string, Tool>
   /** Called for tools not found in `tools`. */
@@ -181,7 +189,8 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
   const given = () => ({
     source: props.source,
     streaming: Boolean(props.streaming),
-    design: props.design,
+    design: props.design ?? props.library?.design,
+    library: props.library,
     scheme: props.scheme ?? "auto",
     class: props.class,
     style: props.style,
@@ -250,6 +259,7 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
       templateDepth: 0,
       options: {
         components: now.components ?? {},
+        library: now.library,
         streaming: now.streaming,
         report,
         invoke,
@@ -354,6 +364,15 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
     })
   }
 
+  let moved: { by: unknown; stop: () => void } | undefined
+  /** Hands the surface's motion to the library's adapter, once the surface is in the DOM. */
+  const motion = () => {
+    const adapter = now.library?.motion
+    if (moved?.by === adapter) return
+    moved?.stop()
+    moved = { by: adapter, stop: attachMotion(root, adapter) }
+  }
+
   draw()
 
   let settled = false
@@ -370,6 +389,7 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
       surface.update(doc)
     }
     draw()
+    if (moved) motion()
     if (reparse) {
       // Queries written later in the stream exist only after a re-parse.
       surface.start()
@@ -383,6 +403,8 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
   const drawnWith = getUiSdkVersion()
 
   onSettled(() => {
+    // The surface is in the page now, where the design's motion tokens can be read.
+    motion()
     surface.start()
     announce()
     latest("onDiagnostics")?.(doc.diagnostics)
@@ -396,6 +418,7 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
     for (const timer of timers) clearTimeout(timer)
     timers.clear()
     surface.stop()
+    moved?.stop()
     mounted.dispose()
     claim.release()
   })

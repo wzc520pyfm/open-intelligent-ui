@@ -12,6 +12,9 @@ import {
   type Surface,
   SVG_TAGS,
 } from "../index"
+import type { ComponentSpec, Library, WidgetSetup } from "../library/library"
+import { type ChartEngine, engineChart, engineDraws } from "./chart-engine"
+import { WIDGET_REPORT } from "./widget"
 import {
   buildProps,
   type ElementKind,
@@ -38,6 +41,11 @@ export interface RenderHost<N, C> {
   presets: Record<string, C>
   /** Finds a UI SDK component, starting to load it if needed. */
   lookup(name: string): Lookup<C>
+  /**
+   * A widget, written with framework-neutral views, as one of the
+   * framework's components. The same setup must give the same component.
+   */
+  widget(setup: WidgetSetup): C
   /** Nodes with nothing around them. */
   fragment(children: N[], key: string): N
   /** An HTML or SVG element. `children` is null for void elements. */
@@ -72,6 +80,8 @@ export interface RenderHost<N, C> {
 export interface RenderOptions<C = unknown> {
   /** Components supplied by the host application, by tag name. */
   components: Record<string, C>
+  /** What the host defined: components with their descriptions, and the chart engine. */
+  library?: Library<C> | undefined
   /** True while the source is still arriving. */
   streaming: boolean
   report: (message: string) => void
@@ -327,13 +337,32 @@ export function createRenderer<N, C>(
 
     let kind: ElementKind
     let type: string | C
+    let spec: ComponentSpec | undefined
+    let engine: ChartEngine<C> | undefined
+    let widget = false
 
     if (isComponentName(name)) {
       const hosted = Object.hasOwn(ctx.options.components, name)
         ? ctx.options.components[name]
         : undefined
       const template = ctx.surface.templates.get(name)
-      if (hosted) {
+      const defined = ctx.options.library?.get(name)
+      if (defined) {
+        // Drawn by its widget, by its component, or by the component the host gave under its name.
+        const drawn = defined.setup
+          ? host.widget(defined.setup)
+          : defined.component !== undefined
+            ? defined.component
+            : hosted
+        if (drawn === undefined) {
+          ctx.options.report(`<${name}> is in the library, but nothing draws it`)
+          return host.fragment(renderNodes(node.children, ctx), index)
+        }
+        kind = "component"
+        type = drawn
+        spec = defined
+        widget = defined.setup !== undefined
+      } else if (hosted) {
         kind = "component"
         type = hosted
       } else if (template) {
@@ -341,6 +370,7 @@ export function createRenderer<N, C>(
       } else if (Object.hasOwn(host.presets, name)) {
         kind = "component"
         type = host.presets[name] as C
+        if (name === "Chart") engine = ctx.options.library?.charts as ChartEngine<C> | undefined
       } else {
         const found = host.lookup(name)
         if (found.status === "loading") return host.pending(index)
@@ -369,8 +399,16 @@ export function createRenderer<N, C>(
       return host.fragment(renderNodes(node.children, ctx), index)
     }
 
-    const { props, key, show } = buildProps(node, kind, propsContext(ctx), dialect)
+    const { props, key, show } = buildProps(node, kind, propsContext(ctx), dialect, spec)
     const nodeKey = key === undefined ? index : `${index}:${key}`
+    if (engine && engineDraws(engine, props.type)) {
+      if (engine.component !== undefined) type = engine.component
+      else if (engine.mount) {
+        type = host.widget(engineChart(engine))
+        widget = true
+      }
+    }
+    if (widget) props[WIDGET_REPORT] = ctx.options.report
 
     if (kind === "html") {
       return wrap(renderHtml(node, name, props, ctx, nodeKey), show, nodeKey)

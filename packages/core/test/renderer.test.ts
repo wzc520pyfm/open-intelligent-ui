@@ -122,6 +122,7 @@ function handed(source: string, tag?: string): Record<string, unknown> {
     primitives: {},
     presets: {},
     lookup: () => ({ status: "unknown" }),
+    widget: () => "widget",
     fragment: (children) => children,
     element: (type, props) => {
       if (type === tag) given = props
@@ -305,6 +306,7 @@ describe("what a host is told about a component", () => {
     primitives: {},
     presets: {},
     lookup: (name) => ({ status: "ready", component: name }),
+    widget: () => "widget",
     fragment: () => "",
     element: (tag) => tag,
     component: (type, _props, _key, _children, open) => note(type, open),

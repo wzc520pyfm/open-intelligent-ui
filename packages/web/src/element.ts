@@ -21,6 +21,7 @@ const ATTRIBUTES = {
 /** Options that only a property can hold. */
 const PROPERTIES = [
   "components",
+  "library",
   "tools",
   "callTool",
   "onAction",

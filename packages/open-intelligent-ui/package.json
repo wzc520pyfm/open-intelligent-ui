@@ -23,7 +23,9 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./prompt": "./src/prompt.ts"
+    "./prompt": "./src/prompt.ts",
+    "./charts": "./src/charts.ts",
+    "./motion": "./src/motion.ts"
   },
   "files": [
     "dist",
@@ -39,6 +41,14 @@
       "./prompt": {
         "types": "./dist/prompt.d.ts",
         "default": "./dist/prompt.js"
+      },
+      "./charts": {
+        "types": "./dist/charts.d.ts",
+        "default": "./dist/charts.js"
+      },
+      "./motion": {
+        "types": "./dist/motion.d.ts",
+        "default": "./dist/motion.js"
       }
     }
   },

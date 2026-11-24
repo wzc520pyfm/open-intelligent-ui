@@ -29,7 +29,7 @@ const AnimatedNumber: Component<ViewProps> = (instance) => {
   return () => fromView(numberView(instance.props, tween.current()[0] ?? goal().target), PARTS)
 }
 
-const PARTS: ViewParts = { icon: Icon, number: AnimatedNumber }
+export const PARTS: ViewParts = { icon: Icon, number: AnimatedNumber }
 
 /** One headline figure with its label and how it changed. */
 const Stat: Component<ViewProps> = (instance) => () =>

@@ -11,6 +11,7 @@ import { UI_SDK_PROPS } from "../registry/ui-sdk.generated.js"
 import { svelteDialect } from "./dialect.js"
 import type { AnyComponent, RenderNode } from "./node.js"
 import { componentProps, nativeProps, type SelectOption, selectProps } from "./props.js"
+import { isWidget, widgetComponent } from "./widget.js"
 
 export type RenderContext = CoreRenderContext<AnyComponent>
 
@@ -81,7 +82,7 @@ function component(
 ): RenderNode {
   const draw = VIEWS.get(type)
   if (draw) return { kind: "view", key, draw, props, children }
-  const given = OWN.has(type) ? props : componentProps(props, fromUiSdk.has(type) ? UI_SDK_PROPS : null)
+  const given = OWN.has(type) || isWidget(type) ? props : componentProps(props, fromUiSdk.has(type) ? UI_SDK_PROPS : null)
   return { kind: "component", type, props: given, key, children }
 }
 
@@ -91,6 +92,7 @@ export const renderNodes = createRenderer<RenderNode, AnyComponent>({
   primitives: PRIMITIVES,
   presets: PRESETS,
   lookup,
+  widget: widgetComponent,
   fragment: (children, key) => ({ kind: "fragment", key, children }),
   element: (tag, props, key, children) => ({
     kind: "element",

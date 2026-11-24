@@ -59,6 +59,7 @@ ui.unmount()
 - `source` is the model's reply so far. Pass the growing text on every chunk with `streaming` set.
 - `design` is a DESIGN.md file's text. Leave it out for the built-in design.
 - `tools` are the functions markup reads with `<query>` and writes with `call()`.
+- `library` is what your product adds, made with `defineLibrary`: its own components, its design, and the engines that draw charts and play motion. Give the same object to `buildSystemPrompt`.
 - `onAction` receives what the reader decided, to send back to the model. Return `true` when you have handled an `open` or `copy` action yourself.
 - `class` gives the surface's root element class names of your own. The design's colors and sizes are custom properties set on that element, so a frame that uses `var(--iui-color-border)` goes there. `mount()` takes it; around the element, write `intelligent-ui > .iui-root` in your stylesheet.
 
@@ -77,7 +78,7 @@ The element draws into its own light DOM, so the stylesheet you imported reaches
 | `source`, `design`, `scheme`, `locale`, `currency` | same name | same name |
 | `streaming` | `streaming`, present or absent | `streaming` |
 | `storageKey` | `storage-key` | `storageKey` |
-| `components`, `tools`, `callTool`, `initialState`, `functions`, `actions`, `storage`, `allowUrl` | | same name |
+| `library`, `components`, `tools`, `callTool`, `initialState`, `functions`, `actions`, `storage`, `allowUrl` | | same name |
 | `onAction`, `onTool`, `onWarning`, `onDiagnostics`, `onStateChange` | | same name |
 
 A property wins over its attribute. Several set in one go are drawn once.
@@ -148,7 +149,7 @@ UI SDK components and icons load on first use, one chunk per entry point or icon
 
 ESM only, for browsers. The files in `dist` import their dependencies by package name, so a bundler is the easy way to use them. A page without one needs an import map with an entry for every entry point of `@open-intelligent-ui/web`, `@open-intelligent-ui/core`, `@ui-sdk/web` and `@ui-sdk/core`, for `marked` and `yaml`, for the prefix `lucide/`, and for the two names `@ui-sdk/core` gives its own files, `#dev` and `#name-check`. Importing the package on a server does nothing and does not fail; there is no server rendering.
 
-Tools, theming, state and the safety model are covered in the [integration guide](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/skills/intelligent-ui/references/integration.md).
+Tools, theming, state and the safety model are covered in the [integration guide](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/skills/intelligent-ui/references/integration.md). Registering components and widgets, and replacing the design, the chart engine and the motion engine: [`docs/extending.md`](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/docs/extending.md).
 
 ## License
 

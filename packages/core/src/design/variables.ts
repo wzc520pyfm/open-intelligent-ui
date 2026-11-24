@@ -1,3 +1,4 @@
+import { isDark, luminance } from "./color"
 import type { Design, MotionToken, TypographyToken } from "./design"
 
 export interface DesignCssOptions {
@@ -118,6 +119,61 @@ const COLOR_ROLES: ColorRole[] = [
 /** Names every surface can use for `color`, `background` and `border`. */
 export const COLOR_ROLE_NAMES = COLOR_ROLES.map((item) => item.role)
 
+/**
+ * Whether a design's `muted` is a color for text. Some designs give the
+ * name to quiet text, others to a quiet background. A background sits
+ * close to the page; text has to stand off from it to be read.
+ */
+function mutedIsText(colors: Record<string, string>): boolean {
+  if (!Object.hasOwn(colors, "muted") || Object.hasOwn(colors, "muted-foreground")) return false
+  const muted = luminance(colors.muted)
+  const page = luminance(colors.background ?? colors.canvas ?? colors.bg ?? "#ffffff")
+  if (muted === null || page === null) return false
+  // The cube root is close to how light a color looks.
+  return Math.abs(Math.cbrt(muted) - Math.cbrt(page)) > 0.25
+}
+
+/**
+ * Which of a design's color tokens fills each role, and which tokens are
+ * `shadowed`: named like a role that another token fills, so the name
+ * means the role and the token can't be reached by it.
+ */
+export function colorSources(design: Pick<Design, "colors" | "roles">): {
+  sources: Map<string, string>
+  shadowed: Set<string>
+} {
+  const { colors, roles } = design
+  const has = (name: string | undefined): name is string => name !== undefined && Object.hasOwn(colors, name)
+  const text = mutedIsText(colors)
+  const sources = new Map<string, string>()
+  for (const { role, from } of COLOR_ROLES) {
+    const chosen = roles?.[role]
+    if (has(chosen)) {
+      sources.set(role, chosen)
+      continue
+    }
+    const candidates = text
+      ? role === "muted"
+        ? from.filter((name) => name !== "muted")
+        : role === "muted-foreground"
+          ? [...from, "muted"]
+          : from
+      : from
+    let source = candidates.find(has)
+    if (source === undefined && role.endsWith("-foreground")) {
+      // The text for a role comes with the token that fills the role: `accent-foreground` for `accent`.
+      const filled = sources.get(role.slice(0, -"-foreground".length))
+      source = [`${filled}-foreground`, `on-${filled}`].find(has)
+    }
+    if (source !== undefined) sources.set(role, source)
+  }
+  const shadowed = new Set<string>()
+  for (const role of COLOR_ROLE_NAMES) {
+    if (has(role) && sources.get(role) !== role) shadowed.add(role)
+  }
+  return { sources, shadowed }
+}
+
 const TYPOGRAPHY_ROLES: [role: string, from: string[]][] = [
   ["body", ["body-md", "body", "body-medium", "paragraph", "base", "body-lg"]],
   ["small", ["body-sm", "caption", "small", "body-small", "label-sm"]],
@@ -178,37 +234,6 @@ const MOTION_DEFAULTS: Record<string, Required<MotionToken>> = {
 
 const SERIF = /serif|georgia|garamond|times|playfair|merriweather|lora|fraunces|newsreader|baskerville|caslon|didot|bodoni/i
 const MONO = /mono|code|courier|consolas|menlo/i
-
-function hexChannels(color: string | undefined): [number, number, number] | null {
-  if (!color) return null
-  const match = /^#([0-9a-f]{3,8})$/i.exec(color.trim())
-  if (!match) return null
-  let hex = match[1] as string
-  if (hex.length === 3 || hex.length === 4) {
-    hex = [...hex].map((ch) => ch + ch).join("")
-  }
-  if (hex.length !== 6 && hex.length !== 8) return null
-  return [0, 2, 4].map((at) => Number.parseInt(hex.slice(at, at + 2), 16)) as [
-    number,
-    number,
-    number,
-  ]
-}
-
-function luminance(color: string | undefined): number | null {
-  const channels = hexChannels(color)
-  if (!channels) return null
-  const [r, g, b] = channels.map((value) => {
-    const unit = value / 255
-    return unit <= 0.03928 ? unit / 12.92 : ((unit + 0.055) / 1.055) ** 2.4
-  }) as [number, number, number]
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b
-}
-
-function isDark(color: string | undefined): boolean {
-  const value = luminance(color)
-  return value !== null && value < 0.4
-}
 
 function contrastWith(
   color: string | undefined,
@@ -289,15 +314,21 @@ export function designToCss(design: Design, options: DesignCssOptions): string {
 
   // Colors
   const resolved = new Map<string, string>()
+  const { sources, shadowed } = colorSources(design)
   for (const [name, value] of Object.entries(design.colors)) {
-    base.push(`--iui-color-${kebab(name)}: ${value}`)
+    if (!shadowed.has(name)) base.push(`--iui-color-${kebab(name)}: ${value}`)
   }
-  for (const { role, from, fallback } of COLOR_ROLES) {
-    const source = from.find((name) => Object.hasOwn(design.colors, name))
+  for (const { role, fallback } of COLOR_ROLES) {
+    const source = sources.get(role)
     if (source !== undefined) {
       resolved.set(role, design.colors[source] as string)
       if (source !== role) {
-        base.push(`--iui-color-${role}: var(--iui-color-${kebab(source)})`)
+        // A shadowed token has no variable of its own to point at.
+        base.push(
+          shadowed.has(source)
+            ? `--iui-color-${role}: ${design.colors[source]}`
+            : `--iui-color-${role}: var(--iui-color-${kebab(source)})`
+        )
       }
       continue
     }
@@ -394,19 +425,20 @@ export function designToCss(design: Design, options: DesignCssOptions): string {
     `${target} {\n${lines.map((line) => `  ${line};`).join("\n")}\n}`
   const out = [block(selector, base)]
 
-  const dark = Object.entries(design.darkColors).map(
-    ([name, value]) => `--iui-color-${kebab(name)}: ${value}`
-  )
-  if (dark.length) {
+  const dark = Object.entries(design.darkColors)
+    .filter(([name]) => !shadowed.has(name))
+    .map(([name, value]) => `--iui-color-${kebab(name)}: ${value}`)
+  if (Object.keys(design.darkColors).length) {
     // Roles derived from measured colors have to be measured again.
     const darkResolved = new Map<string, string>()
-    for (const { role, from, fallback } of COLOR_ROLES) {
-      const source = from.find((name) => Object.hasOwn(design.colors, name))
+    for (const { role, fallback } of COLOR_ROLES) {
+      const source = sources.get(role)
       if (source !== undefined) {
-        darkResolved.set(
-          role,
-          design.darkColors[source] ?? (design.colors[source] as string)
-        )
+        const value = design.darkColors[source]
+        darkResolved.set(role, value ?? (design.colors[source] as string))
+        if (value !== undefined && source !== role && shadowed.has(source)) {
+          dark.push(`--iui-color-${role}: ${value}`)
+        }
         continue
       }
       const value =

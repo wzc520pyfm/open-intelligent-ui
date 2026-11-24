@@ -852,6 +852,13 @@ describe("motion hooks", () => {
     expect(card?.style.getPropertyValue("--iui-delay")).toBe("120ms")
   })
 
+  test("a bare stagger leaves the pause to the design", async () => {
+    const { container } = await draw({ source: `<row stagger><card>A</card><card>B</card></row>` })
+    const row = container.querySelector<HTMLElement>(".iui-row")
+    expect(row?.hasAttribute("data-iui-stagger")).toBe(true)
+    expect(row?.style.getPropertyValue("--iui-stagger")).toBe("")
+  })
+
   test("show mounts and unmounts with state", async () => {
     const { container } = await draw({
       source: `<state open={false} />

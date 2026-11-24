@@ -42,7 +42,8 @@ function AnimatedNumber(input: Props) {
   return toReact(numberView(props, current ?? target), PARTS)
 }
 
-const PARTS: ViewParts = { icon: Icon, number: AnimatedNumber }
+/** The renderer's own parts a view can ask for: `#icon`, `#number`. */
+export const PARTS: ViewParts = { icon: Icon, number: AnimatedNumber }
 
 /** One headline figure with its label and how it changed. */
 function Stat(input: Props) {

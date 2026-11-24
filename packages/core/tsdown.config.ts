@@ -5,6 +5,8 @@ export default defineConfig({
     index: "src/index.ts",
     prompt: "src/prompt/index.ts",
     renderer: "src/renderer/index.ts",
+    charts: "src/charts/index.ts",
+    motion: "src/motion/index.ts",
   },
   format: "esm",
   platform: "neutral",

@@ -32,7 +32,8 @@ const AnimatedNumber = defineComponent({
   },
 })
 
-const PARTS: ViewParts = { icon: Icon, number: AnimatedNumber }
+/** The renderer's own parts a view can ask for: `#icon`, `#number`. */
+export const PARTS: ViewParts = { icon: Icon, number: AnimatedNumber }
 
 /** One headline figure with its label and how it changed. */
 const Stat = defineComponent({

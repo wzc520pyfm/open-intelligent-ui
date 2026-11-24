@@ -27,6 +27,8 @@
     ".": "./src/index.ts",
     "./prompt": "./src/prompt/index.ts",
     "./renderer": "./src/renderer/index.ts",
+    "./charts": "./src/charts/index.ts",
+    "./motion": "./src/motion/index.ts",
     "./styles.css": "./styles/index.css"
   },
   "files": [
@@ -47,6 +49,14 @@
       "./renderer": {
         "types": "./dist/renderer.d.ts",
         "default": "./dist/renderer.js"
+      },
+      "./charts": {
+        "types": "./dist/charts.d.ts",
+        "default": "./dist/charts.js"
+      },
+      "./motion": {
+        "types": "./dist/motion.d.ts",
+        "default": "./dist/motion.js"
       },
       "./styles.css": "./dist/styles.css"
     }

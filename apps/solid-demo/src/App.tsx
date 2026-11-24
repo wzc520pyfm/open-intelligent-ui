@@ -121,9 +121,10 @@ export function App() {
               class="sd-surface"
               source={shown()}
               streaming={streaming()}
-              design={theme().source}
+              design={theme().design}
               scheme={scheme()}
               tools={tools}
+              library={demo().library}
               onAction={onAction}
               onTool={onTool}
               onWarning={(message) => note("warning", message)}

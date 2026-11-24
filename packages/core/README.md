@@ -41,9 +41,15 @@ doc.diagnostics // problems in the markup, with positions
 | `parse` | IUI markup to a tree, tolerant of a stream cut anywhere |
 | `evaluate`, `run` | The expression language. An interpreter, never `eval` |
 | `Surface` | State, `<derive>`, `<query>`, actions |
-| `parseDesign`, `designToCss` | DESIGN.md tokens to CSS variables |
-| `buildSystemPrompt` (from `/prompt`) | The prompt: language, components, design, your tools |
+| `parseDesign`, `designFromCss`, `designToCss` | DESIGN.md tokens to CSS variables. Reads a design written for another library from the CSS variables it documents, or from a theme stylesheet |
+| `defineComponent`, `defineWidget`, `defineLibrary` | What a product registers: its components with their props, events and examples, its design and its engines, in one object for the renderer and the prompt |
+| `librarySpec`, `validateLibrary` | A library as JSON, for a server that builds the prompt; what is wrong with a library, for a test |
+| `buildSystemPrompt` (from `/prompt`) | The prompt: language, components, design, your tools, and what your library adds |
+| `/charts` | `echartsCharts`, `g2Charts`: draw `<Chart>` with ECharts or AntV G2. The type `ChartEngine`, for another charting library |
+| `/motion` | `motionAdapter`, `gsapAdapter`, `waapiAdapter`, `createMotionAdapter`: play motion with Motion, GSAP, the Web Animations API, or an engine of your own |
 | `/renderer`, `/styles.css` | What the renderers are built from: directives, primitives, presets, charts, and the stylesheet. For writing a renderer, not for apps; it changes with the renderers |
+
+The adapters never import an engine: you install it and pass it in. Everything a product can replace or register is in [`docs/extending.md`](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/docs/extending.md).
 
 ESM only. The language is specified in [`docs/spec.md`](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/docs/spec.md).
 

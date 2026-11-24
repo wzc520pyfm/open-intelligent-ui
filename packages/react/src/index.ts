@@ -1,4 +1,13 @@
 export {
+  defineComponent,
+  defineLibrary,
+  defineWidget,
+  type Library,
+  librarySpec,
+  validateLibrary,
+  view,
+} from "@open-intelligent-ui/core"
+export {
   IntelligentUI,
   type IntelligentUIHandle,
   type IntelligentUIProps,

@@ -1,6 +1,7 @@
 import {
   type Design,
   type Diagnostic,
+  type Library,
   parse,
   type StorageLike,
   Surface,
@@ -9,6 +10,7 @@ import {
   type ToolEvent,
 } from "@open-intelligent-ui/core"
 import {
+  attachMotion,
   copyText,
   designCss,
   guard,
@@ -72,6 +74,12 @@ export const IntelligentUI = defineComponent({
     scheme: { type: String as PropType<Scheme>, default: "auto" },
     /** Your own components, usable in markup by their PascalCase name. */
     components: { type: Object as PropType<Record<string, Component>>, default: undefined },
+    /**
+     * What your product adds, made with `defineLibrary`: components with
+     * their descriptions, the engines that draw charts and play motion, and
+     * the design. Give the same library to `buildSystemPrompt`.
+     */
+    library: { type: Object as PropType<Library<Component>>, default: undefined },
     /** Functions the surface reads with `<query>` and writes with `call()`. */
     tools: { type: Object as PropType<Record<string, Tool>>, default: undefined },
     /** Called for tools not found in `tools`. */
@@ -267,7 +275,19 @@ export const IntelligentUI = defineComponent({
       return ran ? undefined : write(work)
     }
 
-    const design = computed(() => designCss(props.design, id))
+    const design = computed(() => designCss(props.design ?? props.library?.design, id))
+
+    let detachMotion = () => {}
+    watch(
+      [root, () => props.library?.motion],
+      ([element, motion]) => {
+        detachMotion()
+        detachMotion = attachMotion(element, motion)
+      },
+      // As soon as the surface is in the page, so nothing shows at rest and then plays its entrance.
+      { flush: "post" }
+    )
+    onBeforeUnmount(() => detachMotion())
     let sheets: { key: string; css: string } | undefined
     const modelSheets = () => {
       const key = surface.styles.join("\u0000")
@@ -290,6 +310,7 @@ export const IntelligentUI = defineComponent({
         templateDepth: 0,
         options: {
           components: props.components ?? {},
+          library: props.library,
           streaming: props.streaming,
           report,
           invoke,

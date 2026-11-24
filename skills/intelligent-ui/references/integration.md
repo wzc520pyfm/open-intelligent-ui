@@ -11,6 +11,7 @@ which the interface reaches your product.
 - [Take the turn back](#take-the-turn-back)
 - [Theme it](#theme-it)
 - [Add your own components](#add-your-own-components)
+- [Change what draws charts and plays motion](#change-what-draws-charts-and-plays-motion)
 - [Read and write its state](#read-and-write-its-state)
 - [In Vue](#in-vue)
 - [In Svelte, in Solid, and without a framework](#in-svelte-in-solid-and-without-a-framework)
@@ -213,28 +214,172 @@ colors and their `on-` pairs), `typography`, `rounded`, `spacing`,
 `motion` and `components`. `packages/core/src/design/variables.ts` lists
 every role and its fallback.
 
-## Add your own components
-
-```tsx
-<IntelligentUI source={text} components={{ FlightCard, SeatMap }} />
-```
+A DESIGN.md written for another component library works too. When the file
+has no token YAML, its tokens are read from the CSS variables it documents:
+tables of variables with light and dark values, inline `--name: value`, and
+`css` blocks. HeroUI's published DESIGN.md is read this way as it is.
+`parseDesign` takes options for what such a file leaves open, and returns a
+design you pass in place of the text:
 
 ```ts
-buildSystemPrompt({
-  hostComponents: [
-    {
-      name: "SeatMap",
-      description: "A cabin seat map. Props: flight (string), selected (string), onSelect.",
-      example: '<SeatMap flight="UA418" bind:selected={seat} />',
-    },
-  ],
+import { designFromCss, parseDesign } from "@open-intelligent-ui/core"
+
+const design = parseDesign(heroui, {
+  // Laid over the file's tokens: what it leaves out, or a color it only names.
+  tokens: { colors: { snow: "oklch(0.9911 0 0)" }, motion: { emphasis: { duration: "420ms" } } },
+  // Which of the design's colors fills which role, when the names differ.
+  roles: { primary: "accent", "muted-foreground": "muted" },
+  // Sections the model shouldn't read: another library's install steps.
+  prose: { omit: ["Setup"] },
+})
+
+// With only a theme stylesheet (shadcn/ui, Tailwind `@theme`, your own variables):
+const fromCss = designFromCss(themeCss, { name: "Acme", prose: "Primary is for one action per surface." })
+```
+
+Nothing here throws. A value that can't be read or isn't safe in CSS is left
+out and listed in `design.issues`.
+
+## Add your own components
+
+A model builds most things from primitives and UI SDK parts. Register a
+component for what must look the same everywhere in your product, or needs
+your code: an order card, an approval flow, a seat map.
+
+```tsx
+import { defineComponent, defineLibrary } from "@open-intelligent-ui/core"
+
+const SeatMap = defineComponent({
+  name: "SeatMap",
+  description: "A cabin seat map. Use it whenever the reader picks a seat.",
+  props: {
+    flight: { type: "string", required: true, description: "A flight number." },
+    selected: { type: "string", bindable: true },
+    cabin: ["economy", "business"],
+  },
+  events: { select: "A seat was pressed; $value is its number." },
+  example: `<SeatMap flight="UA418" bind:selected={seat} />`,
+  component: SeatMapView,
+})
+
+export const library = defineLibrary({ components: [SeatMap] })
+```
+
+```tsx
+<IntelligentUI source={text} library={library} />
+
+buildSystemPrompt({ library })
+```
+
+The renderer and the prompt read the same definition:
+
+- The prompt gets a section per component, written from the definition: the
+  description, each prop with its type, the events, whether it takes
+  children, and the example.
+- The renderer passes a component only the props, events and bindings it
+  declares, and only values of the declared type. Anything else is dropped
+  and reported through `onWarning`. Markup is untrusted, so a component
+  receives nothing it didn't ask for.
+- `on:select` becomes `onSelect`. `bind:selected` passes `selected` and
+  `onSelectedChange`, for a prop declared `bindable`.
+- `props` is a record as above, a JSON Schema of an object, or a Standard
+  Schema that can write its own JSON Schema (Zod 4, Valibot, ArkType).
+- `validateLibrary(library)` returns what is wrong as sentences: a missing
+  description, an example that passes an undeclared prop or leaves out a
+  required one. Assert that it is empty in a test.
+
+**A widget is a component written once for every renderer.** `defineWidget`
+takes the same description and a `setup` that draws with framework-neutral
+views, the way the built-in presets are drawn:
+
+```ts
+import { defineWidget, view } from "@open-intelligent-ui/core"
+
+const Rating = defineWidget<{ value: number; label?: string }>({
+  name: "Rating",
+  description: "A row of stars showing a score out of five.",
+  props: { value: { type: "number", required: true }, label: "string" },
+  example: `<Rating value={4.5} label="Guest rating" />`,
+  setup: () => (props) =>
+    view("span", { class: "rating", role: "img", "aria-label": props.label }, [
+      "★".repeat(Math.round(props.value)),
+    ]),
 })
 ```
 
-Markup uses them by name. Props are passed through, `on:select` becomes
-`onSelect`, and `bind:selected` passes `selected` and `onSelectedChange`.
-Use this for things that need your code: a map, a payment sheet, a
-product-specific widget. Everything else the model can build itself.
+`setup` runs once per place the widget is used and receives a handle:
+`redraw()` after its own state changed, `cleanup(fn)`, `attach(fn)` to get
+one of its elements, `report(message)`. Style a widget with `--iui-*`
+variables and it follows every design, light and dark.
+
+**When the prompt is built on a server.** Either leave `component` out of
+the definitions, share that file with the server and give the components to
+the renderer by name (`components={{ SeatMap: SeatMapView }}`), or write the
+library out as data when the app is built:
+
+```ts
+writeFileSync("library.json", JSON.stringify(librarySpec(library)))
+
+// On the server, which never loads the UI:
+buildSystemPrompt({ library: JSON.parse(readFileSync("library.json", "utf8")) })
+```
+
+`components` with `buildSystemPrompt({ hostComponents })` still works. The
+description is then written by hand and props are passed through unchecked.
+
+## Change what draws charts and plays motion
+
+Both go in the same library. Markup doesn't change: a model writes the same
+`<Chart>` and the same `motion`, `stagger`, `show` and `morph`.
+
+```ts
+import { echartsCharts, g2Charts } from "@open-intelligent-ui/core/charts"
+import { gsapAdapter, motionAdapter, waapiAdapter } from "@open-intelligent-ui/core/motion"
+import { animate } from "motion"
+
+export const library = defineLibrary({
+  design,
+  components: [SeatMap, Rating],
+  charts: echartsCharts(() => import("echarts")),
+  motion: motionAdapter(animate),
+})
+```
+
+Charts:
+
+- `echartsCharts(echarts, { renderer, option })` and `g2Charts(g2, { options })`
+  work in every renderer. `rechartsCharts(Recharts)` from
+  `@open-intelligent-ui/react/recharts` is for React.
+- Pass the module or a function that imports it; the function loads the
+  engine when the first chart appears.
+- Colors, type, grid and tooltip follow the design and redraw when the
+  scheme changes. `on:select`, `format` and the other `<Chart>` props work
+  as before.
+- The adapters add `type="scatter|radar|funnel"`, and the prompt says so.
+  `types: ["bar", "line"]` hands only those to the engine; the built-in SVG
+  draws the rest.
+- For another charting library, write a `ChartEngine`: `mount(element, spec,
+  context)` returns `{ update(spec), destroy() }`. `spec` has the rows,
+  series, resolved colors, a number formatter and the theme.
+
+Motion:
+
+- `motionAdapter(animate, { transitions })` for [Motion](https://motion.dev),
+  `gsapAdapter(gsap, { eases })` for GSAP, `waapiAdapter()` for the Web
+  Animations API with no dependency.
+- The renderer still decides what moves and when (arrival while streaming,
+  stagger, exits, reduced motion); the adapter moves it. Durations and
+  easings still come from the design's `motion` tokens.
+- `presets` adds entrances by name, each with a description the prompt
+  lists and engine-neutral keyframes:
+  `{ "flip-in": { description: "…", keyframes: { opacity: [0, 1], rotate: [-8, 0] } } }`.
+  Markup refers to a preset by name; it can't write keyframes.
+- For another engine, `createMotionAdapter({ name, animate })`: `animate`
+  plays keyframes on an element with a timing and returns
+  `{ finished, cancel }`.
+
+Define the library once, at module level, not inside a render function.
+`docs/extending.md` has every option.
 
 ## Read and write its state
 

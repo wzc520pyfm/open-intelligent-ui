@@ -1,4 +1,5 @@
 import { DEFAULT_DESIGN, type Design, designToCss, parseDesign, scopeCss } from "../index"
+import { motionRuntime } from "./motion"
 
 /** How long a toast stays up, in milliseconds. */
 export const TOAST_LIFETIME = 4000
@@ -144,6 +145,9 @@ const morphRuns = new WeakMap<HTMLElement, object>()
  * asked for less motion.
  */
 export function runMorph(root: () => HTMLElement | null, update: () => void | Promise<void>): boolean {
+  // A motion adapter moves the elements itself, unless it leaves morphs to the browser.
+  const engine = motionRuntime(root())
+  if (engine && engine.adapter.morph !== "view-transition") return engine.morph(update)
   const transition = viewTransition()
   if (!transition) return false
   // The browser runs the update on its next frame.
@@ -174,6 +178,8 @@ export function runMorph(root: () => HTMLElement | null, update: () => void | Pr
  * a spinner inside what is leaving, is not waited for: it never ends.
  */
 export function exitAnimations(element: Element | null): Promise<unknown> | null {
+  const engine = motionRuntime(element)
+  if (engine && element) return engine.exit(element)
   const ending = (element?.getAnimations?.({ subtree: true }) ?? []).filter((animation) => {
     const end = animation.effect?.getComputedTiming?.().endTime
     return end === undefined || Number.isFinite(Number(end))

@@ -112,9 +112,10 @@
         class="sd-surface"
         source={shown}
         {streaming}
-        design={theme?.source}
+        design={theme?.design}
         {scheme}
         {tools}
+        library={demo.library}
         {onAction}
         {onTool}
         onWarning={(message) => note("warning", message)}

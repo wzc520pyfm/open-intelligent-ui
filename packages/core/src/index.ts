@@ -1,4 +1,5 @@
 export * from "./design"
 export * from "./expr"
+export * from "./library"
 export * from "./markup"
 export * from "./runtime"

@@ -27,6 +27,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./ui-sdk": "./src/registry/ui-sdk.ts",
+    "./recharts": "./src/recharts.tsx",
     "./styles.css": "./src/styles.css"
   },
   "files": [
@@ -43,6 +44,10 @@
       "./ui-sdk": {
         "types": "./dist/ui-sdk.d.ts",
         "default": "./dist/ui-sdk.js"
+      },
+      "./recharts": {
+        "types": "./dist/recharts.d.ts",
+        "default": "./dist/recharts.js"
       },
       "./styles.css": "./dist/styles.css"
     }

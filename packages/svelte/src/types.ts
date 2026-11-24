@@ -1,6 +1,7 @@
 import type {
   Design,
   Diagnostic,
+  Library,
   StorageLike,
   Surface as SurfaceType,
   SurfaceAction,
@@ -34,6 +35,12 @@ export interface IntelligentUIProps {
   scheme?: "light" | "dark" | "auto"
   /** Your own components, usable in markup by their PascalCase name. */
   components?: Record<string, AnyComponent>
+  /**
+   * What your product adds, made with `defineLibrary`: components with
+   * their descriptions, the engines that draw charts and play motion, and
+   * the design. Give the same library to `buildSystemPrompt`.
+   */
+  library?: Library<AnyComponent>
   /** Functions the surface reads with `<query>` and writes with `call()`. */
   tools?: Record<string, Tool>
   /** Called for tools not found in `tools`. */

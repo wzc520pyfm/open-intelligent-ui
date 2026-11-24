@@ -8,11 +8,12 @@ import {
   Fragment,
   type ReactNode,
 } from "react"
-import { PRESETS } from "../presets/presets"
+import { PARTS, PRESETS } from "../presets/presets"
 import { PRIMITIVES } from "../primitives/primitives"
 import { lookupUiSdk } from "../registry/ui-sdk"
 import { reactDialect } from "./dialect"
 import { Presence } from "./Presence"
+import { widgetComponent } from "./widget"
 
 // biome-ignore lint/suspicious/noExplicitAny: components are looked up by name and take whatever markup passes
 export type AnyComponent = ComponentType<any>
@@ -25,6 +26,7 @@ export const renderNodes = createRenderer<ReactNode, AnyComponent>({
   primitives: PRIMITIVES,
   presets: PRESETS,
   lookup: lookupUiSdk,
+  widget: (setup) => widgetComponent(setup, PARTS),
   fragment: (children, key) => <Fragment key={key}>{children}</Fragment>,
   element: (tag, props, key, children) =>
     children === null

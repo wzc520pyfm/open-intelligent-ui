@@ -8,9 +8,14 @@ export {
   scopeCss,
   styleKey,
 } from "./css"
+export { isColor, luminance } from "./color"
 export {
+  type CssDesignOptions,
   type Design,
+  type DesignOptions,
+  type DesignTokens,
   describeDesignTokens,
+  designFromCss,
   isSafeCssValue,
   type MotionToken,
   parseDesign,
@@ -18,6 +23,7 @@ export {
 } from "./design"
 export {
   COLOR_ROLE_NAMES,
+  colorSources,
   type DesignCssOptions,
   designToCss,
   fontStack,

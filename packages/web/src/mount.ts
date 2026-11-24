@@ -2,6 +2,7 @@ import {
   type Design,
   type Diagnostic,
   type Document as IuiDocument,
+  type Library,
   parse,
   type StorageLike,
   Surface,
@@ -10,6 +11,7 @@ import {
   type ToolEvent,
 } from "@open-intelligent-ui/core"
 import {
+  attachMotion,
   copyText,
   designCss,
   guard,
@@ -44,6 +46,12 @@ export interface IntelligentUIOptions {
   scheme?: Scheme | undefined
   /** Your own components, usable in markup by their PascalCase name. */
   components?: Record<string, HostComponent> | undefined
+  /**
+   * What your product adds, made with `defineLibrary`: components with
+   * their descriptions, the engines that draw charts and play motion, and
+   * the design. Give the same library to `buildSystemPrompt`.
+   */
+  library?: Library<HostComponent> | undefined
   /** Functions the surface reads with `<query>` and writes with `call()`. */
   tools?: Record<string, Tool> | undefined
   /** Called for tools not found in `tools`. */
@@ -189,8 +197,9 @@ export function mount(target: Element, initial: IntelligentUIOptions): MountedUI
 
   let designSheet: { design: string | Design | undefined; css: string } | undefined
   const designText = () => {
-    if (!designSheet || designSheet.design !== options.design) {
-      designSheet = { design: options.design, css: designCss(options.design, id) }
+    const design = options.design ?? options.library?.design
+    if (!designSheet || designSheet.design !== design) {
+      designSheet = { design, css: designCss(design, id) }
     }
     return designSheet.css
   }
@@ -209,9 +218,16 @@ export function mount(target: Element, initial: IntelligentUIOptions): MountedUI
   let region: HTMLElement | null = null
   let regionShown = false
 
+  let moved: { by: unknown; stop: () => void } | undefined
+
   // Runs once what was drawn is on the page.
   const drawn = () => {
     if (!alive) return
+    const adapter = options.library?.motion
+    if (moved?.by !== adapter) {
+      moved?.stop()
+      moved = { by: adapter, stop: attachMotion(element, adapter) }
+    }
     if (started !== doc) {
       started = doc
       // Queries written later in the stream exist only after a re-parse.
@@ -246,6 +262,7 @@ export function mount(target: Element, initial: IntelligentUIOptions): MountedUI
       templateDepth: 0,
       options: {
         components: options.components ?? {},
+        library: options.library,
         streaming,
         report,
         invoke,
@@ -343,6 +360,7 @@ export function mount(target: Element, initial: IntelligentUIOptions): MountedUI
       for (const timer of timers) clearTimeout(timer)
       timers.clear()
       surface.stop()
+      moved?.stop()
       root.unmount()
       claim.release()
     },

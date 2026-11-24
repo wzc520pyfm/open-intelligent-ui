@@ -1,6 +1,6 @@
 {
   "name": "@open-intelligent-ui/web",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Web Components renderer for Open Intelligent UI: turns IUI markup written by a model into a live, stateful, animated interface built on UI SDK. No framework.",
   "keywords": [
     "generative-ui",

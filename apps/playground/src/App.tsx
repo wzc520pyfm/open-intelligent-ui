@@ -1,4 +1,4 @@
-import { Button, Chip, Drawer, InputGroup, Link, Spinner, Tooltip } from "@heroui/react"
+import { Button, Chip, Drawer, InputGroup, Link, ScrollShadow, Spinner, Tooltip } from "@heroui/react"
 import { defineLibrary, type SurfaceAction, type ToolEvent } from "@open-intelligent-ui/core"
 import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
 import {
@@ -634,7 +634,12 @@ export function App() {
           </div>
 
           <div className="pg-stage flex min-h-0 flex-1 flex-col">
-            <div ref={thread} className="min-h-0 flex-1 overflow-y-auto px-3 py-6 sm:px-6">
+            <ScrollShadow
+              ref={thread}
+              orientation="vertical"
+              size={48}
+              className="min-h-0 flex-1 px-3 py-6 sm:px-6"
+            >
               <div className="pg-column" data-width={width}>
                 {turns.length === 0 ? (
                   <div className="mx-auto flex max-w-xl flex-col items-center gap-3 py-16 text-center">
@@ -693,7 +698,7 @@ export function App() {
                   )
                 )}
               </div>
-            </div>
+            </ScrollShadow>
 
             <form
               className="shrink-0 px-3 pb-3 sm:px-6"

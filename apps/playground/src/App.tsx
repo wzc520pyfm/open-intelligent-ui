@@ -563,8 +563,8 @@ export function App() {
               {streaming ? <Spinner size="sm" color="current" className="size-3" /> : <Check className="size-3" aria-hidden="true" />}
               {status}
             </Chip>
-            {/* Mobile (2 pickers): one row. sm–58rem (5 pickers): actions top, pickers below. Wide: one row. */}
-            <div className="order-2 flex shrink-0 flex-nowrap items-center gap-2 sm:order-3 sm:w-full sm:flex-none sm:flex-wrap @[58rem]:order-2 @[58rem]:w-auto @[58rem]:min-w-0 @[58rem]:flex-1">
+            {/* Mobile/wide one-row: pickers sit right next to actions. sm–58rem: actions top, pickers below. */}
+            <div className="order-2 ml-auto flex shrink-0 flex-nowrap items-center justify-end gap-2 sm:order-3 sm:ml-0 sm:w-full sm:flex-none sm:flex-wrap sm:justify-start @[58rem]:order-2 @[58rem]:ml-0 @[58rem]:w-auto @[58rem]:min-w-0 @[58rem]:flex-1 @[58rem]:justify-end">
               <span title={copy.rendererHint}>
                 <Picker
                   label={copy.renderer}
@@ -608,7 +608,7 @@ export function App() {
                 />
               ) : null}
             </div>
-            <div className="order-3 ml-auto flex shrink-0 items-center gap-2 sm:order-2 sm:min-w-0 sm:max-w-full @[58rem]:order-3">
+            <div className="order-3 flex shrink-0 items-center gap-2 sm:order-2 sm:ml-auto sm:min-w-0 sm:max-w-full @[58rem]:order-3 @[58rem]:ml-0">
               <Segmented
                 label={copy.width}
                 className="shrink-0"

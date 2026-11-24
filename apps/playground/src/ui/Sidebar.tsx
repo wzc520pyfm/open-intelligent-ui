@@ -65,7 +65,7 @@ export function Sidebar(props: {
       </div>
       <ListBox
         aria-label={copy.examples}
-        className="gap-1 p-0"
+        className="p-0"
         selectionMode="single"
         disallowEmptySelection
         selectedKeys={new Set([props.selected])}
@@ -75,7 +75,7 @@ export function Sidebar(props: {
           if (next !== undefined) props.onSelect(String(next))
         }}
       >
-        <ListBox.Section aria-label={copy.agentAsked}>
+        <ListBox.Section aria-label={copy.agentAsked} className="gap-1">
           {props.demos.map((demo) => {
             const text = props.demoCopy(demo)
             return (
@@ -90,7 +90,7 @@ export function Sidebar(props: {
             )
           })}
         </ListBox.Section>
-        <ListBox.Section aria-label={copy.askYourself} className="mt-2 border-t border-separator pt-3">
+        <ListBox.Section aria-label={copy.askYourself} className="mt-2 gap-1 border-t border-separator pt-3">
           <Entry
             id={LIVE}
             icon={Sparkles}

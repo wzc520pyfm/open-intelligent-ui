@@ -1,4 +1,4 @@
-import { Button, Chip, Drawer, InputGroup, Spinner, Tooltip } from "@heroui/react"
+import { Button, Chip, Drawer, InputGroup, Link, Spinner, Tooltip } from "@heroui/react"
 import { defineLibrary, type SurfaceAction, type ToolEvent } from "@open-intelligent-ui/core"
 import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
 import {
@@ -23,7 +23,7 @@ import { Surface } from "./surface/Surface"
 import { RENDERERS, type RendererId, type SurfaceHandle } from "./surface/types"
 import { THEMES } from "./themes"
 import { createTicketTools, TICKET_TOOLS } from "./tools"
-import { Logo, Picker, Segmented } from "./ui/controls"
+import { GitHubMark, Logo, Picker, Segmented } from "./ui/controls"
 import { Inspector, type LogEntry, type Panel } from "./ui/Inspector"
 import { LiveSettingsButton } from "./ui/LiveSettings"
 import { LIVE, Sidebar } from "./ui/Sidebar"
@@ -50,6 +50,7 @@ type Speed = (typeof SPEEDS)[number]["id"]
 const WIDTHS: Width[] = ["phone", "chat", "wide"]
 const PANELS: Panel[] = ["source", "state", "events", "prompt"]
 
+const REPOSITORY = "https://github.com/wzc520pyfm/open-intelligent-ui"
 const LIVE_KEY = "oiui.live"
 let nextId = 1
 
@@ -458,8 +459,6 @@ export function App() {
       demoCopy={demoCopy}
       selected={mode === "live" ? LIVE : demo.id}
       onSelect={select}
-      locale={locale}
-      onLocale={setLocale}
     />
   )
 
@@ -484,6 +483,66 @@ export function App() {
 
   return (
     <div className="flex h-full flex-col bg-background-secondary text-foreground">
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-separator bg-background px-3 sm:px-4">
+        {desktop ? null : (
+          <Button isIconOnly size="sm" variant="ghost" aria-label={copy.examples} onPress={() => setMenu(true)}>
+            <Menu className="size-4" aria-hidden="true" />
+          </Button>
+        )}
+        <a href={REPOSITORY} target="_blank" rel="noreferrer" className="flex items-center gap-2.5">
+          <Logo className="size-6 text-accent" />
+          <span className="text-[15px] font-semibold tracking-tight">Open Intelligent UI</span>
+        </a>
+        <Chip size="sm" variant="soft" className="hidden sm:inline-flex">
+          v{__VERSION__}
+        </Chip>
+        <span className="flex-1" />
+        <Segmented
+          label="Language"
+          className="hidden sm:inline-flex"
+          value={locale}
+          options={LOCALES}
+          onChange={setLocale}
+        />
+        <Link
+          href={REPOSITORY}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="GitHub"
+          className="grid size-8 place-items-center rounded-full text-muted no-underline hover:bg-default hover:text-foreground"
+        >
+          <GitHubMark className="size-[18px]" />
+        </Link>
+        <Tooltip delay={300}>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="ghost"
+            data-pg="scheme"
+            aria-label={scheme === "dark" ? copy.switchToLight : copy.switchToDark}
+            onPress={() => setScheme(scheme === "dark" ? "light" : "dark")}
+          >
+            {scheme === "dark" ? (
+              <Sun className="size-4" aria-hidden="true" />
+            ) : (
+              <Moon className="size-4" aria-hidden="true" />
+            )}
+          </Button>
+          <Tooltip.Content>{scheme === "dark" ? copy.switchToLight : copy.switchToDark}</Tooltip.Content>
+        </Tooltip>
+        <Button
+          size="sm"
+          variant={inspecting && roomy ? "secondary" : "ghost"}
+          data-pg="inspect"
+          aria-label={copy.inspect}
+          aria-pressed={inspecting}
+          onPress={() => setInspecting(!inspecting)}
+        >
+          <PanelRight className="size-4" aria-hidden="true" />
+          <span className="hidden sm:inline">{copy.inspect}</span>
+        </Button>
+      </header>
+
       <div className="flex min-h-0 flex-1">
         {desktop ? (
           <nav aria-label={copy.examples} className="w-72 shrink-0 border-r border-separator bg-background">
@@ -493,11 +552,6 @@ export function App() {
 
         <main className="flex min-w-0 flex-1 flex-col">
           <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-separator bg-background px-3 py-2 sm:px-4">
-            {desktop ? null : (
-              <Button isIconOnly size="sm" variant="ghost" aria-label={copy.examples} onPress={() => setMenu(true)}>
-                <Menu className="size-4" aria-hidden="true" />
-              </Button>
-            )}
             <Chip size="sm" variant="soft" color={streaming ? "accent" : "success"} data-pg="status" data-live={streaming}>
               {streaming ? <Spinner size="sm" color="current" className="size-3" /> : <Check className="size-3" aria-hidden="true" />}
               {status}
@@ -577,34 +631,6 @@ export function App() {
                 onUseTools={setUseTools}
               />
             )}
-            <Tooltip delay={300}>
-              <Button
-                isIconOnly
-                size="sm"
-                variant="ghost"
-                data-pg="scheme"
-                aria-label={scheme === "dark" ? copy.switchToLight : copy.switchToDark}
-                onPress={() => setScheme(scheme === "dark" ? "light" : "dark")}
-              >
-                {scheme === "dark" ? (
-                  <Sun className="size-4" aria-hidden="true" />
-                ) : (
-                  <Moon className="size-4" aria-hidden="true" />
-                )}
-              </Button>
-              <Tooltip.Content>{scheme === "dark" ? copy.switchToLight : copy.switchToDark}</Tooltip.Content>
-            </Tooltip>
-            <Button
-              isIconOnly
-              size="sm"
-              variant={inspecting && roomy ? "secondary" : "ghost"}
-              data-pg="inspect"
-              aria-label={copy.inspect}
-              aria-pressed={inspecting}
-              onPress={() => setInspecting(!inspecting)}
-            >
-              <PanelRight className="size-4" aria-hidden="true" />
-            </Button>
           </div>
 
           <div className="pg-stage flex min-h-0 flex-1 flex-col">
@@ -733,7 +759,12 @@ export function App() {
         <Drawer.Backdrop isOpen={menu} onOpenChange={setMenu}>
           <Drawer.Content placement="left">
             <Drawer.Dialog aria-label={copy.examples} className="w-[20rem] max-w-[88vw] p-0">
-              <Drawer.Body className="p-0">{sidebar}</Drawer.Body>
+              <Drawer.Body className="p-0">
+                {sidebar}
+                <div className="border-t border-separator p-4 sm:hidden">
+                  <Segmented label="Language" value={locale} options={LOCALES} onChange={setLocale} />
+                </div>
+              </Drawer.Body>
             </Drawer.Dialog>
           </Drawer.Content>
         </Drawer.Backdrop>

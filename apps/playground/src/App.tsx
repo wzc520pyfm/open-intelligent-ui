@@ -611,7 +611,7 @@ export function App() {
             <div className="order-3 flex shrink-0 items-center gap-2 sm:order-2 sm:ml-auto sm:min-w-0 sm:max-w-full @[58rem]:order-3 @[58rem]:ml-0">
               <Segmented
                 label={copy.width}
-                className="shrink-0"
+                className="hidden shrink-0 sm:inline-flex"
                 iconOnly
                 value={width}
                 onChange={setWidth}

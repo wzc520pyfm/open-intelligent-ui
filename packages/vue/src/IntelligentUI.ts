@@ -135,6 +135,7 @@ export const IntelligentUI = defineComponent({
     const timers = new Set<ReturnType<typeof setTimeout>>()
     const reported = new Set<string>()
     let toastId = 0
+    let stableBlocks: ReturnType<typeof renderNodes> = []
 
     const showToast = (message: string, tone?: string) => {
       const toast: Toast = { id: ++toastId, message, tone }
@@ -332,6 +333,8 @@ export const IntelligentUI = defineComponent({
           { default: () => [node] }
         )
       })
+      if (blocks.length > 0 || !props.streaming) stableBlocks = blocks
+      const visible = props.streaming && blocks.length === 0 ? stableBlocks : blocks
 
       const sheet = modelSheets()
       return h(
@@ -342,11 +345,12 @@ export const IntelligentUI = defineComponent({
           "data-iui-id": id,
           "data-iui-scheme": props.scheme,
           "data-streaming": props.streaming ? "" : undefined,
+          "data-empty": visible.length === 0 ? "" : undefined,
         },
         [
           design.value ? h("style", { key: "design" }, styleText(design.value)) : null,
           sheet ? h("style", { key: "model" }, styleText(sheet)) : null,
-          ...blocks,
+          ...visible,
           h(
             "div",
             {

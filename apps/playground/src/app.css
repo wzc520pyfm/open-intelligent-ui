@@ -69,7 +69,13 @@ body {
   padding: 14px;
 }
 
-.pg-surface:empty {
+/* IntelligentUI always mounts <style> + toast region, so :empty never matches. */
+.pg-surface[data-empty] {
+  display: none;
+}
+
+/* Keep Writing/Thinking visible until the surface has real blocks. */
+.pg-reply:has(.pg-surface:not([data-empty])) > [data-pg="pending"] {
   display: none;
 }
 

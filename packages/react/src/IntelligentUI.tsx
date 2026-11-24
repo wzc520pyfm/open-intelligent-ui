@@ -320,6 +320,12 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
     )
   })
 
+  // While a tag is mid-token, the streaming parse can briefly yield no nodes.
+  // Keep the last non-empty tree so the host frame does not flash empty.
+  const stableBlocks = useRef(blocks)
+  if (blocks.length > 0 || !streaming) stableBlocks.current = blocks
+  const visible = streaming && blocks.length === 0 ? stableBlocks.current : blocks
+
   return (
     <div
       ref={rootElement}
@@ -328,10 +334,11 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
       data-iui-id={id}
       data-iui-scheme={scheme}
       data-streaming={streaming ? "" : undefined}
+      data-empty={visible.length === 0 ? "" : undefined}
     >
       {designCss ? <style>{styleText(designCss)}</style> : null}
       {modelCss ? <style>{styleText(modelCss)}</style> : null}
-      {blocks}
+      {visible}
       <div
         ref={toastRegion}
         className="iui-toasts"

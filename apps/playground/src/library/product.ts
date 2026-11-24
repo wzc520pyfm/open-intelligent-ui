@@ -39,7 +39,14 @@ const Steps = defineWidget<StepsProps>({
       "ol",
       {
         class: classes("acme-steps", props.class),
-        style: { display: "flex", gap: "6px", margin: 0, padding: 0, listStyle: "none" },
+        style: {
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "6px",
+          margin: 0,
+          padding: 0,
+          listStyle: "none",
+        },
       },
       items.map((item, index) => {
         const stage = index < current ? "done" : index === current ? "current" : "todo"
@@ -54,6 +61,7 @@ const Steps = defineWidget<StepsProps>({
             style: {
               flex: "1 1 0",
               minWidth: 0,
+              margin: 0,
               display: "flex",
               flexDirection: "column",
               gap: "6px",

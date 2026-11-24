@@ -558,66 +558,25 @@ export function App() {
         ) : null}
 
         <main className="flex min-w-0 flex-1 flex-col">
-          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-separator bg-background px-3 py-2 sm:px-4">
-            <Chip size="sm" variant="soft" color={streaming ? "accent" : "success"} data-pg="status" data-live={streaming}>
-              {streaming ? <Spinner size="sm" color="current" className="size-3" /> : <Check className="size-3" aria-hidden="true" />}
-              {status}
-            </Chip>
-            <span className="flex-1" />
-            <span title={copy.rendererHint}>
-              <Picker
-                label={copy.renderer}
-                value={renderer}
-                onChange={chooseRenderer}
-                options={RENDERERS}
+          <div className="flex shrink-0 flex-col gap-2 border-b border-separator bg-background px-3 py-2 sm:px-4">
+            <div className="flex items-center gap-2">
+              <Chip size="sm" variant="soft" color={streaming ? "accent" : "success"} data-pg="status" data-live={streaming}>
+                {streaming ? <Spinner size="sm" color="current" className="size-3" /> : <Check className="size-3" aria-hidden="true" />}
+                {status}
+              </Chip>
+              <span className="flex-1" />
+              <Segmented
+                label={copy.width}
+                iconOnly
+                value={width}
+                onChange={setWidth}
+                options={[
+                  { id: "phone", label: copy.phone, icon: <Smartphone className="size-4" aria-hidden="true" /> },
+                  { id: "chat", label: copy.chat, icon: <MessageSquare className="size-4" aria-hidden="true" /> },
+                  { id: "wide", label: copy.wide, icon: <Monitor className="size-4" aria-hidden="true" /> },
+                ]}
               />
-            </span>
-            <Picker
-              label={copy.design}
-              value={themeId}
-              onChange={setThemeId}
-              options={THEMES.map((item) => ({ id: item.id, label: item.name }))}
-            />
-            <Picker
-              label={copy.charts}
-              className="hidden sm:flex"
-              value={charts}
-              onChange={setChartsId}
-              options={CHARTS.filter((item) => !item.only || item.only === renderer)}
-            />
-            <Picker
-              label={copy.motion}
-              className="hidden sm:flex"
-              value={motionId}
-              onChange={setMotionId}
-              options={MOTIONS}
-            />
-            <Segmented
-              label={copy.width}
-              className="hidden md:inline-flex"
-              iconOnly
-              value={width}
-              onChange={setWidth}
-              options={[
-                { id: "phone", label: copy.phone, icon: <Smartphone className="size-4" aria-hidden="true" /> },
-                { id: "chat", label: copy.chat, icon: <MessageSquare className="size-4" aria-hidden="true" /> },
-                { id: "wide", label: copy.wide, icon: <Monitor className="size-4" aria-hidden="true" /> },
-              ]}
-            />
-            {mode === "demos" ? (
-              <>
-                <Picker
-                  label={copy.speed}
-                  className="hidden sm:flex"
-                  value={speed}
-                  onChange={setSpeed}
-                  options={[
-                    { id: "slow", label: copy.slow },
-                    { id: "normal", label: copy.normal },
-                    { id: "fast", label: copy.fast },
-                    { id: "instant", label: copy.instant },
-                  ]}
-                />
+              {mode === "demos" ? (
                 <Button
                   size="sm"
                   variant="secondary"
@@ -628,16 +587,57 @@ export function App() {
                   <RotateCcw className="size-3.5" aria-hidden="true" />
                   <span className="hidden sm:inline">{copy.replay}</span>
                 </Button>
-              </>
-            ) : (
-              <LiveSettingsButton
-                copy={copy}
-                live={live}
-                onLive={setLive}
-                useTools={useTools}
-                onUseTools={setUseTools}
+              ) : (
+                <LiveSettingsButton
+                  copy={copy}
+                  live={live}
+                  onLive={setLive}
+                  useTools={useTools}
+                  onUseTools={setUseTools}
+                />
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span title={copy.rendererHint}>
+                <Picker
+                  label={copy.renderer}
+                  value={renderer}
+                  onChange={chooseRenderer}
+                  options={RENDERERS}
+                />
+              </span>
+              <Picker
+                label={copy.design}
+                value={themeId}
+                onChange={setThemeId}
+                options={THEMES.map((item) => ({ id: item.id, label: item.name }))}
               />
-            )}
+              <Picker
+                label={copy.charts}
+                value={charts}
+                onChange={setChartsId}
+                options={CHARTS.filter((item) => !item.only || item.only === renderer)}
+              />
+              <Picker
+                label={copy.motion}
+                value={motionId}
+                onChange={setMotionId}
+                options={MOTIONS}
+              />
+              {mode === "demos" ? (
+                <Picker
+                  label={copy.speed}
+                  value={speed}
+                  onChange={setSpeed}
+                  options={[
+                    { id: "slow", label: copy.slow },
+                    { id: "normal", label: copy.normal },
+                    { id: "fast", label: copy.fast },
+                    { id: "instant", label: copy.instant },
+                  ]}
+                />
+              ) : null}
+            </div>
           </div>
 
           <div className="pg-stage flex min-h-0 flex-1 flex-col">

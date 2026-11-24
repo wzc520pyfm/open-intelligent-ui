@@ -197,6 +197,10 @@ export function whenExitDone(element: Element | null): Promise<void> {
   const first = exitAnimations(element)
   if (first) return first.then(() => undefined, () => undefined)
   if (!element || typeof requestAnimationFrame !== "function") return Promise.resolve()
+  // Hidden documents often pause rAF; don't leave the child mounted until focus returns.
+  if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+    return Promise.resolve()
+  }
   return new Promise((resolve) => {
     requestAnimationFrame(() => {
       const again = exitAnimations(element)

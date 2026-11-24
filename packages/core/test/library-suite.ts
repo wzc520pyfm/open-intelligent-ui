@@ -426,7 +426,7 @@ export function librarySuite(harness: SuiteHarness): void {
       expect(container.getAttribute("data-iui-motion-engine")).toBe("fake")
       const byClass = (name: string) => fake.played.find((entry) => entry.element.classList.contains(name))
       expect(byClass("first")?.timing).toMatchObject({ name: "pop", kind: "emphasis", duration: 520, delay: 0 })
-      expect(byClass("first")?.keyframes).toEqual({ opacity: [0, 1], scale: [0.8, 1] })
+      expect(byClass("first")?.keyframes).toEqual({ opacity: [0, 1], scale: [0.86, 1] })
       expect(byClass("list")?.timing).toMatchObject({ name: "rise", kind: "enter", duration: 260 })
       expect(byClass("a")?.timing).toMatchObject({ name: "rise", delay: 0 })
       expect(byClass("b")?.timing).toMatchObject({ name: "rise", delay: 50 })

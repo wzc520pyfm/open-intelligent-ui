@@ -116,7 +116,7 @@
       color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
       scale var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
   }
-  .dock button[aria-pressed="true"] {
+  .dock button[aria-selected="true"] {
     background: var(--iui-color-primary);
     color: var(--iui-color-primary-foreground);
   }
@@ -209,7 +209,7 @@
 </style>
 
 <box class="showcase" gap={4}>
-  <box show={view == "charts"} class="showcase-panel" gap={4} motion="blur">
+  <box show={view == "charts"} class="showcase-panel" gap={4} motion="blur" role="tabpanel" id="showcase-charts" aria-labelledby="showcase-tab-charts">
     <div class="showcase-split">
       <div class="showcase-copy">
         <title level={2}>Ad Spend vs Sales</title>
@@ -228,12 +228,12 @@
         <grid columns={3} gap={2} stagger>
           <card padding={3} gap={1}>
             <text size="sm" color="muted">Total spend</text>
-            <text size="xl" weight="bold" tabular>$7.30Mn</text>
+            <text size="xl" weight="bold" tabular>{"$" + num(totalSpend, 2) + "Mn"}</text>
             <badge color="success" size="sm">+4.8%</badge>
           </card>
           <card padding={3} gap={1}>
             <text size="sm" color="muted">Total sales</text>
-            <text size="xl" weight="bold" tabular>$16.19Mn</text>
+            <text size="xl" weight="bold" tabular>{"$" + num(totalSales, 2) + "Mn"}</text>
             <badge color="success" size="sm">+10.7%</badge>
           </card>
           <card padding={3} gap={1}>
@@ -244,12 +244,12 @@
         </grid>
         <card padding={4} gap={3}>
           <title level={3}>Spend vs revenue, 2025</title>
-          <Chart type="bar" data={spend} x="month" y={["spend", "revenue"]} names={{ spend: "Spend", revenue: "Revenue" }} format="compact" currency="USD" height={200} legend aria-label="Monthly spend and revenue" />
+          <Chart type="bar" data={spend} x="month" y={["spend", "revenue"]} names={{ spend: "Spend", revenue: "Revenue" }} format="currency" currency="USD" unit="M" height={200} legend aria-label="Monthly spend and revenue in millions of dollars" />
         </card>
         <grid columns={2} gap={3}>
           <card padding={4} gap={3}>
             <title level={3}>Share of global spend</title>
-            <Chart type="donut" data={regions} x="region" y="value" format="compact" currency="USD" height={160} legend aria-label="Spend by region" />
+            <Chart type="donut" data={regions} x="region" y="value" format="currency" currency="USD" unit="M" height={160} legend aria-label="Spend by region in millions of dollars" />
           </card>
           <card padding={4} gap={3}>
             <row>
@@ -257,14 +257,14 @@
               <spacer />
               <badge color="accent" size="sm">3× since 2015</badge>
             </row>
-            <Chart type="line" data={years} x="year" y={["sales", "spend"]} names={{ sales: "Sales", spend: "Spend" }} format="compact" currency="USD" height={160} legend aria-label="Sales and spend from 2015 to 2025" />
+            <Chart type="line" data={years} x="year" y={["sales", "spend"]} names={{ sales: "Sales", spend: "Spend" }} format="currency" currency="USD" unit="M" height={160} legend aria-label="Sales and spend from 2015 to 2025 in millions of dollars" />
           </card>
         </grid>
       </box>
     </div>
   </box>
 
-  <box show={view == "cards"} class="showcase-panel" gap={4} motion="rise">
+  <box show={view == "cards"} class="showcase-panel" gap={4} motion="rise" role="tabpanel" id="showcase-cards" aria-labelledby="showcase-tab-cards">
     <div class="showcase-split">
       <div class="showcase-copy">
         <title level={2}>Modern hotels in Paris</title>
@@ -346,7 +346,7 @@
     </div>
   </box>
 
-  <box show={view == "dashboards"} class="showcase-panel" gap={4} motion="scale">
+  <box show={view == "dashboards"} class="showcase-panel" gap={4} motion="scale" role="tabpanel" id="showcase-dashboards" aria-labelledby="showcase-tab-dashboards">
     <row wrap gap={2}>
       <title level={2}>Q4 budget</title>
       <spacer />
@@ -433,7 +433,7 @@
     </card>
   </box>
 
-  <box show={view == "forms"} class="showcase-panel" gap={4} motion="slide-left">
+  <box show={view == "forms"} class="showcase-panel" gap={4} motion="slide-left" role="tabpanel" id="showcase-forms" aria-labelledby="showcase-tab-forms">
     <div class="showcase-split">
       <div class="showcase-copy">
         <title level={2}>Plan a week in Portugal</title>
@@ -516,15 +516,15 @@
           <row>
             <text size="sm" weight="medium">Budget</text>
             <spacer />
-            <text size="sm" tabular>{currency(1000)}–{currency(budget)}</text>
+            <text size="sm" tabular>{currency(500)}–{currency(budget)}</text>
           </row>
           <Slider min={500} max={5000} step={50} bind:value={budget}>
             <SliderControl><SliderTrack><SliderIndicator /><SliderThumb aria-label="Trip budget" /></SliderTrack></SliderControl>
           </Slider>
           <row>
-            <text size="xs" color="muted">$0</text>
+            <text size="xs" color="muted">$500</text>
             <spacer />
-            <text size="xs" color="muted">$5,000+</text>
+            <text size="xs" color="muted">$5,000</text>
           </row>
         </box>
         <row gap={2} wrap>
@@ -535,10 +535,10 @@
     </div>
   </box>
 
-  <nav class="dock" aria-label="Showcase views">
-    <button type="button" aria-pressed={view == "charts"} on:click={view = "charts"}>Charts</button>
-    <button type="button" aria-pressed={view == "cards"} on:click={view = "cards"}>Cards</button>
-    <button type="button" aria-pressed={view == "dashboards"} on:click={view = "dashboards"}>Dashboards</button>
-    <button type="button" aria-pressed={view == "forms"} on:click={view = "forms"}>Forms</button>
-  </nav>
+  <div class="dock" role="tablist" aria-label="Showcase views">
+    <button type="button" role="tab" id="showcase-tab-charts" aria-controls="showcase-charts" aria-selected={view == "charts"} on:click={view = "charts"}>Charts</button>
+    <button type="button" role="tab" id="showcase-tab-cards" aria-controls="showcase-cards" aria-selected={view == "cards"} on:click={view = "cards"}>Cards</button>
+    <button type="button" role="tab" id="showcase-tab-dashboards" aria-controls="showcase-dashboards" aria-selected={view == "dashboards"} on:click={view = "dashboards"}>Dashboards</button>
+    <button type="button" role="tab" id="showcase-tab-forms" aria-controls="showcase-forms" aria-selected={view == "forms"} on:click={view = "forms"}>Forms</button>
+  </div>
 </box>

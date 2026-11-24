@@ -147,9 +147,12 @@ export function App() {
   const [mode, setMode] = useState<Mode>(query.live ? "live" : "demos")
   const [demo, setDemo] = useState<Demo>(query.demo ?? (DEMOS[0] as Demo))
   const [themeId, setThemeId] = useState(query.design ?? demo.theme ?? "paper")
-  const [scheme, setScheme] = useState<Scheme>(
-    () => query.scheme ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-  )
+  const [scheme, setScheme] = useState<Scheme>(() => {
+    if (query.scheme) return query.scheme
+    const initialTheme = query.design ?? (query.demo ?? DEMOS[0])?.theme
+    if (initialTheme === "noir") return "dark"
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+  })
   const [renderer, setRenderer] = useState<RendererId>(query.renderer ?? "react")
   const [chartsId, setChartsId] = useState<ChartsId>(query.charts ?? "svg")
   const [motionId, setMotionId] = useState<MotionId>(query.motion ?? "css")

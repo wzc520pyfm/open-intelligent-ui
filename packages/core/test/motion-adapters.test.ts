@@ -24,16 +24,16 @@ const timing = (over: Partial<MotionTiming> = {}): MotionTiming => ({
   ...over,
 })
 
-const RISE = { opacity: [0, 1], y: [8, 0] }
+const RISE = { opacity: [0, 1], y: [10, 0] }
 // The adapters only hand the element on; none of them reads it.
 const element = {} as HTMLElement
 
 describe("keyframes", () => {
   test("are spelled as the properties CSS animates, leaving `transform` alone", () => {
-    expect(cssKeyframes({ opacity: [0, 1], y: [8, 0], scale: [0.8, 1], rotate: [-8, 0], blur: [4, 0] })).toEqual({
+    expect(cssKeyframes({ opacity: [0, 1], y: [10, 0], scale: [0.86, 1], rotate: [-8, 0], blur: [4, 0] })).toEqual({
       opacity: [0, 1],
-      translate: ["0px 8px", "0px 0px"],
-      scale: ["0.8 0.8", "1 1"],
+      translate: ["0px 10px", "0px 0px"],
+      scale: ["0.86 0.86", "1 1"],
       rotate: ["-8deg", "0deg"],
       filter: ["blur(4px)", "blur(0px)"],
     })
@@ -94,7 +94,7 @@ describe("waapiAdapter", () => {
     const playback = waapiAdapter().animate(target, RISE, timing())
     expect(calls).toEqual([
       {
-        frames: { opacity: [0, 1], translate: ["0px 8px", "0px 0px"] },
+        frames: { opacity: [0, 1], translate: ["0px 10px", "0px 0px"] },
         options: {
           duration: 260,
           delay: 40,
@@ -146,7 +146,7 @@ describe("motionAdapter", () => {
     const { animate, calls, stopped } = fake()
     const playback = motionAdapter(animate).animate(element, { ...RISE, blur: [4, 0] }, timing())
     expect(calls[0]).toEqual({
-      keyframes: { opacity: [0, 1], y: [8, 0], filter: ["blur(4px)", "blur(0px)"] },
+      keyframes: { opacity: [0, 1], y: [10, 0], filter: ["blur(4px)", "blur(0px)"] },
       transition: { duration: 0.26, ease: [0.16, 1, 0.3, 1], delay: 0.04 },
     })
     playback?.cancel()
@@ -218,7 +218,7 @@ describe("gsapAdapter", () => {
     const playback = gsapAdapter(gsap).animate(element, { ...RISE, rotate: [-8, 0], blur: [4, 0] }, timing())
     expect(log).toHaveLength(1)
     expect(log[0]?.call).toBe("fromTo")
-    expect(vars(log[0], 1)).toEqual({ opacity: 0, y: 8, rotation: -8, filter: "blur(4px)" })
+    expect(vars(log[0], 1)).toEqual({ opacity: 0, y: 10, rotation: -8, filter: "blur(4px)" })
     const to = vars(log[0], 2)
     expect(to).toMatchObject({
       opacity: 1,

@@ -166,6 +166,7 @@ export function App() {
   const [log, setLog] = useState<LogEntry[]>([])
   const [live, setLive] = useState<LiveSettings>(readLiveSettings)
   const [draft, setDraft] = useState("")
+  const draftRef = useRef<HTMLTextAreaElement>(null)
   const [useTools, setUseTools] = useState(true)
 
   const theme = THEMES.find((item) => item.id === themeId) ?? (THEMES[0] as (typeof THEMES)[number])
@@ -425,6 +426,21 @@ export function App() {
     setRenderer(next)
   }
 
+  const fitDraft = useCallback(() => {
+    const el = draftRef.current
+    if (!el) return
+    el.style.height = "0px"
+    const styles = getComputedStyle(el)
+    const line = Number.parseFloat(styles.lineHeight) || 20
+    const pad =
+      (Number.parseFloat(styles.paddingTop) || 0) + (Number.parseFloat(styles.paddingBottom) || 0)
+    el.style.height = `${Math.min(el.scrollHeight, line * 4 + pad)}px`
+  }, [])
+
+  useEffect(() => {
+    fitDraft()
+  }, [draft, fitDraft])
+
   const submit = () => {
     const text = draft.trim()
     if (!text) return
@@ -591,109 +607,119 @@ export function App() {
             </Button>
           </div>
 
-          <div ref={thread} className="pg-stage min-h-0 flex-1 overflow-y-auto px-3 py-6 sm:px-6">
-            <div className="pg-column" data-width={width}>
-              {turns.length === 0 ? (
-                <div className="mx-auto flex max-w-xl flex-col items-center gap-3 py-16 text-center">
-                  <Logo className="size-10 text-accent" />
-                  <h2 className="text-2xl font-semibold tracking-tight text-balance">{copy.emptyTitle}</h2>
-                  <p className="text-sm leading-relaxed text-muted">{copy.emptyBody(theme.name)}</p>
-                  <div className="mt-3 flex flex-wrap justify-center gap-2">
-                    {copy.suggest.map((text) => (
-                      <Button key={text} size="sm" variant="outline" className="bg-background" onPress={() => say(text)}>
-                        {text}
-                      </Button>
-                    ))}
+          <div className="pg-stage flex min-h-0 flex-1 flex-col">
+            <div ref={thread} className="min-h-0 flex-1 overflow-y-auto px-3 py-6 sm:px-6">
+              <div className="pg-column" data-width={width}>
+                {turns.length === 0 ? (
+                  <div className="mx-auto flex max-w-xl flex-col items-center gap-3 py-16 text-center">
+                    <Logo className="size-10 text-accent" />
+                    <h2 className="text-2xl font-semibold tracking-tight text-balance">{copy.emptyTitle}</h2>
+                    <p className="text-sm leading-relaxed text-muted">{copy.emptyBody(theme.name)}</p>
+                    <div className="mt-3 flex flex-wrap justify-center gap-2">
+                      {copy.suggest.map((text) => (
+                        <Button key={text} size="sm" variant="outline" className="bg-background" onPress={() => say(text)}>
+                          {text}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : null}
-              {turns.map((turn) =>
-                turn.role === "user" ? (
-                  <div
-                    key={turn.id}
-                    data-pg="user"
-                    className="max-w-[85%] self-end rounded-3xl rounded-br-lg bg-accent px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-accent-foreground"
-                  >
-                    {turn.text.replace(/\n\n<interface-data>[\s\S]*$/, "")}
-                  </div>
-                ) : turn.role === "note" ? (
-                  <div
-                    key={turn.id}
-                    data-pg="note"
-                    className="max-w-[85%] self-center rounded-2xl bg-default px-3.5 py-1.5 text-center text-xs leading-relaxed text-muted"
-                  >
-                    {turn.text}
-                  </div>
-                ) : thinking && turn.id === streamingId && !turn.text ? (
-                  <div key={turn.id} data-pg="note" className="flex items-center gap-2 self-start text-sm text-muted">
-                    <Spinner size="sm" />
-                    {copy.thinking}
-                  </div>
-                ) : (
-                  <Surface
-                    key={`${renderer}:${turn.id}`}
-                    renderer={renderer}
-                    handle={turn.id === latestSurface?.id ? handle : undefined}
-                    source={turn.text}
-                    streaming={turn.id === streamingId}
-                    design={theme.design}
-                    scheme={scheme}
-                    tools={tools}
-                    library={library}
-                    onAction={onAction}
-                    onTool={onTool}
-                    onWarning={onWarning}
-                    onStateChange={turn.id === latestSurface?.id ? setSurfaceState : undefined}
-                    failed={copy.rendererFailed}
-                    retry={copy.retry}
-                  />
-                )
-              )}
-            </div>
-          </div>
-
-          <form
-            className="shrink-0 bg-background px-3 py-3 sm:px-6"
-            onSubmit={(event) => {
-              event.preventDefault()
-              submit()
-            }}
-          >
-            <InputGroup className="mx-auto h-12 w-full max-w-[780px] items-center rounded-full pr-2 pl-1.5">
-              <InputGroup.Input
-                className="h-full min-h-0 border-0 bg-transparent shadow-none focus-visible:ring-0"
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                placeholder={mode === "live" ? copy.askInterface : copy.replyAgent}
-                aria-label={copy.message}
-              />
-              <InputGroup.Suffix className="items-center pr-0">
-                {streaming && mode === "live" ? (
-                  <Button
-                    isIconOnly
-                    size="sm"
-                    variant="secondary"
-                    className="size-6 min-w-6 rounded-full"
-                    aria-label={copy.stop}
-                    onPress={stop}
-                  >
-                    <Square className="size-2.5" aria-hidden="true" />
-                  </Button>
-                ) : (
-                  <Button
-                    isIconOnly
-                    size="sm"
-                    type="submit"
-                    className="size-6 min-w-6 rounded-full"
-                    aria-label={copy.send}
-                    isDisabled={!draft.trim()}
-                  >
-                    <ArrowUp className="size-3" aria-hidden="true" />
-                  </Button>
+                ) : null}
+                {turns.map((turn) =>
+                  turn.role === "user" ? (
+                    <div
+                      key={turn.id}
+                      data-pg="user"
+                      className="max-w-[85%] self-end rounded-3xl rounded-br-lg bg-accent px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-accent-foreground"
+                    >
+                      {turn.text.replace(/\n\n<interface-data>[\s\S]*$/, "")}
+                    </div>
+                  ) : turn.role === "note" ? (
+                    <div
+                      key={turn.id}
+                      data-pg="note"
+                      className="max-w-[85%] self-center rounded-2xl bg-default px-3.5 py-1.5 text-center text-xs leading-relaxed text-muted"
+                    >
+                      {turn.text}
+                    </div>
+                  ) : thinking && turn.id === streamingId && !turn.text ? (
+                    <div key={turn.id} data-pg="note" className="flex items-center gap-2 self-start text-sm text-muted">
+                      <Spinner size="sm" />
+                      {copy.thinking}
+                    </div>
+                  ) : (
+                    <Surface
+                      key={`${renderer}:${turn.id}`}
+                      renderer={renderer}
+                      handle={turn.id === latestSurface?.id ? handle : undefined}
+                      source={turn.text}
+                      streaming={turn.id === streamingId}
+                      design={theme.design}
+                      scheme={scheme}
+                      tools={tools}
+                      library={library}
+                      onAction={onAction}
+                      onTool={onTool}
+                      onWarning={onWarning}
+                      onStateChange={turn.id === latestSurface?.id ? setSurfaceState : undefined}
+                      failed={copy.rendererFailed}
+                      retry={copy.retry}
+                    />
+                  )
                 )}
-              </InputGroup.Suffix>
-            </InputGroup>
-          </form>
+              </div>
+            </div>
+
+            <form
+              className="shrink-0 px-3 pb-3 sm:px-6"
+              onSubmit={(event) => {
+                event.preventDefault()
+                submit()
+              }}
+            >
+              <InputGroup className="mx-auto w-full max-w-[780px] items-end rounded-3xl bg-background py-1 pr-1.5 pl-3 shadow-sm">
+                <InputGroup.TextArea
+                  ref={draftRef}
+                  rows={1}
+                  className="max-h-[calc(1.25rem*4)] min-h-[1.25rem] flex-1 resize-none border-0 bg-transparent py-1.5 leading-5 shadow-none focus-visible:ring-0"
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                      event.preventDefault()
+                      submit()
+                    }
+                  }}
+                  placeholder={mode === "live" ? copy.askInterface : copy.replyAgent}
+                  aria-label={copy.message}
+                />
+                <InputGroup.Suffix className="items-end pb-0.5 pr-0">
+                  {streaming && mode === "live" ? (
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      variant="secondary"
+                      className="size-6 min-w-6 rounded-full"
+                      aria-label={copy.stop}
+                      onPress={stop}
+                    >
+                      <Square className="size-2.5" aria-hidden="true" />
+                    </Button>
+                  ) : (
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      type="submit"
+                      className="size-6 min-w-6 rounded-full"
+                      aria-label={copy.send}
+                      isDisabled={!draft.trim()}
+                    >
+                      <ArrowUp className="size-3" aria-hidden="true" />
+                    </Button>
+                  )}
+                </InputGroup.Suffix>
+              </InputGroup>
+            </form>
+          </div>
         </main>
 
         {inspecting && roomy ? (

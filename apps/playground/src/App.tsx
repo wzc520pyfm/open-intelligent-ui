@@ -702,11 +702,11 @@ export function App() {
                 submit()
               }}
             >
-              <InputGroup className="mx-auto w-full max-w-[780px] items-end rounded-3xl bg-background py-1 pr-1.5 pl-3 shadow-sm">
+              <InputGroup className="mx-auto w-full max-w-[780px] items-center rounded-3xl bg-background py-1.5 pr-1.5 pl-3 shadow-sm">
                 <InputGroup.TextArea
                   ref={draftRef}
                   rows={1}
-                  className="max-h-[calc(1.25rem*4)] min-h-[1.25rem] flex-1 resize-none border-0 bg-transparent py-1.5 leading-5 shadow-none focus-visible:ring-0"
+                  className="max-h-[calc(1.5rem*4)] min-h-6 flex-1 resize-none border-0 bg-transparent p-0 leading-6 shadow-none focus-visible:ring-0"
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={(event) => {
@@ -718,7 +718,7 @@ export function App() {
                   placeholder={mode === "live" ? copy.askInterface : copy.replyAgent}
                   aria-label={copy.message}
                 />
-                <InputGroup.Suffix className="items-end pb-0.5 pr-0">
+                <InputGroup.Suffix className="items-center self-center p-0!">
                   {streaming && mode === "live" ? (
                     <Button
                       isIconOnly

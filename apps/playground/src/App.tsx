@@ -440,7 +440,14 @@ export function App() {
 
   useEffect(() => {
     fitDraft()
-  }, [draft, fitDraft])
+    const el = draftRef.current
+    if (!el) return
+    const column = el.closest(".pg-column")
+    const ro = new ResizeObserver(() => fitDraft())
+    ro.observe(el)
+    if (column) ro.observe(column)
+    return () => ro.disconnect()
+  }, [draft, width, fitDraft])
 
   const submit = () => {
     const text = draft.trim()

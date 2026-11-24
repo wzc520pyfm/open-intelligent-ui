@@ -707,11 +707,11 @@ export function App() {
                 submit()
               }}
             >
-              <InputGroup className="mx-auto w-full max-w-[780px] items-center rounded-3xl bg-background py-1.5 pr-1.5 pl-3 shadow-sm">
+              <InputGroup className="mx-auto w-full max-w-[780px] items-center rounded-3xl bg-background py-2 pr-2 pl-4 shadow-sm">
                 <InputGroup.TextArea
                   ref={draftRef}
                   rows={1}
-                  className="max-h-[calc(1.5rem*4)] min-h-6 flex-1 resize-none border-0 bg-transparent p-0 leading-6 shadow-none focus-visible:ring-0"
+                  className="max-h-[calc(2rem*4)] min-h-8 flex-1 resize-none border-0 bg-transparent p-0 leading-8 shadow-none focus-visible:ring-0"
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={(event) => {
@@ -729,22 +729,22 @@ export function App() {
                       isIconOnly
                       size="sm"
                       variant="secondary"
-                      className="size-6 min-w-6 rounded-full"
+                      className="size-8 min-w-8 rounded-full"
                       aria-label={copy.stop}
                       onPress={stop}
                     >
-                      <Square className="size-2.5" aria-hidden="true" />
+                      <Square className="size-3" aria-hidden="true" />
                     </Button>
                   ) : (
                     <Button
                       isIconOnly
                       size="sm"
                       type="submit"
-                      className="size-6 min-w-6 rounded-full"
+                      className="size-8 min-w-8 rounded-full"
                       aria-label={copy.send}
                       isDisabled={!draft.trim()}
                     >
-                      <ArrowUp className="size-3" aria-hidden="true" />
+                      <ArrowUp className="size-3.5" aria-hidden="true" />
                     </Button>
                   )}
                 </InputGroup.Suffix>

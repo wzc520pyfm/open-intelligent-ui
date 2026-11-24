@@ -541,24 +541,14 @@ export function App() {
               {status}
             </Chip>
             <span className="flex-1" />
-            <span className="hidden text-xs text-muted xl:inline" title={copy.rendererHint}>
-              {copy.renderer}
+            <span title={copy.rendererHint}>
+              <Picker
+                label={copy.renderer}
+                value={renderer}
+                onChange={chooseRenderer}
+                options={RENDERERS}
+              />
             </span>
-            <Segmented
-              label={copy.renderer}
-              className="hidden sm:inline-flex"
-              value={renderer}
-              options={RENDERERS}
-              onChange={chooseRenderer}
-            />
-            {/* Five names don't fit across a phone. */}
-            <Picker
-              label={copy.renderer}
-              className="sm:hidden"
-              value={renderer}
-              onChange={chooseRenderer}
-              options={RENDERERS}
-            />
             <Picker
               label={copy.design}
               value={themeId}

@@ -86,8 +86,28 @@ body {
   tab-size: 2;
 }
 
+/* Match the surface card edge so the composer stays visible on the dotted stage. */
+.pg-composer {
+  border-color: color-mix(in oklab, var(--separator) 55%, var(--foreground) 45%);
+}
+
+.pg-inspect {
+  width: 0;
+  opacity: 0;
+  transition:
+    width 320ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 220ms cubic-bezier(0.2, 0, 0, 1),
+    border-color 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.pg-inspect-open {
+  width: 24rem;
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .pg-column {
+  .pg-column,
+  .pg-inspect {
     transition: none;
   }
 }

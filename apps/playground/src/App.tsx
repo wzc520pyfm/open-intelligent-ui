@@ -707,48 +707,50 @@ export function App() {
                 submit()
               }}
             >
-              <InputGroup className="mx-auto w-full max-w-[780px] items-center rounded-3xl bg-background py-2 pr-2 pl-4 shadow-sm">
-                <InputGroup.TextArea
-                  ref={draftRef}
-                  rows={1}
-                  className="max-h-[calc(2rem*4)] min-h-8 flex-1 resize-none border-0 bg-transparent p-0 leading-8 shadow-none focus-visible:ring-0"
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                      event.preventDefault()
-                      submit()
-                    }
-                  }}
-                  placeholder={mode === "live" ? copy.askInterface : copy.replyAgent}
-                  aria-label={copy.message}
-                />
-                <InputGroup.Suffix className="items-center self-center p-0!">
-                  {streaming && mode === "live" ? (
-                    <Button
-                      isIconOnly
-                      size="sm"
-                      variant="secondary"
-                      className="size-8 min-w-8 rounded-full"
-                      aria-label={copy.stop}
-                      onPress={stop}
-                    >
-                      <Square className="size-3" aria-hidden="true" />
-                    </Button>
-                  ) : (
-                    <Button
-                      isIconOnly
-                      size="sm"
-                      type="submit"
-                      className="size-8 min-w-8 rounded-full"
-                      aria-label={copy.send}
-                      isDisabled={!draft.trim()}
-                    >
-                      <ArrowUp className="size-3.5" aria-hidden="true" />
-                    </Button>
-                  )}
-                </InputGroup.Suffix>
-              </InputGroup>
+              <div className="pg-column" data-width={width}>
+                <InputGroup className="w-full items-end! rounded-3xl bg-background py-2 pr-2 pl-4 shadow-sm">
+                  <InputGroup.TextArea
+                    ref={draftRef}
+                    rows={1}
+                    className="max-h-[calc(2rem*4)] min-h-8 flex-1 resize-none border-0 bg-transparent p-0 leading-8 shadow-none focus-visible:ring-0"
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                        event.preventDefault()
+                        submit()
+                      }
+                    }}
+                    placeholder={mode === "live" ? copy.askInterface : copy.replyAgent}
+                    aria-label={copy.message}
+                  />
+                  <InputGroup.Suffix className="items-end! self-end p-0!">
+                    {streaming && mode === "live" ? (
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="secondary"
+                        className="size-8 min-w-8 rounded-full"
+                        aria-label={copy.stop}
+                        onPress={stop}
+                      >
+                        <Square className="size-3" aria-hidden="true" />
+                      </Button>
+                    ) : (
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        type="submit"
+                        className="size-8 min-w-8 rounded-full"
+                        aria-label={copy.send}
+                        isDisabled={!draft.trim()}
+                      >
+                        <ArrowUp className="size-3.5" aria-hidden="true" />
+                      </Button>
+                    )}
+                  </InputGroup.Suffix>
+                </InputGroup>
+              </div>
             </form>
           </div>
         </main>

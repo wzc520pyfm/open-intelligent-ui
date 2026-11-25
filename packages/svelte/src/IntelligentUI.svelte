@@ -222,6 +222,8 @@
   const modelSheet = $derived.by(() => {
     void doc
     void version
+    // Keep the last closed sheet while a `<style>` tag is mid-stream.
+    if (surface.styles.length === 0 && streaming && sheets) return sheets.css
     const key = surface.styles.join("\u0000")
     if (sheets?.key !== key) sheets = { key, css: modelCss(surface.styles, id) }
     return sheets.css

@@ -206,6 +206,8 @@ export function mount(target: Element, initial: IntelligentUIOptions): MountedUI
   }
   let sheets: { key: string; css: string } | undefined
   const modelSheets = () => {
+    // Keep the last closed sheet while a `<style>` tag is mid-stream.
+    if (surface.styles.length === 0 && options.streaming && sheets) return sheets.css
     const key = surface.styles.join("\u0000")
     if (sheets?.key !== key) sheets = { key, css: modelCss(surface.styles, id) }
     return sheets.css

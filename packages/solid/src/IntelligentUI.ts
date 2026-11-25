@@ -242,6 +242,8 @@ export function IntelligentUI(props: IntelligentUIProps): JSX.Element {
   }
   let modelSheet: { key: string; css: string } | undefined
   const modelSheets = () => {
+    // Keep the last closed sheet while a `<style>` tag is mid-stream.
+    if (surface.styles.length === 0 && now.streaming && modelSheet) return modelSheet.css
     const key = surface.styles.join("\u0000")
     if (modelSheet?.key !== key) modelSheet = { key, css: modelCss(surface.styles, id) }
     return modelSheet.css

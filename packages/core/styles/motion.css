@@ -67,12 +67,16 @@
 
   .iui-root [data-iui-motion="blur"] {
     animation-name: iui-blur;
+    /* OpenUI scBlurIn is 0.9s expo-out; keep the token easing, lengthen only blur. */
+    animation-duration: 0.9s;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .iui-root [data-iui-motion="pop"] {
     animation-name: iui-pop;
-    animation-duration: var(--iui-motion-emphasis-duration);
-    animation-timing-function: var(--iui-motion-emphasis-easing);
+    /* OpenUI scPop is 0.35s expo-out. */
+    animation-duration: 0.35s;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .iui-root [data-iui-motion="draw"] {

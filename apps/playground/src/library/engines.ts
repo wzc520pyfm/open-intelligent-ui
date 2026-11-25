@@ -61,7 +61,8 @@ export function useEngines(chartsId: ChartsId, motionId: MotionId): Engines {
     let current = true
     const pending = [loadCharts(chartsId), loadMotion(motionId)] as const
     if (!pending[0] && !pending[1]) {
-      setEngines({})
+      // Keep the existing empty object; a fresh `{}` would churn library identity.
+      setEngines((prev) => (prev.charts || prev.motion ? {} : prev))
       return
     }
     Promise.all(pending).then(
@@ -70,7 +71,7 @@ export function useEngines(chartsId: ChartsId, motionId: MotionId): Engines {
         setEngines({ ...(chartEngine ? { charts: chartEngine } : {}), ...(adapter ? { motion: adapter } : {}) })
       },
       () => {
-        if (current) setEngines({})
+        if (current) setEngines((prev) => (prev.charts || prev.motion ? {} : prev))
       }
     )
     return () => {

@@ -285,7 +285,12 @@ export function IntelligentUI(props: IntelligentUIProps): ReactNode {
   const motion = library?.motion
   useBeforePaint(() => attachMotion(rootElement.current, motion), [motion])
 
-  const sheetKey = surface.styles.join("\u0000")
+  // While a `<style>` tag is mid-stream it is not closed yet, so `surface.styles`
+  // is briefly empty. Keep the last closed sheet so the surface does not flash
+  // unstyled and then restyle.
+  const stylesRef = useRef(surface.styles)
+  if (surface.styles.length > 0 || !streaming) stylesRef.current = surface.styles
+  const sheetKey = stylesRef.current.join("\u0000")
   const modelCss = useMemo(() => readModelCss(sheetKey.split("\u0000"), id), [sheetKey, id])
 
   const ctx: RenderContext = {

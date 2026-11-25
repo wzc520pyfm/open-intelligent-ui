@@ -1,7 +1,7 @@
 <state workshops={[
-  { id: "clay", name: "Wheel throwing", host: "Atelier Midori", when: "Sat 10:00", seats: 4, tag: "Hands-on", color: "accent", blurb: "Throw three cups; glaze fired mid-week.", price: 68 },
-  { id: "print", name: "Risograph posters", host: "Ink & Grain", when: "Sat 14:00", seats: 6, tag: "Studio", color: "info", blurb: "Two-color print run you take home.", price: 54 },
-  { id: "ferment", name: "Koji basics", host: "Nara Pantry", when: "Sun 11:00", seats: 8, tag: "Food", color: "success", blurb: "Start a koji tray and plan the week of care.", price: 42 }
+  { id: "clay", name: "Wheel throwing", host: "Atelier Midori", when: "Sat 10:00", seats: 4, tag: "Hands-on", color: "accent", place: "Gion", rating: 4.9, blurb: "Throw three cups; glaze fired mid-week.", price: 68, amenity: "Clay & tools" },
+  { id: "print", name: "Risograph posters", host: "Ink & Grain", when: "Sat 14:00", seats: 6, tag: "Studio", color: "info", place: "Kawaramachi", rating: 4.7, blurb: "Two-color print run you take home.", price: 54, amenity: "Paper stock" },
+  { id: "ferment", name: "Koji basics", host: "Nara Pantry", when: "Sun 11:00", seats: 8, tag: "Food", color: "success", place: "Nishiki", rating: 4.8, blurb: "Start a koji tray and plan the week of care.", price: 42, amenity: "Starter kit" }
 ]} />
 <derive picked={workshops.find(w => w.id == "clay")} />
 
@@ -14,127 +14,230 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    min-width: 0;
   }
-  .pick {
-    display: grid;
-    grid-template-columns: minmax(7rem, 0.7fr) minmax(0, 1.4fr);
-    gap: 0.9rem;
-    padding: 0.85rem;
+  /* OpenUI hotels layout: three posters; scroll sideways when the column is tight. */
+  .poster-scroll {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 0.2rem;
+    margin-inline: -0.15rem;
+    padding-inline: 0.15rem;
+    scrollbar-width: thin;
+  }
+  .poster {
+    position: relative;
+    flex: 0 0 calc((100% - 1.5rem) / 2.55);
+    min-width: 10.25rem;
+    max-width: 15rem;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
     border-radius: var(--iui-radius-lg);
     border: 1px solid var(--iui-color-border);
-    background: color-mix(in oklab, var(--iui-color-accent) 8%, var(--iui-color-surface));
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--iui-color-accent) 20%, transparent);
+    background: var(--iui-color-muted);
+    scroll-snap-align: start;
   }
-  .pick-art {
+  .poster .art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .poster .chip {
+    position: absolute;
+    top: 0.55rem;
+    left: 0.55rem;
+    z-index: 1;
+  }
+  .poster .go {
+    position: absolute;
+    top: 0.55rem;
+    right: 0.55rem;
+    z-index: 1;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: color-mix(in oklab, var(--iui-color-background) 72%, transparent);
+    backdrop-filter: blur(8px);
+    border: 1px solid color-mix(in oklab, var(--iui-color-foreground) 12%, transparent);
+    color: var(--iui-color-foreground);
+    padding: 0;
+    cursor: pointer;
+  }
+  .poster .meta {
+    position: absolute;
+    inset: auto 0.55rem 0.55rem 0.55rem;
+    padding: 0.6rem 0.7rem;
     border-radius: var(--iui-radius-md);
+    background: color-mix(in oklab, var(--iui-color-background) 82%, transparent);
+    backdrop-filter: blur(10px);
+    border: 1px solid color-mix(in oklab, var(--iui-color-foreground) 8%, transparent);
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+  .info-tile {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--iui-color-muted) 70%, transparent);
+    border: 1px solid var(--iui-color-border);
+    min-width: 0;
+  }
+  .info-tile .label { min-width: 0; line-height: 1.25; }
+  .info-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+  }
+  .info-icon.sun { background: color-mix(in oklab, var(--iui-color-warning) 22%, transparent); color: var(--iui-color-warning); }
+  .info-icon.walk { background: color-mix(in oklab, var(--iui-color-info) 22%, transparent); color: var(--iui-color-info); }
+  .info-icon.kit { background: color-mix(in oklab, var(--iui-color-success) 22%, transparent); color: var(--iui-color-success); }
+  .feature {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(13rem, 0.95fr);
+    border-radius: var(--iui-radius-lg);
     overflow: hidden;
-    min-height: 7.5rem;
+    border: 1px solid var(--iui-color-border);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--iui-color-accent) 22%, transparent);
+  }
+  .feature-art {
+    min-height: 12rem;
+    position: relative;
     background: var(--iui-color-muted);
   }
-  .pick-art svg { width: 100%; height: 100%; display: block; }
-  .list {
+  .feature-art svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .feature-body {
+    padding: 1.1rem 1.15rem;
     display: flex;
     flex-direction: column;
     gap: 0.65rem;
-  }
-  .row-card {
-    display: grid;
-    grid-template-columns: 4.5rem minmax(0, 1fr) auto;
-    gap: 0.75rem;
-    align-items: center;
-    padding: 0.7rem 0.75rem;
-    border-radius: var(--iui-radius-md);
-    border: 1px solid var(--iui-color-border);
-    background: color-mix(in oklab, var(--iui-color-muted) 55%, transparent);
+    background: var(--iui-color-surface);
     min-width: 0;
   }
-  .thumb {
-    width: 4.5rem;
-    height: 4.5rem;
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--iui-color-muted);
-    flex: 0 0 auto;
+  @container iui (width < 640px) {
+    .poster {
+      flex-basis: calc((100% - 0.75rem) / 1.85);
+      min-width: 9.75rem;
+    }
+    .info-grid { grid-template-columns: 1fr; }
+    .info-tile { border-radius: var(--iui-radius-md); }
+    .feature { grid-template-columns: 1fr; }
+    .feature-art { min-height: 9.5rem; }
   }
-  .thumb svg { width: 100%; height: 100%; display: block; }
-  .meta { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
-  .price { text-align: right; white-space: nowrap; }
-  @container iui (width < 520px) {
+  @container iui (width < 420px) {
     .panel { padding: 0.95rem 0.95rem 1.05rem; }
-    .pick { grid-template-columns: 1fr; }
-    .pick-art { min-height: 8rem; }
-    .row-card { grid-template-columns: 3.5rem minmax(0, 1fr); }
-    .row-card .price { grid-column: 2; text-align: left; }
-    .thumb { width: 3.5rem; height: 3.5rem; }
+    .poster { flex-basis: 78%; min-width: 9rem; }
   }
 </style>
 
 <div class="panel" motion="pop">
   <box gap={1} motion="blur">
     <title level={2}>Weekend workshops near Gion</title>
-    <text size="sm" color="muted">Three open seats this Saturday–Sunday. Start with the strongest match, then browse the rest.</text>
+    <text size="sm" color="muted">Three open seats this Saturday–Sunday. Swipe the cards, then open the strongest match.</text>
   </box>
 
-  <div class="pick" motion="blur">
-    <div class="pick-art" aria-hidden="true">
-      <svg viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice">
-        <rect width="160" height="120" fill="var(--iui-color-chart-1)" opacity="0.3" />
-        <ellipse cx="80" cy="78" rx="46" ry="14" fill="var(--iui-color-chart-1)" opacity="0.45" />
-        <rect x="58" y="28" width="44" height="52" rx="22" fill="var(--iui-color-surface)" opacity="0.5" />
-        <circle cx="80" cy="44" r="10" fill="var(--iui-color-chart-2)" opacity="0.7" />
-      </svg>
-    </div>
-    <box gap={2}>
-      <row gap={2} wrap>
-        <badge color="warning" size="sm"><icon name="sparkles" size="sm" /> Best match</badge>
-        <badge color={picked.color} size="sm">{picked.tag}</badge>
-      </row>
-      <title level={3}>{picked.name}</title>
-      <text size="sm" color="muted">{picked.host} · {picked.when} · {picked.seats} seats left</text>
-      <text size="sm">{picked.blurb}</text>
-      <row gap={2} style="margin-top: auto">
-        <text weight="semibold" tabular>${picked.price}</text>
-        <spacer />
-        <Button variant="solid" on:click={send("Book " + picked.name + " with " + picked.host)}>Reserve</Button>
-      </row>
-    </box>
-  </div>
-
-  <div class="list" stagger={55}>
-    {#each workshops.filter(w => w.id != picked.id) as shop (shop.id)}
-      <div class="row-card" motion="blur">
-        <div class="thumb" aria-hidden="true">
-          <svg viewBox="0 0 72 72">
-            {#if shop.id == "clay"}
-              <rect width="72" height="72" fill="var(--iui-color-chart-1)" opacity="0.35" />
-              <ellipse cx="36" cy="48" rx="18" ry="7" fill="var(--iui-color-chart-1)" opacity="0.55" />
-              <rect x="26" y="18" width="20" height="28" rx="10" fill="var(--iui-color-surface)" opacity="0.45" />
-            {:else if shop.id == "print"}
-              <rect width="72" height="72" fill="var(--iui-color-chart-3)" opacity="0.35" />
-              <rect x="14" y="18" width="44" height="36" rx="4" fill="var(--iui-color-chart-2)" opacity="0.5" />
-              <rect x="20" y="24" width="20" height="8" rx="2" fill="var(--iui-color-surface)" opacity="0.55" />
-            {:else}
-              <rect width="72" height="72" fill="var(--iui-color-chart-2)" opacity="0.35" />
-              <circle cx="36" cy="34" r="16" fill="var(--iui-color-chart-1)" opacity="0.45" />
-              <rect x="22" y="48" width="28" height="10" rx="3" fill="var(--iui-color-surface)" opacity="0.5" />
-            {/if}
-          </svg>
-        </div>
+  <div class="poster-scroll" stagger={60}>
+    {#each workshops as shop (shop.id)}
+      <div class="poster" motion="blur">
+        <svg class="art" viewBox="0 0 160 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          {#if shop.id == "clay"}
+            <rect width="160" height="200" fill="var(--iui-color-chart-1)" opacity="0.3" />
+            <ellipse cx="80" cy="148" rx="46" ry="16" fill="var(--iui-color-chart-1)" opacity="0.5" />
+            <rect x="58" y="58" width="44" height="72" rx="22" fill="var(--iui-color-surface)" opacity="0.45" />
+            <circle cx="80" cy="78" r="12" fill="var(--iui-color-chart-2)" opacity="0.7" />
+          {:else if shop.id == "print"}
+            <rect width="160" height="200" fill="var(--iui-color-chart-3)" opacity="0.3" />
+            <rect x="28" y="48" width="104" height="88" rx="6" fill="var(--iui-color-chart-2)" opacity="0.5" />
+            <rect x="40" y="62" width="48" height="12" rx="3" fill="var(--iui-color-surface)" opacity="0.55" />
+            <rect x="40" y="82" width="72" height="8" rx="2" fill="var(--iui-color-surface)" opacity="0.35" />
+          {:else}
+            <rect width="160" height="200" fill="var(--iui-color-chart-2)" opacity="0.3" />
+            <circle cx="80" cy="88" r="36" fill="var(--iui-color-chart-1)" opacity="0.45" />
+            <rect x="48" y="128" width="64" height="28" rx="6" fill="var(--iui-color-surface)" opacity="0.5" />
+          {/if}
+        </svg>
+        <badge class="chip" color={shop.color} size="sm"><icon name="sparkles" size="sm" /> {shop.tag}</badge>
+        <button type="button" class="go" aria-label="Open {shop.name}" on:click={send("Show " + shop.name + " with " + shop.host)}><icon name="arrow-right" size="sm" /></button>
         <div class="meta">
-          <row gap={2} wrap>
-            <text size="sm" weight="semibold">{shop.name}</text>
-            <badge color={shop.color} size="sm">{shop.tag}</badge>
+          <text size="sm" weight="semibold">{shop.name}</text>
+          <row gap={1} wrap>
+            <text size="xs" color="muted">{shop.place}</text>
+            <text size="xs" color="muted">·</text>
+            <text size="xs" color="muted">★ {shop.rating}</text>
+            <text size="xs" color="muted">·</text>
+            <text size="xs" weight="medium" tabular>${shop.price}</text>
           </row>
-          <text size="xs" color="muted">{shop.host} · {shop.when}</text>
-          <text size="xs" color="muted">{shop.seats} seats · {shop.blurb}</text>
-        </div>
-        <div class="price">
-          <text size="sm" weight="semibold" tabular>${shop.price}</text>
-          <box gap={1} style="margin-top: 0.35rem">
-            <Button size="sm" on:click={send("Tell me more about " + shop.name)}>Details</Button>
-          </box>
         </div>
       </div>
     {/each}
+  </div>
+
+  <div class="info-grid" stagger={45}>
+    <div class="info-tile" motion="blur">
+      <span class="info-icon sun"><icon name="sun" size="sm" /></span>
+      <text size="sm" weight="medium" class="label">Clear skies all weekend</text>
+    </div>
+    <div class="info-tile" motion="blur">
+      <span class="info-icon walk"><icon name="footprints" size="sm" /></span>
+      <text size="sm" weight="medium" class="label">Walkable from Gion</text>
+    </div>
+    <div class="info-tile" motion="blur">
+      <span class="info-icon kit"><icon name="package" size="sm" /></span>
+      <text size="sm" weight="medium" class="label">Materials included</text>
+    </div>
+  </div>
+
+  <div class="feature" motion="blur">
+    <div class="feature-art" aria-hidden="true">
+      <svg viewBox="0 0 320 220" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="clayPick" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--iui-color-chart-1)" stop-opacity="0.55" />
+            <stop offset="100%" stop-color="var(--iui-color-chart-2)" stop-opacity="0.35" />
+          </linearGradient>
+        </defs>
+        <rect width="320" height="220" fill="url(#clayPick)" />
+        <ellipse cx="160" cy="168" rx="90" ry="24" fill="var(--iui-color-chart-1)" opacity="0.45" />
+        <rect x="118" y="58" width="84" height="110" rx="42" fill="var(--iui-color-surface)" opacity="0.42" />
+        <circle cx="160" cy="92" r="18" fill="var(--iui-color-chart-2)" opacity="0.75" />
+      </svg>
+    </div>
+    <div class="feature-body">
+      <badge color="warning" size="sm"><icon name="trophy" size="sm" /> Best match</badge>
+      <title level={3}>{picked.name}</title>
+      <row gap={2} wrap>
+        <text size="sm">★ {picked.rating}</text>
+        <text size="sm" color="muted">({picked.seats} seats left)</text>
+      </row>
+      <text size="sm" color="muted">{picked.blurb}</text>
+      <row gap={1} wrap>
+        <badge size="sm">{picked.amenity}</badge>
+        <badge size="sm">{picked.tag}</badge>
+        <badge size="sm">{picked.host}</badge>
+      </row>
+      <row gap={2} wrap style="margin-top: auto">
+        <text weight="semibold" tabular>${picked.price} · {picked.when}</text>
+        <spacer />
+        <Button variant="solid" on:click={send("Book " + picked.name + " with " + picked.host)}>Reserve</Button>
+      </row>
+    </div>
   </div>
 </div>

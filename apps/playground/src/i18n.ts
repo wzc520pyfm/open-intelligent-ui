@@ -178,7 +178,7 @@ const en: Copy = {
     },
     cards: {
       title: "Cards",
-      caption: "Workshop picks with a featured match and a browseable list",
+      caption: "Workshop posters you can scroll, tip chips, then a featured match",
       prompt: "What weekend workshops are open near Gion?",
     },
     budgets: {
@@ -303,7 +303,7 @@ const zh: Copy = {
     },
     cards: {
       title: "卡片",
-      caption: "工作坊推荐：精选匹配与可浏览列表",
+      caption: "可横滑的工作坊海报、提示条，再跟一张精选推荐",
       prompt: "祗园附近周末有哪些开放的工作坊？",
     },
     budgets: {

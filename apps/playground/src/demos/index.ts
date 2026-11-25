@@ -40,7 +40,7 @@ export const DEMOS: Demo[] = [
   {
     id: "cards",
     title: "Cards",
-    caption: "Workshop picks with a featured match and a browseable list",
+    caption: "Workshop posters you can scroll, tip chips, then a featured match",
     prompt: "What weekend workshops are open near Gion?",
     source: cards,
     theme: "noir",

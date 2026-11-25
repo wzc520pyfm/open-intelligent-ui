@@ -1,0 +1,5 @@
+# Cloudflare Pages: playground at https://open-intelligent-ui.pages.dev
+# Deploy: pnpm build && pnpm dlx wrangler@4 pages deploy
+name = "open-intelligent-ui"
+compatibility_date = "2025-11-25"
+pages_build_output_dir = "apps/playground/dist"

@@ -375,11 +375,9 @@ export function createRenderer<N, C>(
         const found = host.lookup(name)
         if (found.status === "loading") return host.pending(index)
         if (found.status !== "ready") {
-          ctx.options.report(
-            found.status === "error"
-              ? `<${name}> failed to load`
-              : `<${name}> is not a known component`
-          )
+          if (found.status === "error") ctx.options.report(`<${name}> failed to load`)
+          // While the source is arriving, its `<define>` may not be written yet.
+          else if (!ctx.options.streaming) ctx.options.report(`<${name}> is not a known component`)
           return host.fragment(renderNodes(node.children, ctx), index)
         }
         kind = "ui-sdk"

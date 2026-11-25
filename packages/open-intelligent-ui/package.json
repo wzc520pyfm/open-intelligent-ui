@@ -25,6 +25,7 @@
     ".": "./src/index.ts",
     "./prompt": "./src/prompt.ts",
     "./check": "./src/check.ts",
+    "./designs": "./src/designs.ts",
     "./charts": "./src/charts.ts",
     "./motion": "./src/motion.ts"
   },
@@ -46,6 +47,10 @@
       "./check": {
         "types": "./dist/check.d.ts",
         "default": "./dist/check.js"
+      },
+      "./designs": {
+        "types": "./dist/designs.d.ts",
+        "default": "./dist/designs.js"
       },
       "./charts": {
         "types": "./dist/charts.d.ts",

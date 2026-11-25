@@ -27,6 +27,7 @@
     ".": "./src/index.ts",
     "./prompt": "./src/prompt/index.ts",
     "./check": "./src/check/index.ts",
+    "./designs": "./src/designs/index.ts",
     "./renderer": "./src/renderer/index.ts",
     "./charts": "./src/charts/index.ts",
     "./motion": "./src/motion/index.ts",
@@ -50,6 +51,10 @@
       "./check": {
         "types": "./dist/check.d.ts",
         "default": "./dist/check.js"
+      },
+      "./designs": {
+        "types": "./dist/designs.d.ts",
+        "default": "./dist/designs.js"
       },
       "./renderer": {
         "types": "./dist/renderer.d.ts",

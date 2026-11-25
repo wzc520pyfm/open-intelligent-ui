@@ -5,6 +5,7 @@ export default defineConfig({
     index: "src/index.ts",
     prompt: "src/prompt.ts",
     check: "src/check.ts",
+    designs: "src/designs.ts",
     charts: "src/charts.ts",
     motion: "src/motion.ts",
   },

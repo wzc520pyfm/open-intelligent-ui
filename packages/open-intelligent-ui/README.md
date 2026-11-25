@@ -9,6 +9,7 @@ This package is the project's unscoped name on npm. It re-exports [`@open-intell
 | `open-intelligent-ui` | `@open-intelligent-ui/core` |
 | `open-intelligent-ui/prompt` | `@open-intelligent-ui/core/prompt` |
 | `open-intelligent-ui/check` | `@open-intelligent-ui/core/check` |
+| `open-intelligent-ui/designs` | `@open-intelligent-ui/core/designs` |
 
 ```ts
 import { parseDesign } from "open-intelligent-ui"

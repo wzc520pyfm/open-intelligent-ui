@@ -62,6 +62,7 @@ doc.diagnostics // problems in the markup, with positions
 | `librarySpec`, `validateLibrary` | A library as JSON, for a server that builds the prompt; what is wrong with a library, for a test |
 | `buildSystemPrompt` (from `/prompt`) | The prompt: language, components, design, your tools, and what your library adds |
 | `checkMarkup`, `repairMessage` (from `/check`) | What is wrong with a reply, without drawing it, and what to tell the model so it writes it again |
+| `/designs` | `paper` (the default), `noir`, `heritage`, `signal`: the DESIGN.md documents that come with the package |
 | `/charts` | `echartsCharts`, `g2Charts`: draw `<Chart>` with ECharts or AntV G2. The type `ChartEngine`, for another charting library |
 | `/motion` | `motionAdapter`, `gsapAdapter`, `waapiAdapter`, `createMotionAdapter`: play motion with Motion, GSAP, the Web Animations API, or an engine of your own |
 | `/renderer`, `/styles.css` | What the renderers are built from: directives, primitives, presets, charts, and the stylesheet. For writing a renderer, not for apps; it changes with the renderers |

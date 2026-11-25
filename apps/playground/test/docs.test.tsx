@@ -72,3 +72,50 @@ describe("skill references", () => {
     expect(page(`skills/${path}`), "run pnpm generate:skills").toBe(content)
   })
 })
+
+/** The code blocks of a page: the language of each, and what the ones the tests draw hold. */
+function blocks(content: string): string[] {
+  return [...content.matchAll(/^```([^\n]*)\n([\s\S]*?)\n```$/gm)].map((match) => {
+    const info = (match[1] as string).replace(/\[[^\]]*\]/, "").trim()
+    return info.startsWith("iui") ? `${info}\n${match[2]}` : info
+  })
+}
+
+/** The ids of a page's sections, which links from other pages point at. */
+function sections(content: string): string[] {
+  return content
+    .replace(/^```[\s\S]*?^```$/gm, "")
+    .split("\n")
+    .flatMap((line) => {
+      const heading = /^#{2,6}\s+(.*?)\s*$/.exec(line)
+      if (!heading) return []
+      const text = heading[1] as string
+      const id = /\{#([^}]+)\}$/.exec(text)?.[1]
+      return [
+        id ??
+          text
+            .replace(/[`*_]/g, "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, ""),
+      ]
+    })
+}
+
+describe("the documentation site says the same in both languages", () => {
+  const SITE = "../../docs/"
+  const english = Object.keys(pages).filter(
+    (file) => file.startsWith(SITE) && !file.startsWith(`${SITE}zh/`)
+  )
+
+  test("there are pages to compare", () => {
+    expect(english.length).toBeGreaterThan(10)
+  })
+
+  test.each(english)("%s", (file) => {
+    const translated = pages[file.replace(SITE, `${SITE}zh/`)]
+    expect(translated, `${file} has no Chinese page`).toBeDefined()
+    expect(blocks(translated as string)).toEqual(blocks(pages[file] as string))
+    expect(sections(translated as string)).toEqual(sections(pages[file] as string))
+  })
+})

@@ -48,19 +48,27 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0;
-    padding: 0.35rem 0 1rem;
+    padding: 0.45rem 0 1.05rem;
     border-bottom: 1px solid var(--iui-color-border);
   }
   .metric {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-    padding: 0.25rem 1rem 0.15rem 0;
+    gap: 0.4rem;
+    padding: 0.2rem 1.15rem 0.1rem;
     border-right: 1px solid var(--iui-color-border);
     min-width: 0;
   }
-  .metric:last-child { border-right: none; padding-right: 0; }
   .metric:first-child { padding-left: 0; }
+  .metric:last-child { border-right: none; padding-right: 0; }
+  /* Value + delta on one line so a missing badge doesn't leave a hole. */
+  .metric-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.45rem 0.55rem;
+    min-width: 0;
+  }
   .section {
     padding: 1rem 0;
     border-bottom: 1px solid var(--iui-color-border);
@@ -89,17 +97,23 @@
 
   <div class="metrics" stagger={50}>
     <div class="metric" motion="blur">
-      <text size="xl" weight="bold" tabular>{"$" + num(totalSpend, 2) + "Mn"}</text>
-      <row gap={2}><badge color="success" size="sm">+4.8%</badge></row>
+      <div class="metric-head">
+        <text size="xl" weight="bold" tabular>{"$" + num(totalSpend, 2) + "Mn"}</text>
+        <badge color="success" size="sm">+4.8%</badge>
+      </div>
       <text size="sm" color="muted">Total spend</text>
     </div>
     <div class="metric" motion="blur">
-      <text size="xl" weight="bold" tabular>{"$" + num(totalSales, 2) + "Mn"}</text>
-      <row gap={2}><badge color="success" size="sm">+10.7%</badge></row>
+      <div class="metric-head">
+        <text size="xl" weight="bold" tabular>{"$" + num(totalSales, 2) + "Mn"}</text>
+        <badge color="success" size="sm">+10.7%</badge>
+      </div>
       <text size="sm" color="muted">Total sales</text>
     </div>
     <div class="metric" motion="blur">
-      <text size="xl" weight="bold" tabular><Number value={roi} format="percent" digits={1} /></text>
+      <div class="metric-head">
+        <text size="xl" weight="bold" tabular><Number value={roi} format="percent" digits={1} /></text>
+      </div>
       <text size="sm" color="muted">Return on investment</text>
     </div>
   </div>

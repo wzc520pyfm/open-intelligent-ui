@@ -91,11 +91,30 @@
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
     gap: 1rem;
   }
-  /* Custom pairs stay 2-up on phone — built-in <grid> folds to 1 col under 420px. */
+  /* Custom pairs stay 2-up on phone — built-in <grid> folds to 1 col under 420px.
+     Cancel flow margin: base.css stacks .iui-box siblings unless the parent is
+     .iui-grid / .iui-box / …, and .pair is none of those. */
   .pair {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.85rem;
+    align-items: start;
+  }
+  .pair > .iui-box {
+    margin-block-start: 0;
+  }
+  /* Stretch steppers to the same column width as the date fields above. */
+  .pair [data-slot="number-input"] {
+    width: 100%;
+  }
+  .pair [data-slot="number-input-group"] {
+    display: flex;
+    width: 100%;
+  }
+  .pair [data-slot="number-input-control"] {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
   }
   @container iui (width < 560px) {
     .split { grid-template-columns: 1fr; }
@@ -144,7 +163,7 @@
       <NumberInput min={1} max={8} bind:value={adults}>
         <NumberInputGroup>
           <NumberInputDecrement aria-label="Fewer adults">−</NumberInputDecrement>
-          <NumberInputControl aria-label="Adults" style="width: 2.5rem; text-align: center" />
+          <NumberInputControl aria-label="Adults" style="text-align: center" />
           <NumberInputIncrement aria-label="More adults">+</NumberInputIncrement>
         </NumberInputGroup>
       </NumberInput>
@@ -154,7 +173,7 @@
       <NumberInput min={0} max={6} bind:value={children}>
         <NumberInputGroup>
           <NumberInputDecrement aria-label="Fewer children">−</NumberInputDecrement>
-          <NumberInputControl aria-label="Children" style="width: 2.5rem; text-align: center" />
+          <NumberInputControl aria-label="Children" style="text-align: center" />
           <NumberInputIncrement aria-label="More children">+</NumberInputIncrement>
         </NumberInputGroup>
       </NumberInput>

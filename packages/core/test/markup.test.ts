@@ -362,6 +362,64 @@ Small
   })
 })
 
+describe("what a model used to another language writes", () => {
+  const found = (source: string) =>
+    parse(source).diagnostics.map((item) => `${item.severity} ${item.code}: ${item.message}`)
+
+  test("a lowercase tag the language doesn't have is said to be shown as text", () => {
+    expect(found(`<stack gap={2}>\n  <heading level={2}>Report</heading>\n</stack>`)).toEqual([
+      "warning unknown-tag: <stack> is not a tag the language has, so it is shown as text",
+      "warning unknown-tag: <heading> is not a tag the language has, so it is shown as text",
+    ])
+  })
+
+  test("a comparison in a sentence is not a tag", () => {
+    expect(found("Use it when m <n and n> p.\n\nWhen x <y the bar is red.\n\n1 <2")).toEqual([])
+    expect(found("m < n > p")).toEqual([])
+  })
+
+  test("tags inside braces are said to belong in {#if} and {#each}", () => {
+    const messages = found(
+      `{items.map(item => <row><text>{item.name}</text></row>)}\n\n{open && <card>Details</card>}\n\n{open ? <text>Open</text> : <text>Closed</text>}`
+    )
+    expect(messages).toHaveLength(3)
+    for (const message of messages) {
+      expect(message).toMatch(/^error tags-in-expression: Tags can't be written inside \{…\}/)
+      expect(message).toContain("{#each list as item}")
+    }
+    expect(messages[1]).toContain("in {open && <card>Details</card>}")
+  })
+
+  test("code in braces that can't be read is an error, with where", () => {
+    expect(found("It is {new Date().getFullYear()} now.")).toEqual([
+      'error bad-expression: "new" is not supported in {new Date().getFullYear()}',
+    ])
+  })
+
+  test("braces in a sentence are text, and no mistake", () => {
+    const doc = parse('The tool answers {"ok": true} or {}. Sets are written {a; b}.')
+    expect(doc.diagnostics).toEqual([])
+    expect(JSON.stringify(outline(doc.children))).toContain('{\\"ok\\": true}')
+  })
+
+  test("a comment as JSX writes it shows nothing", () => {
+    const doc = parse("<card>{/* the totals */}Total</card>")
+    expect(doc.diagnostics).toEqual([])
+    expect(outline(doc.children)).toEqual([{ card: ["Total"] }])
+  })
+
+  test("every diagnostic says what kind it is", () => {
+    const doc = parse("<script>x</script>\n<card>\n{#await x}\n</row>\n<Slider min={0 +} />")
+    expect(doc.diagnostics.map((item) => item.code)).toEqual([
+      "blocked-tag",
+      "unknown-block",
+      "stray-close",
+      "bad-expression",
+      "unclosed-element",
+    ])
+  })
+})
+
 describe("streaming", () => {
   test("open elements render with what has arrived so far", () => {
     const doc = parse('<card>\n<row gap={2}>\n<text size="lg">Hel', {

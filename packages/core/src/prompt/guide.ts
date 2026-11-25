@@ -291,10 +291,16 @@ count to new values. Add motion only where it tells the reader something:
   for the result that matters. \`motion="none"\` turns the default off.
 - \`delay={120}\` waits, in milliseconds.
 - \`stagger\` on a parent brings its children in one after another:
-  \`<grid columns={3} stagger>\`. \`stagger={80}\` sets the pause.
+  \`<grid columns={3} stagger>\`. \`stagger={80}\` sets the pause. Use it on
+  rows of stats, option cards and comparable tiles so the surface feels
+  deliberate rather than abrupt.
 - \`show={condition}\` on an element makes it enter when the condition turns
   true and leave, animated, when it turns false. Prefer it to \`{#if}\` for
-  panels the reader opens and closes.
+  panels the reader opens and closes — view switches, drawers of detail,
+  alternate chart modes.
+- Pair \`show\` with a named entrance when a whole panel swaps:
+  \`<box show={tab == "plan"} motion="blur">\`. Keep sibling panels mutually
+  exclusive so only one enters while the other leaves.
 - \`motion="draw"\` on an SVG \`<path>\`, \`<line>\` or \`<circle>\` draws its stroke.
 - \`motion="pulse|spin|float"\` loop, for live status only: a recording dot, a
   loading spinner.
@@ -306,21 +312,23 @@ In CSS, use the motion tokens instead of numbers:
 
 \`\`\`
 .bar { transition: width var(--iui-motion-layout-duration) var(--iui-motion-layout-easing); }
+.chip { transition: background-color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing); }
 \`\`\`
 
 | Token | For |
 | --- | --- |
-| \`state-change\` | hover, press, toggle, selection. Color and opacity. |
+| \`state-change\` | hover, press, toggle, selection. Color, opacity, at most 1–2px of travel. |
 | \`surface-enter\` | content arriving |
 | \`surface-exit\` | content leaving; shorter than entering |
-| \`layout\` | size and position changes |
+| \`layout\` | size and position changes, sliding indicators, progress fills |
 | \`emphasis\` | the one moment worth noticing |
 
 Rules: animate \`opacity\`, \`translate\`, \`scale\` and \`rotate\`, not layout
 properties, except a width or height that is itself the data (a bar, a
-progress fill). Keep travel short (8–16px). One emphasis per interface.
-Nothing loops unless it reports live status. Never make the reader wait for
-an animation to finish before they can act. Reduced-motion preferences are
+progress fill). Keep travel short (8–16px). Stagger groups of three to six;
+cap the whole sequence around 400ms. One emphasis per interface. Nothing
+loops unless it reports live status. Never make the reader wait for an
+animation to finish before they can act. Reduced-motion preferences are
 honored for you.
 `
 
@@ -338,6 +346,18 @@ export const CRAFT_GUIDE = `# Craft
   as "Overview" or "Interactive Dashboard". No emoji as icons; use \`<icon>\`.
 - **Use the design system.** Color names, spacing tokens and typography
   come from the design below. One accent. Status colors only for status.
+- **Give the surface depth.** Prefer a quiet page background with surface
+  cards, soft borders and occasional \`elevated\` panels. Leave air between
+  sections (16–24px). Dense data belongs inside tables and charts, not in
+  cramped chrome.
+- **Compose, don't tile.** A strong surface often splits prose and visuals
+  (\`<grid columns={2}>\` or a short column beside a chart stack), or leads
+  with a staggered row of stats before the detail. Comparable choices sit in
+  one grid; don't scatter orphan cards.
+- **Arrive with intent.** Put \`stagger\` on the first group of stats or
+  options. Use \`show={…}\` when the reader switches views so panels enter
+  and leave instead of popping. One \`motion="pop"\` for the result that
+  matters is enough.
 - **Stay readable while writing.** Put \`<state>\` first, then the most
   important block, then detail. Every block should make sense on its own as
   it appears.

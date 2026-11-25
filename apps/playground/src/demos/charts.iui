@@ -1,0 +1,134 @@
+<state weeks={[
+  { week: "W1", merged: 18, failed: 3 },
+  { week: "W2", merged: 22, failed: 2 },
+  { week: "W3", merged: 19, failed: 4 },
+  { week: "W4", merged: 27, failed: 1 },
+  { week: "W5", merged: 24, failed: 2 },
+  { week: "W6", merged: 31, failed: 2 },
+  { week: "W7", merged: 28, failed: 1 },
+  { week: "W8", merged: 33, failed: 3 }
+]} />
+<state kinds={[
+  { kind: "Feature", value: 42 },
+  { kind: "Fix", value: 28 },
+  { kind: "Docs", value: 14 },
+  { kind: "Chore", value: 11 }
+]} />
+<state releases={[
+  { release: "0.8", downloads: 12.4 },
+  { release: "0.9", downloads: 18.1 },
+  { release: "1.0", downloads: 26.8 },
+  { release: "1.1", downloads: 34.2 },
+  { release: "1.2", downloads: 41.6 }
+]} />
+<derive
+  merged={sumBy(weeks, "merged")}
+  failed={sumBy(weeks, "failed")}
+  passRate={(merged - failed) / merged}
+  medianDays={4.2}
+/>
+
+<style>
+  .panel {
+    border: 1px solid var(--iui-color-border);
+    border-radius: 1.5rem;
+    background: var(--iui-color-surface);
+    padding: 1.15rem 1.25rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--iui-color-border);
+  }
+  .hero-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+  .side-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+  }
+  .side-card {
+    padding: 0.7rem 0.8rem;
+    border-radius: var(--iui-radius-md);
+    background: color-mix(in oklab, var(--iui-color-muted) 70%, transparent);
+    border: 1px solid var(--iui-color-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
+    gap: 1.15rem;
+  }
+  @container iui (width < 560px) {
+    .panel { padding: 1rem 1.05rem 1.1rem; }
+    .hero, .split, .side-stats { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="panel" motion="pop">
+  <box gap={1} motion="blur">
+    <title level={2}>Open Intelligent UI release health</title>
+    <text size="sm" color="muted">Last eight weeks on <code>main</code>. Median time from open PR to tagged release is the figure that matters.</text>
+  </box>
+
+  <div class="hero" stagger={45}>
+    <div class="hero-stat" motion="blur">
+      <text size="sm" color="muted">Median time-to-ship</text>
+      <row gap={2} align="end" wrap>
+        <text size="3xl" weight="bold" tabular>{num(medianDays, 1)} days</text>
+        <badge color="success" size="sm">−0.6 vs prior</badge>
+      </row>
+      <text size="sm" color="muted">{merged} merges · {failed} CI failures · <Number value={passRate} format="percent" digits={0} /> green</text>
+    </div>
+    <div class="side-stats" motion="blur">
+      <div class="side-card">
+        <text size="xs" color="muted">Open PRs</text>
+        <text size="lg" weight="bold" tabular>14</text>
+      </div>
+      <div class="side-card">
+        <text size="xs" color="muted">Review lag</text>
+        <text size="lg" weight="bold" tabular>11 h</text>
+      </div>
+      <div class="side-card">
+        <text size="xs" color="muted">Flaky jobs</text>
+        <text size="lg" weight="bold" tabular>2</text>
+      </div>
+      <div class="side-card">
+        <text size="xs" color="muted">v1.2 downloads</text>
+        <text size="lg" weight="bold" tabular>41.6k</text>
+      </div>
+    </div>
+  </div>
+
+  <box gap={2} motion="blur">
+    <title level={3}>Merges and CI failures by week</title>
+    <Chart type="bar" data={weeks} x="week" y={["merged", "failed"]} names={{ merged: "Merged", failed: "Failed CI" }} height={200} legend aria-label="Weekly merged pull requests and failed CI runs" />
+  </box>
+
+  <div class="split">
+    <box gap={2} motion="blur">
+      <title level={3}>PR mix</title>
+      <Chart type="donut" data={kinds} x="kind" y="value" height={168} legend aria-label="Pull request categories" />
+    </box>
+    <box gap={2} motion="blur">
+      <row gap={2}>
+        <title level={3}>Downloads per release</title>
+        <spacer />
+        <badge color="accent" size="sm" motion="pop">+22% QoQ</badge>
+      </row>
+      <Chart type="area" data={releases} x="release" y="downloads" names={{ downloads: "Downloads" }} unit="k" height={168} legend aria-label="Downloads in thousands by release" />
+    </box>
+  </div>
+</div>

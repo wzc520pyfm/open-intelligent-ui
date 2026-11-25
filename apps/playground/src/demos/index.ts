@@ -1,8 +1,12 @@
 import type { Library } from "@open-intelligent-ui/core"
 import { PRODUCT } from "../library/product"
 import board from "./board.iui?raw"
+import budgets from "./budgets.iui?raw"
+import cards from "./cards.iui?raw"
+import charts from "./charts.iui?raw"
 import claim from "./claim.iui?raw"
 import dashboard from "./dashboard.iui?raw"
+import forms from "./forms.iui?raw"
 import gears from "./gears.iui?raw"
 import invest from "./invest.iui?raw"
 import trip from "./trip.iui?raw"
@@ -25,6 +29,38 @@ export interface Demo {
 }
 
 export const DEMOS: Demo[] = [
+  {
+    id: "charts",
+    title: "Charts",
+    caption: "Release health: a headline metric with bar, donut and area charts",
+    prompt: "How healthy is the Open Intelligent UI release train?",
+    source: charts,
+    theme: "noir",
+  },
+  {
+    id: "cards",
+    title: "Cards",
+    caption: "Hotel posters you can scroll, tip chips, then a featured match",
+    prompt: "Help me book a hotel in Paris.",
+    source: cards,
+    theme: "noir",
+  },
+  {
+    id: "budgets",
+    title: "Dashboards",
+    caption: "Engineering load: KPIs, commit dots, team capacity and blockers",
+    prompt: "Show me load across the department's engineering teams.",
+    source: budgets,
+    theme: "noir",
+  },
+  {
+    id: "forms",
+    title: "Forms",
+    caption: "Meeting-room booking with tags, steppers, amenity chips and a duration slider",
+    prompt: "Help me book a meeting room on Thursday afternoon.",
+    source: forms,
+    theme: "noir",
+  },
   {
     id: "gears",
     title: "Explain",
@@ -53,6 +89,7 @@ export const DEMOS: Demo[] = [
     caption: "Stats, charts and a table that filter each other",
     prompt: "How did sales do in Q4?",
     source: dashboard,
+    theme: "noir",
   },
   {
     id: "workbench",

@@ -426,7 +426,7 @@ export function librarySuite(harness: SuiteHarness): void {
       expect(container.getAttribute("data-iui-motion-engine")).toBe("fake")
       const byClass = (name: string) => fake.played.find((entry) => entry.element.classList.contains(name))
       expect(byClass("first")?.timing).toMatchObject({ name: "pop", kind: "emphasis", duration: 520, delay: 0 })
-      expect(byClass("first")?.keyframes).toEqual({ opacity: [0, 1], scale: [0.8, 1] })
+      expect(byClass("first")?.keyframes).toEqual({ opacity: [0, 1], y: [10, 0], scale: [0.98, 1] })
       expect(byClass("list")?.timing).toMatchObject({ name: "rise", kind: "enter", duration: 260 })
       expect(byClass("a")?.timing).toMatchObject({ name: "rise", delay: 0 })
       expect(byClass("b")?.timing).toMatchObject({ name: "rise", delay: 50 })
@@ -455,7 +455,7 @@ export function librarySuite(harness: SuiteHarness): void {
       const exit = fake.played.at(-1) as Played
       expect(fake.played.length).toBe(before + 1)
       expect(exit.timing).toMatchObject({ name: "leave", kind: "exit", duration: 160 })
-      expect(exit.keyframes).toEqual({ opacity: [1, 0], y: [0, -4] })
+      expect(exit.keyframes).toEqual({ opacity: [1, 0], y: [0, 6], scale: [1, 0.985] })
       // It is still on the page while it leaves.
       expect(container.querySelector(".panel")).not.toBeNull()
       fake.finish()

@@ -50,7 +50,7 @@
   </card>
 </grid>
 
-<grid columns={3} gap={3}>
+<grid columns={3} gap={3} stagger>
   <grid-item span={2}>
     <card padding={4} gap={3}>
       <row wrap gap={2}>

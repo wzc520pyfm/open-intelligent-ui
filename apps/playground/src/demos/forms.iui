@@ -1,0 +1,226 @@
+<state amenities={["display", "quiet"]} room={["huddle"]} duration={60} people={4} remote={1} />
+<derive amenityOptions={[
+  { id: "display", label: "Display", icon: "monitor" },
+  { id: "quiet", label: "Quiet", icon: "volume-x" },
+  { id: "whiteboard", label: "Whiteboard", icon: "pen-line" },
+  { id: "phone", label: "Phone booth", icon: "phone" },
+  { id: "window", label: "Daylight", icon: "sun" },
+  { id: "access", label: "Step-free", icon: "accessibility" }
+]} />
+
+<style>
+  .panel {
+    border: 1px solid var(--iui-color-border);
+    border-radius: 1.5rem;
+    background: var(--iui-color-surface);
+    padding: 1.2rem 1.3rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.05rem;
+  }
+  .rule {
+    border: none;
+    border-top: 1px dashed var(--iui-color-border);
+    margin: 0;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2.5rem;
+    padding: 0.4rem 0.65rem;
+    border-radius: var(--iui-radius-md);
+    border: 1px solid var(--iui-color-border);
+    background: var(--iui-color-muted);
+  }
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    padding: 0.45rem 0.7rem;
+    border-radius: var(--iui-radius-md);
+    border: 1px solid var(--iui-color-border);
+    background: var(--iui-color-muted);
+  }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+  .chip-row button,
+  .room-pick {
+    appearance: none;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0.45rem 0.8rem;
+    background: color-mix(in oklab, var(--iui-color-foreground) 6%, transparent);
+    color: var(--iui-color-foreground);
+    font: inherit;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    box-shadow: none;
+    transition:
+      background var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      box-shadow var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      scale var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
+  }
+  .chip-row button[aria-pressed="true"],
+  .room-pick[aria-pressed="true"] {
+    background: color-mix(in oklab, var(--iui-color-accent) 18%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--iui-color-accent) 80%, transparent);
+    color: color-mix(in oklab, var(--iui-color-accent) 35%, var(--iui-color-foreground));
+  }
+  .room-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+  .room-pick {
+    border-radius: var(--iui-radius-lg);
+    padding: 0.85rem 0.45rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    text-align: center;
+    white-space: normal;
+    min-width: 0;
+  }
+  .pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    align-items: start;
+  }
+  .pair > .iui-box {
+    margin-block-start: 0;
+  }
+  .pair [data-slot="number-input"] {
+    width: 100%;
+  }
+  .pair [data-slot="number-input-group"] {
+    display: flex;
+    width: 100%;
+  }
+  .pair [data-slot="number-input-control"] {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+  @container iui (width < 560px) {
+    .room-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .room-pick { padding: 0.7rem 0.35rem; font-size: 0.75rem; }
+    .panel { padding: 1rem 1.05rem 1.15rem; gap: 0.9rem; }
+  }
+  @container iui (width < 360px) {
+    .room-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="panel" motion="pop">
+  <box gap={1} motion="blur">
+    <title level={2}>Book a meeting room</title>
+    <text size="sm" color="muted">Pick a floor, a window of time, and who is joining — I'll hold the room.</text>
+  </box>
+
+  <box gap={2} motion="blur">
+    <text size="sm" weight="medium">Building</text>
+    <div class="tags">
+      <badge color="info"><icon name="building-2" size="sm" /> Market St ×</badge>
+      <badge color="accent"><icon name="layers" size="sm" /> Floor 4 ×</badge>
+      <text size="sm" color="muted">Add another floor…</text>
+      <spacer />
+      <icon name="chevrons-up-down" size="sm" color="muted" />
+    </div>
+  </box>
+
+  <hr class="rule" />
+
+  <div class="pair" motion="blur">
+    <box gap={2}>
+      <text size="sm" weight="medium">Starts</text>
+      <div class="field"><icon name="calendar" size="sm" color="muted" /><text size="sm">Thu, Nov 27 · 13:30</text></div>
+    </box>
+    <box gap={2}>
+      <text size="sm" weight="medium">Duration</text>
+      <div class="field"><icon name="timer" size="sm" color="muted" /><text size="sm" tabular>{duration} min</text></div>
+    </box>
+  </div>
+
+  <div class="pair" motion="blur">
+    <box gap={2}>
+      <text size="sm" weight="medium">In the room</text>
+      <NumberInput min={1} max={12} bind:value={people}>
+        <NumberInputGroup>
+          <NumberInputDecrement aria-label="Fewer people">−</NumberInputDecrement>
+          <NumberInputControl aria-label="People in the room" style="text-align: center" />
+          <NumberInputIncrement aria-label="More people">+</NumberInputIncrement>
+        </NumberInputGroup>
+      </NumberInput>
+    </box>
+    <box gap={2}>
+      <text size="sm" weight="medium">Dialing in</text>
+      <NumberInput min={0} max={20} bind:value={remote}>
+        <NumberInputGroup>
+          <NumberInputDecrement aria-label="Fewer remote guests">−</NumberInputDecrement>
+          <NumberInputControl aria-label="Remote guests" style="text-align: center" />
+          <NumberInputIncrement aria-label="More remote guests">+</NumberInputIncrement>
+        </NumberInputGroup>
+      </NumberInput>
+    </box>
+  </div>
+
+  <hr class="rule" />
+
+  <box gap={2} motion="blur">
+    <text size="sm" weight="medium">Amenities</text>
+    <div class="chip-row">
+      {#each amenityOptions as opt (opt.id)}
+        <button type="button" aria-pressed={amenities.includes(opt.id)} on:click={amenities = toggle(amenities, opt.id)}>
+          {#if amenities.includes(opt.id)}<icon name="check" size="sm" />{:else}<icon name={opt.icon} size="sm" />{/if}
+          {opt.label}
+        </button>
+      {/each}
+    </div>
+  </box>
+
+  <box gap={2} motion="blur">
+    <text size="sm" weight="medium">Room type</text>
+    <div class="room-grid">
+      <button type="button" class="room-pick" aria-pressed={room.includes("huddle")} on:click={room = toggle(room, "huddle")}>
+        <icon name="users" size="lg" />
+        <text size="sm" weight="medium">Huddle</text>
+      </button>
+      <button type="button" class="room-pick" aria-pressed={room.includes("board")} on:click={room = toggle(room, "board")}>
+        <icon name="presentation" size="lg" />
+        <text size="sm" weight="medium">Boardroom</text>
+      </button>
+      <button type="button" class="room-pick" aria-pressed={room.includes("quiet")} on:click={room = toggle(room, "quiet")}>
+        <icon name="headphones" size="lg" />
+        <text size="sm" weight="medium">Quiet pod</text>
+      </button>
+    </div>
+  </box>
+
+  <hr class="rule" />
+
+  <box gap={2} motion="blur">
+    <row>
+      <text size="sm" weight="medium">Hold for</text>
+      <spacer />
+      <text size="sm" tabular>{duration} minutes</text>
+    </row>
+    <Slider min={30} max={180} step={15} bind:value={duration}>
+      <SliderControl><SliderTrack><SliderIndicator /><SliderThumb aria-label="Meeting duration" /></SliderTrack></SliderControl>
+    </Slider>
+    <row>
+      <text size="xs" color="muted">30 min</text>
+      <spacer />
+      <text size="xs" color="muted">3 hours</text>
+    </row>
+  </box>
+
+  <row gap={2} wrap motion="blur">
+    <Button variant="solid" on:click={send("Book a meeting room", { amenities, room, duration, people, remote })}>Hold room</Button>
+    <Button on:click={send("Show other rooms on Floor 4")}>See alternatives</Button>
+  </row>
+</div>

@@ -124,7 +124,7 @@ test.each(CORPUS.map((sample) => [sample.name, sample] as const))(
 test("the corpus splits into samples compared exactly and samples compared as read", () => {
   // The split the report quotes; a new sample has to be counted on one side.
   const asRead = CORPUS.filter((sample) => usesUiSdk(sample.source)).length
-  expect({ exact: CORPUS.length - asRead, byReader: asRead }).toEqual({ exact: 6, byReader: 48 })
+  expect({ exact: CORPUS.length - asRead, byReader: asRead }).toEqual({ exact: 7, byReader: 51 })
 })
 
 test("a calendar whose days hold markup of their own reads the same in React and Web", async () => {

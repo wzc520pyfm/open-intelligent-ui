@@ -206,19 +206,38 @@
   .iui-root :is([data-slot="tabs-tab"], [data-slot="tabs-indicator"]) {
     transition:
       color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      background var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
       border-color var(--iui-motion-layout-duration) var(--iui-motion-layout-easing),
       translate var(--iui-motion-layout-duration) var(--iui-motion-layout-easing),
-      width var(--iui-motion-layout-duration) var(--iui-motion-layout-easing);
+      width var(--iui-motion-layout-duration) var(--iui-motion-layout-easing),
+      inset var(--iui-motion-layout-duration) var(--iui-motion-layout-easing);
+  }
+
+  .iui-root :is([data-slot="segmented-control-indicator"], [data-slot="tabs-indicator"]) {
+    transition:
+      translate var(--iui-motion-layout-duration) var(--iui-motion-layout-easing),
+      width var(--iui-motion-layout-duration) var(--iui-motion-layout-easing),
+      height var(--iui-motion-layout-duration) var(--iui-motion-layout-easing),
+      inset var(--iui-motion-layout-duration) var(--iui-motion-layout-easing),
+      background var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
+  }
+
+  .iui-root [data-slot="segmented-control-item"] {
+    transition:
+      color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      background var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
   }
 
   .iui-root [data-slot="tabs-panel"] {
     font-size: inherit;
-    transition: opacity var(--iui-motion-surface-enter-duration)
-      var(--iui-motion-surface-enter-easing);
+    transition:
+      opacity var(--iui-motion-surface-enter-duration) var(--iui-motion-surface-enter-easing),
+      translate var(--iui-motion-surface-enter-duration) var(--iui-motion-surface-enter-easing);
   }
 
   .iui-root [data-slot="tabs-panel"][data-starting-style] {
     opacity: 0;
+    translate: 0 6px;
   }
 
   /* Indicators that pop in */

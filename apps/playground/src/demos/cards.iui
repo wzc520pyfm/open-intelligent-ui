@@ -1,0 +1,251 @@
+<state hotels={[
+  { id: "horizon", name: "Le Horizon", tag: "Free Wifi", color: "success", place: "Rooftop", rating: 4.7, price: "€€€", blurb: "Quiet courtyard near the Seine with a glass rooftop lounge.", amenity: "Free Wifi", area: "Seine" },
+  { id: "atelier", name: "Hôtel Atelier", tag: "Family-friendly", color: "accent", place: "Louvre", rating: 4.6, price: "€€", blurb: "Steps from the Luxembourg Gardens; connecting rooms on request.", amenity: "Family", area: "Louvre" },
+  { id: "bois", name: "Maison Bois", tag: "Spa", color: "info", place: "Marais", rating: 4.8, price: "€€€", blurb: "Timber suites and a cedar spa tucked into a Marais courtyard.", amenity: "Spa", area: "Marais" }
+]} />
+<derive picked={{
+  id: "lumiere",
+  name: "Villa Lumière",
+  rating: 4.9,
+  reviews: 812,
+  blurb: "A terracotta boutique hotel in Montmartre, just twelve suites.",
+  tags: ["Free Wifi", "Spa", "Montmartre"],
+  rate: 540
+}} />
+
+<style>
+  .panel {
+    border: 1px solid color-mix(in oklab, var(--iui-color-border) 65%, transparent);
+    border-radius: 1.5rem;
+    background: var(--iui-color-surface);
+    padding: 1.15rem 1.25rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    min-width: 0;
+  }
+  /* OpenUI hotels layout: three posters; scroll sideways when the column is tight. */
+  .poster-scroll {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 0.2rem;
+    margin-inline: -0.15rem;
+    padding-inline: 0.15rem;
+    scrollbar-width: thin;
+  }
+  .poster {
+    position: relative;
+    flex: 0 0 calc((100% - 1.5rem) / 2.55);
+    min-width: 10.25rem;
+    max-width: 15rem;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    border-radius: var(--iui-radius-lg);
+    border: none;
+    outline: 1px solid color-mix(in oklab, var(--iui-color-foreground) 8%, transparent);
+    outline-offset: -1px;
+    background: var(--iui-color-muted);
+    scroll-snap-align: start;
+  }
+  .poster .art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .poster .chip {
+    position: absolute;
+    top: 0.55rem;
+    left: 0.55rem;
+    z-index: 1;
+  }
+  .poster .go {
+    position: absolute;
+    top: 0.55rem;
+    right: 0.55rem;
+    z-index: 1;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: color-mix(in oklab, var(--iui-color-background) 72%, transparent);
+    backdrop-filter: blur(8px);
+    border: 1px solid color-mix(in oklab, var(--iui-color-foreground) 12%, transparent);
+    color: var(--iui-color-foreground);
+    padding: 0;
+    cursor: pointer;
+  }
+  .poster .meta {
+    position: absolute;
+    inset: auto 0.55rem 0.55rem 0.55rem;
+    padding: 0.6rem 0.7rem;
+    border-radius: var(--iui-radius-md);
+    background: color-mix(in oklab, var(--iui-color-background) 82%, transparent);
+    backdrop-filter: blur(10px);
+    border: 1px solid color-mix(in oklab, var(--iui-color-foreground) 8%, transparent);
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  .info-tile {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--iui-color-muted) 55%, transparent);
+    border: 1px solid color-mix(in oklab, var(--iui-color-border) 55%, transparent);
+    min-width: 0;
+  }
+  .info-tile .label { min-width: 0; line-height: 1.2; font-size: 0.75rem; }
+  .info-icon {
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 5px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+  }
+  .info-icon :is(svg) { width: 0.75rem; height: 0.75rem; }
+  .info-icon.sun { background: color-mix(in oklab, var(--iui-color-warning) 22%, transparent); color: var(--iui-color-warning); }
+  .info-icon.walk { background: color-mix(in oklab, var(--iui-color-info) 22%, transparent); color: var(--iui-color-info); }
+  .info-icon.kit { background: color-mix(in oklab, var(--iui-color-success) 22%, transparent); color: var(--iui-color-success); }
+  .feature {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(13rem, 0.95fr);
+    border-radius: var(--iui-radius-lg);
+    overflow: hidden;
+    border: 1px solid color-mix(in oklab, var(--iui-color-accent) 28%, var(--iui-color-border));
+  }
+  .feature-art {
+    min-height: 12rem;
+    position: relative;
+    background: var(--iui-color-muted);
+  }
+  .feature-art svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .feature-body {
+    padding: 1.1rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    background: var(--iui-color-surface);
+    min-width: 0;
+  }
+  @container iui (width < 640px) {
+    .poster {
+      flex-basis: calc((100% - 0.75rem) / 1.85);
+      min-width: 9.75rem;
+    }
+    .info-grid { grid-template-columns: 1fr; }
+    .info-tile { border-radius: var(--iui-radius-md); }
+    .feature { grid-template-columns: 1fr; }
+    .feature-art { min-height: 9.5rem; }
+  }
+  @container iui (width < 420px) {
+    .panel { padding: 0.95rem 0.95rem 1.05rem; }
+    .poster { flex-basis: 78%; min-width: 9rem; }
+  }
+</style>
+
+<div class="panel" motion="pop">
+  <box gap={1} motion="blur">
+    <title level={2}>Modern hotels in Paris</title>
+    <text size="sm" color="muted">Our best recommendations for a modern stay, picked for your trip.</text>
+  </box>
+
+  <div class="poster-scroll" stagger={60}>
+    {#each hotels as hotel (hotel.id)}
+      <div class="poster" motion="blur">
+        <svg class="art" viewBox="0 0 160 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          {#if hotel.id == "horizon"}
+            <rect width="160" height="200" fill="var(--iui-color-chart-1)" opacity="0.28" />
+            <path d="M0 200 L0 120 L28 96 L52 112 L78 78 L110 104 L140 86 L160 98 L160 200 Z" fill="var(--iui-color-chart-1)" opacity="0.55" />
+            <rect x="48" y="52" width="64" height="96" rx="4" fill="var(--iui-color-surface)" opacity="0.35" />
+          {:else if hotel.id == "atelier"}
+            <rect width="160" height="200" fill="var(--iui-color-chart-3)" opacity="0.28" />
+            <path d="M0 200 L0 120 L28 96 L52 112 L78 78 L110 104 L140 86 L160 98 L160 200 Z" fill="var(--iui-color-chart-3)" opacity="0.55" />
+            <circle cx="118" cy="52" r="18" fill="var(--iui-color-chart-2)" opacity="0.55" />
+          {:else}
+            <rect width="160" height="200" fill="var(--iui-color-chart-2)" opacity="0.28" />
+            <path d="M0 200 L0 120 L28 96 L52 112 L78 78 L110 104 L140 86 L160 98 L160 200 Z" fill="var(--iui-color-chart-2)" opacity="0.55" />
+            <rect x="36" y="62" width="88" height="78" rx="6" fill="var(--iui-color-surface)" opacity="0.4" />
+          {/if}
+        </svg>
+        <badge class="chip" color={hotel.color} size="sm"><icon name="sparkles" size="sm" /> {hotel.tag}</badge>
+        <button type="button" class="go" aria-label="Open {hotel.name}" on:click={send("Show " + hotel.name)}><icon name="arrow-right" size="sm" /></button>
+        <div class="meta">
+          <text size="sm" weight="semibold">{hotel.name}</text>
+          <row gap={1} wrap>
+            <text size="xs" color="muted">{hotel.place}</text>
+            <text size="xs" color="muted">·</text>
+            <text size="xs" color="muted">★ {hotel.rating}</text>
+            <text size="xs" color="muted">·</text>
+            <text size="xs" weight="medium">{hotel.price}</text>
+          </row>
+        </div>
+      </div>
+    {/each}
+  </div>
+
+  <div class="info-grid" stagger={45}>
+    <div class="info-tile" motion="blur">
+      <span class="info-icon sun"><icon name="sun" size="sm" /></span>
+      <text size="xs" weight="medium" class="label">Sunny, 24° all week</text>
+    </div>
+    <div class="info-tile" motion="blur">
+      <span class="info-icon walk"><icon name="train-front" size="sm" /></span>
+      <text size="xs" weight="medium" class="label">Metro within 5 minutes</text>
+    </div>
+    <div class="info-tile" motion="blur">
+      <span class="info-icon kit"><icon name="wallet" size="sm" /></span>
+      <text size="xs" weight="medium" class="label">All prices in euros</text>
+    </div>
+  </div>
+
+  <div class="feature" motion="blur">
+    <div class="feature-art" aria-hidden="true">
+      <svg viewBox="0 0 320 220" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="lumierePick" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--iui-color-chart-2)" stop-opacity="0.55" />
+            <stop offset="100%" stop-color="var(--iui-color-chart-1)" stop-opacity="0.35" />
+          </linearGradient>
+        </defs>
+        <rect width="320" height="220" fill="url(#lumierePick)" />
+        <path d="M0 220 L0 140 L50 118 L90 138 L140 96 L190 128 L240 106 L280 132 L320 114 L320 220 Z" fill="var(--iui-color-chart-2)" opacity="0.45" />
+        <rect x="110" y="54" width="100" height="96" rx="8" fill="var(--iui-color-surface)" opacity="0.45" />
+        <circle cx="250" cy="48" r="18" fill="var(--iui-color-chart-3)" opacity="0.7" />
+      </svg>
+    </div>
+    <div class="feature-body">
+      <badge color="warning" size="sm"><icon name="trophy" size="sm" /> Top pick</badge>
+      <title level={3}>{picked.name}</title>
+      <row gap={2} wrap>
+        <text size="sm">★ {picked.rating}</text>
+        <text size="sm" color="muted">({picked.reviews} reviews)</text>
+      </row>
+      <text size="sm" color="muted">{picked.blurb}</text>
+      <row gap={1} wrap>
+        {#each picked.tags as tag (tag)}
+          <badge size="sm">{tag}</badge>
+        {/each}
+      </row>
+      <row gap={2} wrap style="margin-top: auto">
+        <text weight="semibold" tabular>From €{picked.rate} / night</text>
+        <spacer />
+        <Button variant="solid" on:click={send("Book " + picked.name)}>Book</Button>
+      </row>
+    </div>
+  </div>
+</div>

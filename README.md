@@ -22,7 +22,7 @@ UI SDK is different: it ships component *behaviors* (focus, keyboard, selection,
 | Foundation | What it gives | In this repo |
 | --- | --- | --- |
 | UI SDK | Behaviors for 55 entry points, 367 parts | Lazy-loaded by name; write `<Tabs>`, `<Dialog>`, `<Select>` in markup |
-| DESIGN.md | Color, type, radius, spacing, motion tokens, plus prose on how to use them | Tokens become CSS variables; prose goes into the system prompt. Three designs under `design/` |
+| DESIGN.md | Color, type, radius, spacing, motion tokens, plus prose on how to use them | Tokens become CSS variables; prose goes into the system prompt. Four designs under `design/` |
 | Motion skill | Which change gets which motion, and a way to review it frame by frame | `skills/motion/`; markup attributes `motion`, `show`, `stagger`, `morph` |
 | Small presets | Content widgets UI SDK does not have | 15 layout primitives; `Chart`, `Stat`, `Number`, `DataTable`, `CodeBlock`, `Skeleton` |
 
@@ -240,7 +240,7 @@ packages/web      Web Components renderer, on @ui-sdk/web: <intelligent-ui> and 
 packages/open-intelligent-ui   The unscoped npm name; re-exports packages/core
 apps/playground   Demo site (React), with a switch that draws a reply with any of the five renderers
 apps/vue-demo, apps/svelte-demo, apps/solid-demo, apps/web-demo   The same demos on one renderer each
-design/           Three DESIGN.md files: Paper, Heritage, Signal. third-party/ holds HeroUI's, as published
+design/           Four DESIGN.md files: Paper, Noir, Heritage, Signal. third-party/ holds HeroUI's, as published
 skills/           Agent skills: intelligent-ui and motion
 docs/             Research, language spec, architecture
 scripts/          UI SDK catalog generation, skill references, design lint

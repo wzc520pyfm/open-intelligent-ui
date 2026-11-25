@@ -36,7 +36,7 @@ watched it and it reads as intended.
 
 | The change | The motion | Token |
 | --- | --- | --- |
-| Content arrives | Fade in and rise 8px. A group enters in sequence, 40–60ms apart, important first. | `surface-enter` |
+| Content arrives | Fade in and rise 10px. A group enters in sequence, 40–60ms apart, important first. | `surface-enter` |
 | Content leaves | Fade out, a little movement, no delay. Faster than it came. | `surface-exit` |
 | A control responds (hover, press, toggle, select) | Color or opacity. At most 1–2px of movement. | `state-change` |
 | A panel opens from a trigger | Grow and fade from the trigger's side, not from the center of the screen. | `surface-enter` / `surface-exit` |
@@ -82,7 +82,7 @@ tokens yet, add these five before animating anything.
 | **Hierarchy** | The important element moves first and furthest. Supporting elements follow, smaller. |
 | **Stagger** | Groups enter in sequence, not at once. Keep the whole sequence under about 400ms; cap the delay after the first dozen items. |
 | **Interruptible** | The reader can act at any moment. A second click mid-animation reverses or retargets it; it never queues, and never blocks input. |
-| **Cheap to draw** | Animate `opacity`, `translate`, `scale`, `rotate`. Animate `width` or `height` only when the size is the data. |
+| **Cheap to draw** | Animate `opacity`, `translate`, `scale`, `rotate`. Animate `width` or `height` only when the size is the data. Prefer short travel (about 10px on enter). |
 | **Respect preferences** | With reduced motion, nothing travels. Changes apply at once or cross-fade. |
 | **Consistency** | The same kind of change moves the same way everywhere. That is what the tokens are for. |
 

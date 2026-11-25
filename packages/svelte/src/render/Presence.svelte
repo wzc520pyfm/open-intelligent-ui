@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { exitAnimations } from "@open-intelligent-ui/core/renderer"
+  import { whenExitDone } from "@open-intelligent-ui/core/renderer"
   import { type Snippet, tick, untrack } from "svelte"
 
   /**
@@ -36,9 +36,7 @@
       // The exit styles have to be applied before their animations exist.
       void tick().then(() => {
         if (run !== mine) return
-        const exit = exitAnimations(element)
-        if (exit) void exit.then(done)
-        else done()
+        void whenExitDone(element).then(done)
       })
     })
   })

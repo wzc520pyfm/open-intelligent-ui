@@ -67,12 +67,16 @@
 
   .iui-root [data-iui-motion="blur"] {
     animation-name: iui-blur;
+    /* OpenUI scBlurIn is 0.9s expo-out; keep the token easing, lengthen only blur. */
+    animation-duration: 0.9s;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .iui-root [data-iui-motion="pop"] {
     animation-name: iui-pop;
-    animation-duration: var(--iui-motion-emphasis-duration);
-    animation-timing-function: var(--iui-motion-emphasis-easing);
+    /* OpenUI scPop is 0.35s expo-out. */
+    animation-duration: 0.35s;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .iui-root [data-iui-motion="draw"] {
@@ -151,8 +155,9 @@
     --iui-i: 11;
   }
 
-  /* `show={cond}`: enter when it turns true, leave before unmounting. */
-  .iui-root .iui-presence > :where(*) {
+  /* `show={cond}`: enter when it turns true, leave before unmounting.
+   * Named `motion="…"` on the child keeps its own entrance; exit always leaves. */
+  .iui-root .iui-presence > :where(*:not([data-iui-motion])) {
     animation: iui-rise var(--iui-motion-surface-enter-duration)
       var(--iui-motion-surface-enter-easing) both;
   }
@@ -195,49 +200,50 @@
   @keyframes iui-rise {
     from {
       opacity: 0;
-      translate: 0 8px;
+      translate: 0 10px;
     }
   }
 
   @keyframes iui-drop {
     from {
       opacity: 0;
-      translate: 0 -8px;
+      translate: 0 -10px;
     }
   }
 
   @keyframes iui-scale {
     from {
       opacity: 0;
-      scale: 0.96;
+      scale: 0.97;
     }
   }
 
   @keyframes iui-slide-left {
     from {
       opacity: 0;
-      translate: 16px 0;
+      translate: 14px 0;
     }
   }
 
   @keyframes iui-slide-right {
     from {
       opacity: 0;
-      translate: -16px 0;
+      translate: -14px 0;
     }
   }
 
   @keyframes iui-blur {
     from {
-      opacity: 0;
-      filter: blur(6px);
+      opacity: 0.15;
+      filter: blur(2px);
     }
   }
 
   @keyframes iui-pop {
     from {
       opacity: 0;
-      scale: 0.8;
+      translate: 0 10px;
+      scale: 0.98;
     }
   }
 
@@ -262,14 +268,22 @@
   @keyframes iui-leave {
     to {
       opacity: 0;
-      translate: 0 -4px;
+      translate: 0 6px;
+      scale: 0.985;
     }
   }
 
   @supports (view-transition-name: none) {
     ::view-transition-group(*) {
       animation-duration: var(--iui-motion-layout-duration, 320ms);
-      animation-timing-function: var(--iui-motion-layout-easing, cubic-bezier(0.2, 0, 0, 1));
+      animation-timing-function: var(--iui-motion-layout-easing, cubic-bezier(0.22, 1, 0.36, 1));
+    }
+
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation-duration: var(--iui-motion-layout-duration, 320ms);
+      animation-timing-function: var(--iui-motion-layout-easing, cubic-bezier(0.22, 1, 0.36, 1));
+      mix-blend-mode: normal;
     }
   }
 

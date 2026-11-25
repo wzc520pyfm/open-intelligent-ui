@@ -1,4 +1,4 @@
-import { exitAnimations } from "@open-intelligent-ui/core/renderer"
+import { whenExitDone } from "@open-intelligent-ui/core/renderer"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 
 /**
@@ -19,18 +19,11 @@ export function Presence({ show, children }: { show: boolean; children: ReactNod
 
   useEffect(() => {
     if (!exiting) return
-    const done = () => {
+    let cancelled = false
+    void whenExitDone(ref.current).then(() => {
+      if (cancelled) return
       setMounted(false)
       setExiting(false)
-    }
-    const exit = exitAnimations(ref.current)
-    if (!exit) {
-      done()
-      return
-    }
-    let cancelled = false
-    void exit.then(() => {
-      if (!cancelled) done()
     })
     return () => {
       cancelled = true

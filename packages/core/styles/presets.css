@@ -325,6 +325,24 @@
       var(--iui-motion-state-change-easing);
   }
 
+  /* OpenUI scGrow: bars rise from the baseline as the chart arrives. */
+  .iui-chart-bar {
+    transform-origin: center bottom;
+    animation: iui-chart-grow 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes iui-chart-grow {
+    from {
+      transform: scaleY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .iui-chart-bar {
+      animation: none;
+    }
+  }
+
   :is(.iui-chart-bar, .iui-chart-segment, .iui-chart-legend-item)[data-dim] {
     opacity: 0.35;
   }

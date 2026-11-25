@@ -1,6 +1,7 @@
 import { type Design, parseDesign } from "@open-intelligent-ui/core"
 import paper from "../../../design/default.DESIGN.md?raw"
 import heritage from "../../../design/heritage.DESIGN.md?raw"
+import noir from "../../../design/noir.DESIGN.md?raw"
 import signal from "../../../design/signal.DESIGN.md?raw"
 import heroui from "../../../design/third-party/heroui.DESIGN.md?raw"
 
@@ -13,6 +14,7 @@ export interface Theme {
 
 export const THEMES: Theme[] = [
   { id: "paper", name: "Paper", design: paper },
+  { id: "noir", name: "Noir", design: noir },
   { id: "heritage", name: "Heritage", design: heritage },
   { id: "signal", name: "Signal", design: signal },
   {

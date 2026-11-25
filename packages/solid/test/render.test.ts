@@ -869,7 +869,7 @@ describe("motion hooks", () => {
     await click(byText(container, "Toggle"))
     expect(container.querySelector(".iui-presence .iui-card")?.textContent).toBe("Details")
     await click(byText(container, "Toggle"))
-    expect(container.querySelector(".iui-card")).toBeNull()
+    await until(() => expect(container.querySelector(".iui-card")).toBeNull())
   })
 
   test("show keeps an element until its exit animation ends", async () => {

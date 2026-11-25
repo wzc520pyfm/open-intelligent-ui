@@ -203,7 +203,7 @@ import design from "./brand.DESIGN.md?raw"
 - `scheme` is `light`, `dark` or `auto` (follow the system). A design with
   `colors.light` and `colors.dark` supports both.
 - With no `design`, the built-in Paper design is used.
-- `design/` has three complete designs to start from. `pnpm design:lint`
+- `design/` has complete designs to start from (Paper, Noir, Heritage, Signal). `pnpm design:lint`
   checks them with the DESIGN.md CLI.
 - Fonts named in the design are used if the page has them. Load them
   yourself; the renderer does not fetch fonts.

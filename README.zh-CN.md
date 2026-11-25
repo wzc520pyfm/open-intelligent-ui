@@ -22,7 +22,7 @@ UI SDK 提供的是另一种东西：组件的行为（焦点、键盘、选中�
 | 地基 | 提供什么 | 在这个仓库里 |
 | --- | --- | --- |
 | UI SDK | 55 个入口、367 个部件的交互行为 | 按名字懒加载，标记里直接写 `<Tabs>`、`<Dialog>`、`<Select>` |
-| DESIGN.md | 颜色、字体、圆角、间距、动效令牌，以及怎么用它们的说明 | 令牌变成 CSS 变量，正文进系统提示词。`design/` 里有三份 |
+| DESIGN.md | 颜色、字体、圆角、间距、动效令牌，以及怎么用它们的说明 | 令牌变成 CSS 变量，正文进系统提示词。`design/` 里有四份 |
 | 动效 skill | 什么变化配什么动效，以及在浏览器里逐帧检查的方法 | `skills/motion/`，标记属性 `motion`、`show`、`stagger`、`morph` |
 | 少量预置 | UI SDK 没有的内容类组件 | 15 个布局原语，`Chart`、`Stat`、`Number`、`DataTable`、`CodeBlock`、`Skeleton` |
 
@@ -89,7 +89,7 @@ pnpm dev
 ```bash
 pnpm test
 pnpm typecheck
-pnpm design:lint      # 用 DESIGN.md 官方 CLI 检查 design/ 下的三份设计
+pnpm design:lint      # 用 DESIGN.md 官方 CLI 检查 design/ 下的设计
 pnpm check:packages   # 构建所有包，检查将要发到 npm 的 tarball
 ```
 
@@ -240,7 +240,7 @@ packages/web      Web Components 渲染器，建在 @ui-sdk/web 上：<intellige
 packages/open-intelligent-ui   不带 scope 的 npm 包名，只重导出 packages/core
 apps/playground   演示站（React），可以切换用五个渲染器中的任意一个来画回复
 apps/vue-demo、apps/svelte-demo、apps/solid-demo、apps/web-demo   同一批示例，各用一个渲染器
-design/           三份 DESIGN.md：Paper、Heritage、Signal。third-party/ 里是 HeroUI 发布的原文件
+design/           四份 DESIGN.md：Paper、Noir、Heritage、Signal。third-party/ 里是 HeroUI 发布的原文件
 skills/           给编码智能体的两个 skill：intelligent-ui 和 motion
 docs/             调研、语言规范、架构
 scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设计

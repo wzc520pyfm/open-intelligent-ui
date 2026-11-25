@@ -222,6 +222,8 @@
   const modelSheet = $derived.by(() => {
     void doc
     void version
+    // Keep the last closed sheet while a `<style>` tag is mid-stream.
+    if (surface.styles.length === 0 && streaming && sheets) return sheets.css
     const key = surface.styles.join("\u0000")
     if (sheets?.key !== key) sheets = { key, css: modelCss(surface.styles, id) }
     return sheets.css
@@ -255,12 +257,14 @@
     )
   })
 
+  // Keep the last non-empty tree while a stream briefly clears, without writing
+  // inside `$derived` (Svelte forbids that as `state_unsafe_mutation`).
   let stableBlocks = $state<typeof blocks>([])
-  const visible = $derived.by(() => {
+  $effect(() => {
     const next = blocks
     if (next.length > 0 || !streaming) stableBlocks = next
-    return streaming && next.length === 0 ? stableBlocks : next
   })
+  const visible = $derived(streaming && blocks.length === 0 ? stableBlocks : blocks)
 </script>
 
 <div

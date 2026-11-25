@@ -100,6 +100,7 @@ export {
   guard,
   modelCss,
   exitAnimations,
+  whenExitDone,
   openUrl,
   runMorph,
   styleText,

@@ -1,4 +1,4 @@
-import { exitAnimations } from "@open-intelligent-ui/core/renderer"
+import { whenExitDone } from "@open-intelligent-ui/core/renderer"
 import { type Component, h } from "../dom/node"
 
 /**
@@ -34,9 +34,7 @@ export const Presence: Component<{ show: boolean }> = (instance) => {
     // The exit styles have to be applied before their animations exist.
     wait = () => {
       if (run !== mine) return
-      const exit = exitAnimations(element as HTMLElement | null)
-      if (exit) void exit.then(done)
-      else done()
+      void whenExitDone(element as HTMLElement | null).then(done)
     }
   }
 

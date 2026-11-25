@@ -14,7 +14,8 @@ export function readLocale(): Locale {
   } catch {
     /* ignore */
   }
-  return typeof navigator !== "undefined" && /^zh\b/i.test(navigator.language) ? "zh" : "en"
+  // Playground chrome defaults to English; users switch to 中文 explicitly.
+  return "en"
 }
 
 export function writeLocale(locale: Locale): void {
@@ -171,6 +172,26 @@ const en: Copy = {
   providerDeepSeek: "DeepSeek",
   providerCustom: "Custom",
   demos: {
+    charts: {
+      title: "Charts",
+      caption: "Release health: a headline metric with bar, donut and area charts",
+      prompt: "How healthy is the Open Intelligent UI release train?",
+    },
+    cards: {
+      title: "Cards",
+      caption: "Hotel posters you can scroll, tip chips, then a featured match",
+      prompt: "Help me book a hotel in Paris.",
+    },
+    budgets: {
+      title: "Dashboards",
+      caption: "Engineering load: KPIs, commit dots, team capacity and blockers",
+      prompt: "Show me load across the department's engineering teams.",
+    },
+    forms: {
+      title: "Forms",
+      caption: "Meeting-room booking with tags, steppers, amenity chips and a duration slider",
+      prompt: "Help me book a meeting room on Thursday afternoon.",
+    },
     gears: {
       title: "Explain",
       caption: "A live diagram drawn in SVG, driven by sliders",
@@ -276,6 +297,26 @@ const zh: Copy = {
   providerDeepSeek: "DeepSeek",
   providerCustom: "自定义",
   demos: {
+    charts: {
+      title: "图表",
+      caption: "发布健康度：主指标搭配柱状、环图与面积图",
+      prompt: "open intelligent ui 的发版节奏健康吗？",
+    },
+    cards: {
+      title: "卡片",
+      caption: "可横滑的酒店海报、提示条，再跟一张精选推荐",
+      prompt: "帮我预订巴黎的酒店。",
+    },
+    budgets: {
+      title: "仪表盘",
+      caption: "研发负载：KPI、提交点阵、团队容量与阻塞",
+      prompt: "给我看部门各研发团队的负载。",
+    },
+    forms: {
+      title: "表单",
+      caption: "会议室预订：标签、步进器、设施选项与时长滑块",
+      prompt: "帮我预订周四下午的会议室。",
+    },
     gears: {
       title: "解释",
       caption: "滑块驱动的 SVG 示意图",

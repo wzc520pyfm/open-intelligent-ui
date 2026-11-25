@@ -1,0 +1,353 @@
+<style>
+  .board {
+    border: 1px solid var(--iui-color-border);
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--iui-color-surface);
+    min-width: 0;
+  }
+  .board-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--iui-color-border);
+  }
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.95rem 1rem 0.8rem;
+    border-right: 1px solid var(--iui-color-border);
+    border-bottom: 1px solid var(--iui-color-border);
+    min-width: 0;
+  }
+  .kpi .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .kpi .value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .kpi .menu { flex: 0 0 auto; }
+  .kpi:last-child { border-right: none; }
+  .kpi-icon {
+    width: 1.375rem;
+    height: 1.375rem;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: linear-gradient(145deg, var(--iui-color-accent), color-mix(in oklab, var(--iui-color-accent) 55%, white));
+    flex: 0 0 auto;
+  }
+  .kpi-note {
+    margin-top: 0.15rem;
+    padding-top: 0.55rem;
+    border-top: 1px dashed color-mix(in oklab, var(--iui-color-border) 85%, transparent);
+    font-size: 0.6875rem;
+    color: var(--iui-color-muted-foreground);
+  }
+  .board-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(13rem, 1fr);
+  }
+  .board-main {
+    border-right: 1px solid var(--iui-color-border);
+    min-width: 0;
+  }
+  .board-panel {
+    padding: 1rem 1.05rem 1.1rem;
+    border-bottom: 1px solid var(--iui-color-border);
+  }
+  .board-panel:last-child { border-bottom: none; }
+  .board-side {
+    padding: 1rem 1.05rem 1.1rem;
+    min-width: 0;
+  }
+  /* Column stacks of rounded cells — same silhouette style as OpenUI cash flow. */
+  .commit-cells {
+    width: 100%;
+    height: auto;
+    margin-top: 0.85rem;
+    display: block;
+    overflow: visible;
+  }
+  .commit-cells .col {
+    transform-box: fill-box;
+    transform-origin: center bottom;
+    animation: commit-grow 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--i, 0) * 18ms);
+  }
+  .commit-cells rect {
+    fill: color-mix(in oklab, var(--iui-color-foreground) 10%, transparent);
+  }
+  .commit-cells rect[data-c="commit"] { fill: #2b8cf6; }
+  .commit-cells rect[data-c="merge"] { fill: #8cc4fb; }
+  .commit-labels {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 0.2rem;
+  }
+  .commit-swatch {
+    width: 4px;
+    height: 11px;
+    border-radius: 1px;
+    display: block;
+  }
+  .load-bar {
+    height: 8px;
+    border-radius: 99px;
+    background: color-mix(in oklab, var(--iui-color-accent) 14%, transparent);
+    overflow: hidden;
+  }
+  .load-bar > i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #2b8cf6, #8cc4fb);
+    transform-origin: left center;
+    animation: bar-fill 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .nowrap { white-space: nowrap; overflow-wrap: normal; }
+  .issue-scroll {
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+  .issue-row {
+    display: grid;
+    grid-template-columns: 1.2fr 0.9fr 0.85fr 0.75fr;
+    gap: 0.55rem 0.75rem;
+    align-items: center;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--iui-color-border);
+    font-size: 0.8125rem;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .issue-row > * { min-width: 0; }
+  .issue-row .nowrap {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .issue-row.head {
+    color: var(--iui-color-muted-foreground);
+    font-size: 0.75rem;
+    padding-top: 0;
+    border-bottom-color: color-mix(in oklab, var(--iui-color-border) 80%, transparent);
+  }
+  .issue-row:last-child { border-bottom: none; }
+  @keyframes commit-grow {
+    from { transform: scaleY(0); }
+  }
+  @keyframes bar-fill {
+    from { transform: scaleX(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .commit-cells .col { animation: none; }
+  }
+  @container iui (width < 720px) {
+    .kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kpi:nth-child(2n) { border-right: none; }
+    .board-body { grid-template-columns: 1fr; }
+    .board-main { border-right: none; }
+    .board-side { border-top: 1px solid var(--iui-color-border); }
+  }
+  @container iui (width < 520px) {
+    .issue-scroll { overflow-x: visible; }
+    .issue-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.35rem 0.65rem;
+    }
+    .issue-row.head { display: none; }
+    .issue-row > :nth-child(2),
+    .issue-row > :nth-child(3) { display: none; }
+  }
+  @container iui (width < 420px) {
+    .board-head { gap: 0.4rem; padding: 0.75rem 0.85rem; }
+    .kpi { padding: 0.8rem 0.75rem 0.7rem; }
+    .kpi .value { font-size: 1.25rem; }
+    .kpi .menu { display: none; }
+    .kpi .label { font-size: 0.75rem; }
+  }
+</style>
+
+<!-- Per day: [commits, merges]; stacks grow like OpenUI cash-flow cells. -->
+<state commitCols={[
+  [3, 3], [4, 2], [4, 3], [5, 3], [5, 3], [5, 3], [4, 4], [4, 4], [4, 4], [4, 3], [3, 4], [3, 3], [3, 3], [3, 3], [4, 2], [4, 2],
+  [4, 2], [4, 3], [4, 3], [4, 3], [4, 4], [4, 4], [4, 4], [4, 3], [4, 3], [4, 2], [4, 2], [3, 2], [3, 2], [3, 1], [2, 2], [2, 2],
+  [2, 2], [2, 2], [2, 3], [3, 3], [3, 3], [4, 3], [4, 3], [4, 3], [5, 3], [5, 3], [4, 4], [4, 3], [4, 3], [3, 4], [3, 4], [3, 4],
+  [3, 3], [4, 3], [4, 3], [4, 3], [5, 3], [5, 4], [5, 4], [5, 4], [5, 5], [5, 5], [5, 5], [5, 4], [5, 4], [5, 3], [4, 4], [4, 3]
+]} />
+<state commitWeeks={["W1", "W2", "W3", "W4"]} />
+<state squads={[
+  { name: "Platform", load: 0.92, pts: "34 / 37" },
+  { name: "Checkout", load: 0.78, pts: "29 / 37" },
+  { name: "Growth", load: 0.64, pts: "22 / 34" },
+  { name: "Data", load: 0.55, pts: "18 / 33" },
+  { name: "Design sys", load: 0.41, pts: "12 / 29" }
+]} />
+<derive
+  committed={118}
+  done={86}
+  spill={9}
+  commitCount={214}
+/>
+
+<div class="board" motion="pop">
+  <div class="board-head">
+    <title level={2}>Engineering team load</title>
+    <spacer />
+    <badge variant="soft" size="sm"><icon name="refresh-cw" size="sm" motion="spin" /> Synced 2m ago</badge>
+    <Button size="sm"><icon name="calendar" size="sm" /> This week</Button>
+    <Button size="sm"><icon name="share-2" size="sm" /> Share</Button>
+  </div>
+
+  <div class="kpi-strip" stagger={55}>
+    <div class="kpi" motion="blur">
+      <row gap={2}>
+        <span class="kpi-icon"><icon name="target" size="sm" /></span>
+        <text size="sm" color="muted" class="label">Committed</text>
+        <spacer />
+        <icon name="ellipsis" size="sm" color="muted" class="menu" />
+      </row>
+      <row gap={2} wrap>
+        <text size="xl" weight="bold" tabular class="value">{committed} pts</text>
+        <badge color="info" size="sm">37 capacity</badge>
+      </row>
+      <div class="kpi-note">Across five R&D teams</div>
+    </div>
+    <div class="kpi" motion="blur">
+      <row gap={2}>
+        <span class="kpi-icon"><icon name="check-check" size="sm" /></span>
+        <text size="sm" color="muted" class="label">Done</text>
+        <spacer />
+        <icon name="ellipsis" size="sm" color="muted" class="menu" />
+      </row>
+      <row gap={2} wrap>
+        <text size="xl" weight="bold" tabular class="value">{done} pts</text>
+        <badge color="success" size="sm">73%</badge>
+      </row>
+      <div class="kpi-note">Through Thursday</div>
+    </div>
+    <div class="kpi" motion="blur">
+      <row gap={2}>
+        <span class="kpi-icon"><icon name="corner-up-right" size="sm" /></span>
+        <text size="sm" color="muted" class="label">Spillover</text>
+        <spacer />
+        <icon name="ellipsis" size="sm" color="muted" class="menu" />
+      </row>
+      <row gap={2} wrap>
+        <text size="xl" weight="bold" tabular class="value">{spill} pts</text>
+        <badge color="warning" size="sm">3 items</badge>
+      </row>
+      <div class="kpi-note">Likely next week</div>
+    </div>
+    <div class="kpi" motion="blur">
+      <row gap={2}>
+        <span class="kpi-icon"><icon name="git-commit-horizontal" size="sm" /></span>
+        <text size="sm" color="muted" class="label">Commits</text>
+        <spacer />
+        <icon name="ellipsis" size="sm" color="muted" class="menu" />
+      </row>
+      <row gap={2} wrap>
+        <text size="xl" weight="bold" tabular class="value">{commitCount}</text>
+        <badge color="success" size="sm">+18%</badge>
+      </row>
+      <div class="kpi-note">On team branches</div>
+    </div>
+  </div>
+
+  <div class="board-body">
+    <div class="board-main">
+      <div class="board-panel" motion="blur">
+        <row gap={2}>
+          <title level={3}>Commit activity</title>
+          <spacer />
+          <row gap={3}>
+            <row gap={1}><span class="commit-swatch" style="background: #8cc4fb"></span><text size="xs" color="muted">Merges</text></row>
+            <row gap={1}><span class="commit-swatch" style="background: #2b8cf6"></span><text size="xs" color="muted">Commits</text></row>
+          </row>
+        </row>
+        <svg class="commit-cells" viewBox="0 0 640 110" role="img" aria-label="Daily commits and merges over four weeks">
+          {#each commitCols as col, i}
+            <g class="col" style="--i: {i}">
+              {#each range(0, col[0]) as r}
+                <rect x={i * 10} y={100 - r * 10} width="8" height="8" rx="1.6" data-c="commit" />
+              {/each}
+              {#each range(0, col[1]) as r}
+                <rect x={i * 10} y={100 - (col[0] + r) * 10} width="8" height="8" rx="1.6" data-c="merge" />
+              {/each}
+              {#each range(0, 10 - col[0] - col[1]) as r}
+                <rect x={i * 10} y={100 - (col[0] + col[1] + r) * 10} width="8" height="8" rx="1.6" />
+              {/each}
+            </g>
+          {/each}
+        </svg>
+        <div class="commit-labels">
+          {#each commitWeeks as week (week)}
+            <text size="xs" color="muted" align="center">{week}</text>
+          {/each}
+        </div>
+      </div>
+
+      <div class="board-panel" motion="blur">
+        <title level={3}>Open blockers</title>
+        <div class="issue-scroll">
+          <div class="issue-row head">
+            <text>Issue</text>
+            <text>Owner</text>
+            <text>Age</text>
+            <text>Severity</text>
+          </div>
+          <div class="issue-row">
+            <text weight="medium" class="nowrap">Checkout tax edge case</text>
+            <text color="muted" class="nowrap">Mira</text>
+            <text tabular color="muted" class="nowrap">2d</text>
+            <badge color="danger" size="sm">High</badge>
+          </div>
+          <div class="issue-row">
+            <text weight="medium" class="nowrap">Flaky auth e2e</text>
+            <text color="muted" class="nowrap">Jon</text>
+            <text tabular color="muted" class="nowrap">5d</text>
+            <badge color="warning" size="sm">Med</badge>
+          </div>
+          <div class="issue-row">
+            <text weight="medium" class="nowrap">Design token drift</text>
+            <text color="muted" class="nowrap">Asha</text>
+            <text tabular color="muted" class="nowrap">1d</text>
+            <badge color="info" size="sm">Low</badge>
+          </div>
+          <div class="issue-row">
+            <text weight="medium" class="nowrap">Staging queue lag</text>
+            <text color="muted" class="nowrap">Ken</text>
+            <text tabular color="muted" class="nowrap">3d</text>
+            <badge color="warning" size="sm">Med</badge>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="board-side" motion="blur">
+      <row gap={2}>
+        <title level={3}>Team capacity</title>
+        <spacer />
+        <badge color="accent" size="sm">Week 2</badge>
+      </row>
+      <box gap={3} style="margin-top: 0.85rem">
+        {#each squads as squad, i (squad.name)}
+          <box gap={1}>
+            <row gap={2}>
+              <text size="sm" color="muted">{squad.name}</text>
+              <spacer />
+              <text size="sm" tabular class="nowrap">{squad.pts}</text>
+            </row>
+            <div class="load-bar"><i style="width: {percent(squad.load)}; animation-delay: {i * 40}ms"></i></div>
+          </box>
+        {/each}
+      </box>
+    </div>
+  </div>
+</div>

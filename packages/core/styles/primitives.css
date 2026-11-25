@@ -106,6 +106,9 @@
   .iui-card[data-variant="elevated"] {
     border-color: color-mix(in oklab, var(--iui-color-border) 60%, transparent);
     box-shadow: var(--iui-shadow-md);
+    transition:
+      box-shadow var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      border-color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
   }
 
   .iui-card[data-interactive] {
@@ -114,17 +117,20 @@
       border-color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
       background var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
       box-shadow var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
-      translate var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
+      translate var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      scale var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
   }
 
   .iui-card[data-interactive]:hover {
-    border-color: color-mix(in oklab, var(--iui-color-foreground) 30%, var(--iui-color-border));
+    border-color: color-mix(in oklab, var(--iui-color-foreground) 28%, var(--iui-color-border));
     box-shadow: var(--iui-shadow-md);
+    translate: 0 -1px;
   }
 
   .iui-card[data-interactive]:active {
-    translate: 0 1px;
-    box-shadow: none;
+    translate: 0 0;
+    scale: 0.995;
+    box-shadow: var(--iui-shadow-sm);
   }
 
   /* Text */

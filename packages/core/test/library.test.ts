@@ -206,7 +206,7 @@ One order with its status and total.
     const guide = "# Motion\n\nNothing moves in this product except `motion=\"fade\"`."
     const quiet = defineLibrary({ motion: { name: "Quiet", guide } })
     expect(buildSystemPrompt({ library: quiet })).toContain(guide)
-    expect(buildSystemPrompt({ library: quiet })).not.toContain("stagger")
+    expect(buildSystemPrompt({ library: quiet })).not.toContain('motion="fade|rise|drop|scale')
     expect(buildSystemPrompt({ motion: guide })).toContain(guide)
     expect(buildSystemPrompt({ library: quiet, motion: false })).not.toContain(guide)
   })

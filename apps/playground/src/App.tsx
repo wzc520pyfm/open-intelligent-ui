@@ -147,9 +147,12 @@ export function App() {
   const [mode, setMode] = useState<Mode>(query.live ? "live" : "demos")
   const [demo, setDemo] = useState<Demo>(query.demo ?? (DEMOS[0] as Demo))
   const [themeId, setThemeId] = useState(query.design ?? demo.theme ?? "paper")
-  const [scheme, setScheme] = useState<Scheme>(
-    () => query.scheme ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-  )
+  const [scheme, setScheme] = useState<Scheme>(() => {
+    if (query.scheme) return query.scheme
+    const initialTheme = query.design ?? (query.demo ?? DEMOS[0])?.theme
+    if (initialTheme === "noir") return "dark"
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+  })
   const [renderer, setRenderer] = useState<RendererId>(query.renderer ?? "react")
   const [chartsId, setChartsId] = useState<ChartsId>(query.charts ?? "svg")
   const [motionId, setMotionId] = useState<MotionId>(query.motion ?? "css")
@@ -234,10 +237,15 @@ export function App() {
       }
       setStreamingId(id)
       let shown = 0
-      let last = performance.now()
+      // Set on the first frame so a long pause before the first rAF (boot, Strict
+      // Mode remount) cannot dump thousands of characters in one catch-up tick.
+      let last: number | null = null
       const step = (now: number) => {
-        shown = Math.min(source.length, shown + ((now - last) / 1000) * charsPerSecond)
+        if (last === null) last = now
+        // Cap so a backgrounded tab or a stalled main thread cannot skip ahead.
+        const elapsed = Math.min(now - last, 50)
         last = now
+        shown = Math.min(source.length, shown + (elapsed / 1000) * charsPerSecond)
         patchTurn(id, source.slice(0, Math.floor(shown)))
         if (shown >= source.length) {
           timer.current = null
@@ -336,11 +344,13 @@ export function App() {
   const speedRef = useRef(speed)
   speedRef.current = speed
   useEffect(() => {
-    if (mode === "demos") {
-      const prompt = t(locale).demos[demo.id]?.prompt ?? demo.prompt
-      playDemo(demo, speedRef.current, prompt)
-    }
-  }, [mode, demo, locale, playDemo])
+    if (mode !== "demos") return
+    const prompt = t(locale).demos[demo.id]?.prompt ?? demo.prompt
+    playDemo(demo, speedRef.current, prompt)
+    // Strict Mode remounts effects: cancel the in-flight stream so the demo
+    // does not finish once, wipe, and stream again.
+    return () => stop()
+  }, [mode, demo, locale, playDemo, stop])
 
   useEffect(() => {
     const root = document.documentElement
@@ -417,6 +427,9 @@ export function App() {
     if (!next) return
     setMode("demos")
     setDemo(next)
+    // Keep the user's light/dark choice when switching demos. Noir still
+    // defaults to dark on first load (see scheme state init), but never
+    // overrides a scheme the user already picked.
     if (next.theme) setThemeId(next.theme)
     else if (demo.theme) setThemeId("paper")
   }

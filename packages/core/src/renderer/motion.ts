@@ -133,13 +133,17 @@ const enter = (keyframes: MotionKeyframes): BuiltIn => ({ keyframes, kind: "ente
 /** The entrances `packages/core/styles/motion.css` plays, as keyframes. Keep the two in step. */
 const BUILT_IN: Record<string, BuiltIn> = {
   fade: enter({ opacity: [0, 1] }),
-  rise: enter({ opacity: [0, 1], y: [8, 0] }),
-  drop: enter({ opacity: [0, 1], y: [-8, 0] }),
-  scale: enter({ opacity: [0, 1], scale: [0.96, 1] }),
-  "slide-left": enter({ opacity: [0, 1], x: [16, 0] }),
-  "slide-right": enter({ opacity: [0, 1], x: [-16, 0] }),
-  blur: enter({ opacity: [0, 1], blur: [6, 0] }),
-  pop: { keyframes: { opacity: [0, 1], scale: [0.8, 1] }, kind: "emphasis", token: "emphasis" },
+  rise: enter({ opacity: [0, 1], y: [10, 0] }),
+  drop: enter({ opacity: [0, 1], y: [-10, 0] }),
+  scale: enter({ opacity: [0, 1], scale: [0.97, 1] }),
+  "slide-left": enter({ opacity: [0, 1], x: [14, 0] }),
+  "slide-right": enter({ opacity: [0, 1], x: [-14, 0] }),
+  blur: enter({ opacity: [0.15, 1], blur: [2, 0] }),
+  pop: {
+    keyframes: { opacity: [0, 1], y: [10, 0], scale: [0.98, 1] },
+    kind: "emphasis",
+    token: "emphasis",
+  },
   draw: {
     keyframes: { strokeDashoffset: [1, 0] },
     kind: "draw",
@@ -166,7 +170,7 @@ const BUILT_IN: Record<string, BuiltIn> = {
   },
 }
 
-const LEAVE: MotionKeyframes = { opacity: [1, 0], y: [0, -4] }
+const LEAVE: MotionKeyframes = { opacity: [1, 0], y: [0, 6], scale: [1, 0.985] }
 
 /** The names `motion="…"` plays without an adapter. */
 export const MOTION_PRESET_NAMES = Object.keys(BUILT_IN)

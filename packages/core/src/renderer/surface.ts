@@ -188,6 +188,29 @@ export function exitAnimations(element: Element | null): Promise<unknown> | null
 }
 
 /**
+ * Like `exitAnimations`, but waits one frame when nothing is registered yet.
+ * CSS exit animations often only exist after the `data-iui-exit` style flush;
+ * calling this from a Presence after paint (or after `nextTick`) still races
+ * that flush without the extra frame.
+ */
+export function whenExitDone(element: Element | null): Promise<void> {
+  const first = exitAnimations(element)
+  if (first) return first.then(() => undefined, () => undefined)
+  if (!element || typeof requestAnimationFrame !== "function") return Promise.resolve()
+  // Hidden documents often pause rAF; don't leave the child mounted until focus returns.
+  if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+    return Promise.resolve()
+  }
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      const again = exitAnimations(element)
+      if (again) void again.then(() => resolve(), () => resolve())
+      else resolve()
+    })
+  })
+}
+
+/**
  * Runs an action or a state write, turning a failure, now or later, into a
  * call to `fail` so one bad handler can't take the surface down.
  */

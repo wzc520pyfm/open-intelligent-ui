@@ -198,10 +198,10 @@
 
 <div class="board" motion="pop">
   <div class="board-head">
-    <title level={2}>Sprint 14 load</title>
+    <title level={2}>Engineering team load</title>
     <spacer />
     <badge variant="soft" size="sm"><icon name="refresh-cw" size="sm" motion="spin" /> Synced 2m ago</badge>
-    <Button size="sm"><icon name="calendar" size="sm" /> This sprint</Button>
+    <Button size="sm"><icon name="calendar" size="sm" /> This week</Button>
     <Button size="sm"><icon name="share-2" size="sm" /> Share</Button>
   </div>
 
@@ -217,7 +217,7 @@
         <text size="xl" weight="bold" tabular class="value">{committed} pts</text>
         <badge color="info" size="sm">37 capacity</badge>
       </row>
-      <div class="kpi-note">Across five squads</div>
+      <div class="kpi-note">Across five R&D teams</div>
     </div>
     <div class="kpi" motion="blur">
       <row gap={2}>
@@ -243,7 +243,7 @@
         <text size="xl" weight="bold" tabular class="value">{spill} pts</text>
         <badge color="warning" size="sm">3 items</badge>
       </row>
-      <div class="kpi-note">Likely next sprint</div>
+      <div class="kpi-note">Likely next week</div>
     </div>
     <div class="kpi" motion="blur">
       <row gap={2}>
@@ -256,7 +256,7 @@
         <text size="xl" weight="bold" tabular class="value">{commitCount}</text>
         <badge color="success" size="sm">+18%</badge>
       </row>
-      <div class="kpi-note">On sprint branches</div>
+      <div class="kpi-note">On team branches</div>
     </div>
   </div>
 
@@ -271,7 +271,7 @@
             <row gap={1}><span class="commit-swatch" style="background: #2b8cf6"></span><text size="xs" color="muted">Commits</text></row>
           </row>
         </row>
-        <svg class="commit-cells" viewBox="0 0 640 110" role="img" aria-label="Daily commits and merges over four sprint weeks">
+        <svg class="commit-cells" viewBox="0 0 640 110" role="img" aria-label="Daily commits and merges over four weeks">
           {#each commitCols as col, i}
             <g class="col" style="--i: {i}">
               {#each range(0, col[0]) as r}
@@ -332,7 +332,7 @@
 
     <div class="board-side" motion="blur">
       <row gap={2}>
-        <title level={3}>Squad capacity</title>
+        <title level={3}>Team capacity</title>
         <spacer />
         <badge color="accent" size="sm">Week 2</badge>
       </row>

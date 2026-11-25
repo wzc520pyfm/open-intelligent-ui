@@ -118,7 +118,7 @@
 
 <div class="panel" motion="pop">
   <box gap={1} motion="blur">
-    <title level={2}>Book a focus room</title>
+    <title level={2}>Book a meeting room</title>
     <text size="sm" color="muted">Pick a floor, a window of time, and who is joining — I'll hold the room.</text>
   </box>
 
@@ -220,7 +220,7 @@
   </box>
 
   <row gap={2} wrap motion="blur">
-    <Button variant="solid" on:click={send("Book a focus room", { amenities, room, duration, people, remote })}>Hold room</Button>
+    <Button variant="solid" on:click={send("Book a meeting room", { amenities, room, duration, people, remote })}>Hold room</Button>
     <Button on:click={send("Show other rooms on Floor 4")}>See alternatives</Button>
   </row>
 </div>

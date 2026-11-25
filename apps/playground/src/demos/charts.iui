@@ -79,7 +79,7 @@
 
 <div class="panel" motion="pop">
   <box gap={1} motion="blur">
-    <title level={2}>harbor CLI release health</title>
+    <title level={2}>Open Intelligent UI release health</title>
     <text size="sm" color="muted">Last eight weeks on <code>main</code>. Median time from open PR to tagged release is the figure that matters.</text>
   </box>
 

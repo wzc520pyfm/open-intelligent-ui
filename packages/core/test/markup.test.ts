@@ -408,6 +408,24 @@ describe("what a model used to another language writes", () => {
     expect(outline(doc.children)).toEqual([{ card: ["Total"] }])
   })
 
+  test("a comment may hold an apostrophe or a brace, and one still arriving shows nothing", () => {
+    const doc = parse("<card>{/* don't show this } */}Total</card>")
+    expect(doc.diagnostics).toEqual([])
+    expect(outline(doc.children)).toEqual([{ card: ["Total"] }])
+    const arriving = parse("<card>{/* don't show", { streaming: true })
+    expect(outline(arriving.children)).toEqual(["card"])
+  })
+
+  test("an expression that stops at an operator is code, and a set written in braces is prose", () => {
+    expect(parse("<text>{count +}</text>").diagnostics.map((item) => item.code)).toEqual(["bad-expression"])
+    expect(parse("Grades {A-} and {a; b}.").diagnostics).toEqual([])
+  })
+
+  test("a tag with bare attributes that is closed later is a tag", () => {
+    expect(parse("<stack disabled>Report</stack>").diagnostics.map((item) => item.code)).toEqual(["unknown-tag"])
+    expect(parse("When m <n and n> p, nothing is a tag.").diagnostics).toEqual([])
+  })
+
   test("every diagnostic says what kind it is", () => {
     const doc = parse("<script>x</script>\n<card>\n{#await x}\n</row>\n<Slider min={0 +} />")
     expect(doc.diagnostics.map((item) => item.code)).toEqual([

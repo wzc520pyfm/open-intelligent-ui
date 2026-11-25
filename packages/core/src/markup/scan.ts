@@ -66,7 +66,10 @@ const SVG_ONLY_NAMES = new Set(["text", "title", "image", "a", "style", "switch"
 /** A tag inside braces, as JSX writes `{open && <Panel />}`. */
 const TAG_IN_EXPRESSION = /<[A-Za-z][\w-]*[\s/>]/
 /** What braces hold when code was meant rather than prose: a call, a path, an operator. */
-const CODE_IN_BRACES = /=>|&&|\|\||\?\?|\bnew\s+[A-Z]|[A-Za-z_$][\w$]*\s*\(|[A-Za-z_$][\w$]*\.[A-Za-z_$]/
+const CODE_IN_BRACES =
+  /=>|&&|\|\||\?\?|\bnew\s+[A-Z]|[A-Za-z_$][\w$]*\s*\(|[A-Za-z_$][\w$]*\.[A-Za-z_$]|[A-Za-z_$][\w$.]*\s+[-+*/%]\s*$/
+/** A comment as JSX writes it, from its `{`. It can hold quotes and braces an expression couldn't. */
+const JSX_COMMENT = /\{\s*\/\*[\s\S]*?\*\/\s*\}/y
 
 /** A piece of source short enough to quote in a message. */
 function clip(text: string): string {
@@ -152,7 +155,11 @@ class Scanner {
   private looksLikeTag(name: string, after: number): boolean {
     if (!/^[a-z][a-z0-9-]*$/.test(name)) return false
     const rest = this.src.slice(after, Math.min(this.end, after + 400))
-    return /^\s*\/?>|^\s+[A-Za-z_:][\w:.-]*=[^<\n]*>/.test(rest)
+    if (/^\s*\/?>|^\s+[A-Za-z_:][\w:.-]*=[^<\n]*>/.test(rest)) return true
+    // Bare attributes, as in `<stack disabled>`, read like prose ("m <n and n> p") unless the tag is closed later.
+    return (
+      /^(?:\s+[A-Za-z_:][\w:.-]*)+\s*>/.test(rest) && this.src.indexOf(`</${name}>`, after) !== -1
+    )
   }
 
   private atLineStart(pos: number): boolean {
@@ -296,6 +303,14 @@ class Scanner {
       }
 
       // ch === "{"
+      // A comment as JSX writes it. Nothing is shown for it.
+      JSX_COMMENT.lastIndex = at
+      const comment = JSX_COMMENT.exec(src)
+      if (comment && comment.index === at && at + comment[0].length <= this.end) {
+        this.pos = at + comment[0].length
+        continue
+      }
+
       const close = findClosingBrace(src, at)
       if (close === -1) {
         const rest = src.slice(at, this.end)
@@ -369,12 +384,6 @@ class Scanner {
       }
       if (head?.startsWith("@") || head?.startsWith("#")) {
         this.report("error", "unknown-block", `{${head}} is not supported`, at)
-        this.pos = close + 1
-        continue
-      }
-
-      // A comment as JSX writes it. Nothing is shown for it.
-      if (/^\/\*[\s\S]*\*\/$/.test(inner)) {
         this.pos = close + 1
         continue
       }

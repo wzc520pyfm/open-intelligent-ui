@@ -26,6 +26,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./prompt": "./src/prompt/index.ts",
+    "./check": "./src/check/index.ts",
     "./renderer": "./src/renderer/index.ts",
     "./charts": "./src/charts/index.ts",
     "./motion": "./src/motion/index.ts",
@@ -45,6 +46,10 @@
       "./prompt": {
         "types": "./dist/prompt.d.ts",
         "default": "./dist/prompt.js"
+      },
+      "./check": {
+        "types": "./dist/check.d.ts",
+        "default": "./dist/check.js"
       },
       "./renderer": {
         "types": "./dist/renderer.d.ts",

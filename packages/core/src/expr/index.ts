@@ -10,6 +10,8 @@ export {
   declarePattern,
   type EvalHost,
   evaluate,
+  METHOD_NAMES,
+  MUTATOR_NAMES,
   registerCallable,
   run,
   Scope,

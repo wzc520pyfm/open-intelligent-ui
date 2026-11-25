@@ -285,6 +285,17 @@ const NUMBER_METHODS: Record<string, Method<number>> = {
     ),
 }
 
+/** Every method an expression can call on a list, a text or a number. */
+export const METHOD_NAMES: ReadonlySet<string> = new Set([
+  ...Object.keys(ARRAY_METHODS),
+  ...Object.keys(STRING_METHODS),
+  ...Object.keys(NUMBER_METHODS),
+  ...MUTATORS,
+])
+
+/** The list methods that change the list, which only a handler may call. */
+export const MUTATOR_NAMES: ReadonlySet<string> = MUTATORS
+
 function methodOf(target: unknown, key: string): Method<never> | undefined {
   const table = Array.isArray(target)
     ? ARRAY_METHODS

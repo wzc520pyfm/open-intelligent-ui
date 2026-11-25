@@ -817,10 +817,19 @@ function unwrapFence(src: string): string {
  * can't understand is kept as text or dropped, and noted in `diagnostics`.
  */
 export function parse(source: string, options: ParseOptions = {}): Document {
-  const src = unwrapFence(
-    source.replace(/\r\n?/g, "\n").replace(/[\uE000\uE001]/g, "")
-  )
-  return new Scanner(src, options.streaming ?? false).parse()
+  return new Scanner(prepare(source).text, options.streaming ?? false).parse()
+}
+
+/**
+ * The text `parse` reads: line ends made the same, and a code fence around
+ * the whole answer taken off. Positions in a document count from the start
+ * of `text`, which is `lines` lines into the source as it was given.
+ */
+export function prepare(source: string): { text: string; lines: number } {
+  const clean = source.replace(/\r\n?/g, "\n").replace(/[\uE000\uE001]/g, "")
+  const text = unwrapFence(clean)
+  const opening = text === clean ? "" : (WRAPPING_FENCE.exec(clean)?.[0] ?? "")
+  return { text, lines: opening.split("\n").length - 1 }
 }
 
 /** Line and column for a position reported in a diagnostic. */

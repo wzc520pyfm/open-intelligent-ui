@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     index: "src/index.ts",
     prompt: "src/prompt.ts",
+    check: "src/check.ts",
     charts: "src/charts.ts",
     motion: "src/motion.ts",
   },

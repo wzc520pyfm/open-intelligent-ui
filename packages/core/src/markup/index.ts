@@ -3,6 +3,7 @@ export type {
   AttrValue,
   ConstNode,
   Diagnostic,
+  DiagnosticCode,
   Document,
   EachNode,
   ElementNode,
@@ -21,4 +22,4 @@ export {
   VOID_TAGS,
 } from "./elements"
 export { decodeEntities, healMarkdownTail } from "./markdown"
-export { locate, type ParseOptions, parse } from "./scan"
+export { locate, type ParseOptions, parse, prepare } from "./scan"

@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { describe, expect, test } from "vitest"
+import { checkMarkup } from "@open-intelligent-ui/core/check"
 import { IntelligentUI, preloadUiSdk } from "@open-intelligent-ui/react"
 import { DEMOS } from "../src/demos"
 import { createTicketTools } from "../src/tools"
@@ -48,6 +49,15 @@ describe("playground demos", () => {
     expect(view.container.querySelector(".iui-pending")).toBeNull()
     expect(view.diagnostics).toEqual([])
     expect(view.warnings).toEqual([])
+  })
+
+  test.each(DEMOS.map((demo) => demo.id))("%s checks out before it is drawn", (id) => {
+    const demo = DEMOS.find((item) => item.id === id) as (typeof DEMOS)[number]
+    const result = checkMarkup(demo.source, {
+      library: demo.library,
+      tools: Object.keys(createTicketTools(0)),
+    })
+    expect(result.issues).toEqual([])
   })
 
   test.each(DEMOS.map((demo) => demo.id))("%s survives being streamed", async (id) => {

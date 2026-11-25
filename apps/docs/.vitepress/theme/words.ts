@@ -13,6 +13,9 @@ export interface Words {
   repair: string
   noRepair: string
   samples: string
+  /** Names of the samples in the checker demo, by their English name. */
+  sample: (name: string) => string
+  markup: string
 }
 
 const en: Words = {
@@ -33,6 +36,8 @@ const en: Words = {
   repair: "What repairMessage() would send back to the model",
   noRepair: "No errors, so there is nothing to send back.",
   samples: "Try a mistake",
+  sample: (name) => name,
+  markup: "Markup to check",
 }
 
 const zh: Words = {
@@ -51,6 +56,16 @@ const zh: Words = {
   repair: "repairMessage() 会发回给模型的内容",
   noRepair: "没有错误，不需要发回。",
   samples: "试一个常见错误",
+  sample: (name) => SAMPLES_ZH[name] ?? name,
+  markup: "要检查的标记",
+}
+
+const SAMPLES_ZH: Record<string, string> = {
+  "JSX habits": "JSX 的习惯写法",
+  "Another library's tags": "别的库的标签",
+  "Names and tools": "名字和工具",
+  "Cut short": "被截断",
+  "A correct reply": "一份正确的回复",
 }
 
 export function wordsFor(lang: string): Words {

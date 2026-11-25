@@ -97,7 +97,7 @@ function show(line: number) {
         :aria-pressed="source === sample.source"
         @click="source = sample.source"
       >
-        {{ sample.name }}
+        {{ words.sample(sample.name) }}
       </button>
     </div>
     <textarea
@@ -106,7 +106,7 @@ function show(line: number) {
       class="oi-check-source"
       spellcheck="false"
       rows="12"
-      aria-label="Markup to check"
+      :aria-label="words.markup"
     />
     <div class="oi-check-result" :data-ok="result.ok">
       <p class="oi-check-summary">

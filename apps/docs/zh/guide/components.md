@@ -1,0 +1,255 @@
+# 接入自己的组件
+
+大多数东西，模型用基础元素和 UI SDK 部件就能搭出来。有些东西必须在你的产品里处处长得一样，或者需要模型写不了的代码：订单卡片、审批流程、选座图。把它们注册进来，模型就会按你声明的方式使用。
+
+## 一个组件库，两处读取 {#one-library-two-readers}
+
+产品添加的所有东西都放进一个 `Library`。渲染器读它来渲染，提示词构建函数读它来写提示词。两边看到的是同一份定义，所以提示词不会教出渲染器没有的东西。
+
+```ts
+import { defineLibrary } from "@open-intelligent-ui/core"
+import { echartsCharts } from "@open-intelligent-ui/core/charts"
+import { motionAdapter } from "@open-intelligent-ui/core/motion"
+import { animate } from "motion"
+import design from "./acme.DESIGN.md?raw"
+
+export const library = defineLibrary({
+  name: "Acme",
+  design,                                           // 产品的 DESIGN.md
+  components: [OrderCard, Steps, PolicyCheck],      // 产品的组件，包括 defineWidget 定义的
+  charts: echartsCharts(() => import("echarts")),   // 用什么画 <Chart>
+  motion: motionAdapter(animate),                   // 用什么播放动效
+  instructions: 'Show every amount with <Number format="currency">.',
+})
+```
+
+```tsx
+// 在应用里
+<IntelligentUI source={reply} streaming={streaming} library={library} />
+
+// 构建提示词的地方
+buildSystemPrompt({ library, tools })
+
+// 检查回复的地方
+checkMarkup(reply, { library, tools })
+```
+
+每一项都是可选的。组件库在模块顶层定义一次，不要放在渲染函数里。
+
+## 注册组件 {#registering-a-component}
+
+`defineComponent` 注册一个你所用框架的组件，同时给出描述、声明的 props、事件和一个示例。
+
+```tsx
+import { defineComponent } from "@open-intelligent-ui/core"
+
+const OrderCard = defineComponent({
+  name: "OrderCard",
+  description: "One order: status, total and recipient. Use it wherever an order is shown.",
+  props: {
+    order: { type: "object", required: true, description: "An item returned by listOrders." },
+    tone: ["neutral", "urgent"],
+    expanded: { type: "boolean", bindable: true },
+  },
+  events: { open: "The card was pressed; $value is the order id." },
+  children: "Action buttons at the bottom of the card.",
+  example: `<OrderCard order={order} on:open={picked = $value} />`,
+  component: OrderCardView,
+})
+```
+
+| 字段 | 含义 |
+| --- | --- |
+| `name` | 标签名，用 PascalCase。和预设组件或 UI SDK 部件同名时，会替换掉它 |
+| `description` | 它是什么、什么时候用。模型读到的就是这句话 |
+| `props` | 它接受的 props，有下面三种写法 |
+| `events` | 它上报的事件。标记用 `on:name` 监听 |
+| `children` | `true`，或者一句话说明标签之间放什么。不写就表示不接受子内容 |
+| `example`、`examples` | 完整的用法。第一个会写进提示词 |
+| `component` | 组件本身：React、Vue、Solid 或 Svelte 组件。在 web 渲染器里，可以是自定义元素的标签名、`{ tag, properties, events }`，或者一个返回 DOM 节点的函数 |
+| `prompt: false` | 不把它写进提示词，用于替换提示词已经讲过的预设组件 |
+
+**props 有三种写法：**
+
+```ts
+// 1. 简写：类型名、允许值的列表，或者完整的描述。
+props: {
+  title: "string",
+  size: ["sm", "md", "lg"],
+  rows: { type: "array", items: { type: "object", properties: { id: "string", total: "number" } }, required: true },
+  page: { type: "number", default: 1, bindable: true, description: "The current page." },
+}
+
+// 2. 一个对象的 JSON Schema。
+props: z.toJSONSchema(OrderCardProps)
+
+// 3. 能输出自身 JSON Schema 的 Standard Schema（Zod 4、Valibot、ArkType）。
+props: OrderCardProps
+```
+
+## 声明的 props 会被强制执行 {#declared-props-are-enforced}
+
+带 `props` 的组件是严格的。渲染器只把它声明过的 props、事件和绑定传给它，而且只传符合声明类型的值。
+
+- 没声明的 prop 会被丢弃。
+- 类型不对的值会被丢弃，并通过 `onWarning` 报告：`<OrderCard> takes "neutral" | "urgent" for "tone"`。
+- 缺少必填的 prop 会被报告。
+- 标记没写某个 prop 时，会填上它的 `default`。
+
+标记是模型写的，可能被提示词注入操纵，所以组件不会收到它没要的东西。`class`、`style`、`motion`、`show`、`aria-*` 和 `data-*` 始终允许。[检查器](./correctness)会在渲染任何东西之前应用同样的规则。
+
+**事件和绑定**。`on:open` 到了组件那里是 `onOpen`（在 Vue 里是 `open` 的监听器）。声明为 `bindable` 的 prop 可以写成 `bind:expanded={x}`：组件通过 `onExpandedChange` 上报变化（在 Vue 里是 `update:expanded`，所以为 `v-model:expanded` 写的组件可以直接用）。
+
+## `defineWidget` 组件：写一次，每个渲染器都能用 {#widgets-written-once-for-every-renderer}
+
+用 `defineComponent` 注册的组件只属于一个框架。用 `defineWidget` 定义的组件用与框架无关的视图来画，内置的预设组件也是这样画的。一份定义在 React、Vue、Svelte、Solid 和 Web Components 里画出同样的 DOM。
+
+```ts
+import { defineWidget, view } from "@open-intelligent-ui/core"
+
+const Steps = defineWidget<{ items: string[]; current?: number; onSelect?: (index: number) => void }>({
+  name: "Steps",
+  description: "Where something stands in a fixed sequence, such as an approval or an order.",
+  props: {
+    items: { type: "array", items: "string", required: true, description: "The stages, in order." },
+    current: { type: "number", default: 0, description: "The index of the stage in progress." },
+  },
+  events: { select: "A stage was pressed. $value is its index." },
+  example: `<Steps items={["Submitted", "Manager", "Finance", "Paid"]} current={1} />`,
+  setup: () => (props) =>
+    view(
+      "ol",
+      { class: "acme-steps" },
+      props.items.map((item, index) =>
+        view(
+          "li",
+          {
+            key: index,
+            "data-stage": index < (props.current ?? 0) ? "done" : index === props.current ? "current" : "todo",
+            on: { click: () => props.onSelect?.(index) },
+          },
+          [item]
+        )
+      )
+    ),
+})
+```
+
+下面的例子用了一个虚构的报销产品注册的三个组件：`Person`、`Steps` 和 `PolicyCheck`。模型把它们和自己选的基础元素组合在一起。本页用 Vue 渲染器来画，演示站用全部五个渲染器画同一份定义。
+
+```iui live product designs
+<state stage={1} />
+<derive stages={["Submitted", "Manager", "Finance", "Paid"]} />
+
+<card padding={4} gap={4}>
+  <row wrap gap={3}>
+    <Person name="Mei Tanaka" role="Design · Tokyo offsite" status="online" />
+    <spacer />
+    <badge color="accent">Waiting for you</badge>
+  </row>
+  <Steps items={stages} current={stage} on:select={stage = $value} />
+  <box gap={3}>
+    <PolicyCheck result="pass" label="Receipts">All five lines have one attached.</PolicyCheck>
+    <PolicyCheck result="review" label="Hotel rate">{currency(312)} a night against a {currency(280)} cap for Tokyo.</PolicyCheck>
+  </box>
+  <row gap={2}>
+    <Button variant="solid" on:click={stage = min(stage + 1, 3)}>Approve</Button>
+    <Button on:click={stage = 0}>Send back</Button>
+  </row>
+</card>
+```
+
+`setup` 在组件每个被使用的地方运行一次，返回负责画它的函数。组件自己的状态放在闭包里：
+
+```ts
+setup: (handle) => {
+  let open = false
+  handle.cleanup(() => { /* 它离开页面时 */ })
+  return (props, children) =>
+    view("section", {}, [
+      view("button", { on: { click: () => { open = !open; handle.redraw() } } }, [props.title]),
+      open ? view("div", {}, children) : null,
+    ])
+}
+```
+
+| `handle` | 用途 |
+| --- | --- |
+| `redraw()` | 它自己的状态变了：用上一次的 props 重新画 |
+| `cleanup(fn)` | 在它离开页面时运行 |
+| `attach(fn)` | 把它的一个真实元素交给你，用来接第三方库 |
+| `report(message)` | 通过 `onWarning` 报告问题 |
+
+用 `--iui-*` 变量给组件写样式，它就会跟随每一套设计，浅色和深色都一样。
+
+**用哪个**。能用视图画出来的，用 `defineWidget`：它一次覆盖所有框架。要复用设计系统里已有的组件，用 `defineComponent`。
+
+## 提示词跟着定义走 {#the-prompt-follows}
+
+`buildSystemPrompt({ library })` 根据每个组件的定义，为它写一节：
+
+````md
+# Components from this product
+
+Prefer these over building the same thing yourself.
+
+### Steps
+
+Where something stands in a fixed sequence, such as an approval or an order.
+
+- `items`: `string[]`, required. The stages, in order.
+- `current`: `number`, default `0`. The index of the stage in progress.
+- `on:select`: A stage was pressed. `$value` is its index.
+- Takes no children; self-close it.
+
+```
+<Steps items={["Submitted", "Manager", "Finance", "Paid"]} current={1} />
+```
+````
+
+引擎添加的图表类型写进图表一节，适配器的预设写进动效一节，设计写进设计一节，`instructions` 放在最后。
+
+## 测试组件库 {#test-the-library}
+
+`validateLibrary` 解析每个示例，把问题用一句句话返回：缺少描述，示例没有用到它的组件、传了没声明的 prop、漏了必填的 prop，或者给不接受子内容的组件传了子内容。设计里读不出来的 token 也会报告。
+
+```ts
+import { validateLibrary } from "@open-intelligent-ui/core"
+
+test("the library", () => expect(validateLibrary(library)).toEqual([]))
+```
+
+## 在服务端构建提示词时 {#when-the-prompt-is-built-on-a-server}
+
+构建提示词的服务端不应该加载 UI 代码，运行的也不一定是 Node。有两种做法。
+
+**共享不带组件实现的定义**。不写 `component`，两边都导入这个文件，再按名字把实现交给渲染器：
+
+```tsx
+// shared/library.ts
+export const library = defineLibrary({
+  components: [defineComponent({ name: "OrderCard", description: "…", props: { /* … */ } })],
+})
+
+// 在应用里
+<IntelligentUI library={library} components={{ OrderCard: OrderCardView }} />
+```
+
+**把组件库导出成数据**。`librarySpec(library)` 把它变成普通的 JSON：组件及其描述、props、事件和示例，图表和动效的说明，还有设计。
+
+```ts
+// 构建时
+writeFileSync("dist/library.json", JSON.stringify(librarySpec(library)))
+
+// 在服务端
+const library = JSON.parse(readFileSync("library.json", "utf8"))
+const system = buildSystemPrompt({ library, tools })
+const result = checkMarkup(reply, { library, tools })
+```
+
+这份 JSON 还可以在 CI 里做 diff，用来发现组件接口的变化。
+
+## 限制 {#limits}
+
+- 标记可以按名字使用组件，传入类型正确的已声明 props。它不能传 `ref` 或 `innerHTML`，值是 URL 的 prop 仍然要经过协议过滤和 `allowUrl`。
+- 在你自己的组件里，把 props 传来的文本当作文本处理，不要用它拼 HTML。

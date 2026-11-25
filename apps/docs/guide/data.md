@@ -165,4 +165,4 @@ surface.current?.reset()
 surface.current?.refetch("tickets")
 ```
 
-`<state persist>` values are kept in `storage` under `storageKey` when you pass both, for example `storage={localStorage}` and the message id as `storageKey`.
+`<state persist>` values are kept in `storage` when you pass both `storage` and `storageKey`, for example `storage={localStorage}` and the message id as `storageKey`. They are saved as one JSON entry named `iui:` followed by the key.

@@ -165,4 +165,4 @@ surface.current?.reset()
 surface.current?.refetch("tickets")
 ```
 
-`<state persist>` 的值保存在 `storage` 里的 `storageKey` 之下，前提是这两个 prop 你都传了，例如 `storage={localStorage}`，并把消息 id 作为 `storageKey`。
+`<state persist>` 的值保存在 `storage` 里，前提是 `storage` 和 `storageKey` 这两个 prop 你都传了，例如 `storage={localStorage}`，并把消息 id 作为 `storageKey`。它们存成一条 JSON，条目名是 `iui:` 加上这个 key。

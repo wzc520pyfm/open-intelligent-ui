@@ -571,6 +571,12 @@ export function App() {
           v{__VERSION__}
         </Chip>
         <span className="flex-1" />
+        <Link
+          href={copy.docsUrl}
+          className="hidden rounded-full px-3 py-1.5 text-sm font-medium text-muted no-underline hover:bg-default hover:text-foreground sm:inline-flex"
+        >
+          {copy.docs}
+        </Link>
         <Segmented
           label="Language"
           className="hidden sm:inline-flex"

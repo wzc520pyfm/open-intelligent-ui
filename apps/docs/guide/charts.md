@@ -1,0 +1,116 @@
+# Charts
+
+`<Chart>` is one tag with a `type`. By default it is drawn as SVG by the package itself, with no dependency. A product that already uses a charting library can hand `<Chart>` to it without changing what the model writes.
+
+## Built in
+
+Six types: `bar`, `line`, `area`, `donut`, `pie` and `spark`. Colors, type and grid come from the design, and the chart redraws when the scheme changes.
+
+```iui live designs
+<state mode="bar" picked={null} rows={[
+  { month: "Jan", online: 42, store: 31 },
+  { month: "Feb", online: 48, store: 29 },
+  { month: "Mar", online: 55, store: 34 },
+  { month: "Apr", online: 61, store: 30 },
+  { month: "May", online: 58, store: 36 },
+  { month: "Jun", online: 67, store: 33 }
+]} />
+<derive split={[{ channel: "Online", total: sumBy(rows, "online") }, { channel: "Store", total: sumBy(rows, "store") }]} />
+
+<row gap={3} wrap>
+  <SegmentedControl aria-label="Chart type" bind:value={mode}>
+    <SegmentedControlIndicator />
+    <SegmentedControlItem value="bar">Bar</SegmentedControlItem>
+    <SegmentedControlItem value="line">Line</SegmentedControlItem>
+    <SegmentedControlItem value="area">Area</SegmentedControlItem>
+  </SegmentedControl>
+  <spacer />
+  <text size="sm" color="muted">{picked ? picked.month + ": " + compact((picked.online + picked.store) * 1000) : "Press a month"}</text>
+</row>
+
+<Chart type={mode} data={rows} x="month" y={["online", "store"]} stacked={mode != "line"} names={{ online: "Online", store: "Store" }} format="compact" height={220} legend on:select={picked = $value} aria-label="Sales by month and channel" />
+
+<grid columns={2} gap={3}>
+  <card padding={4}>
+    <Chart type="donut" data={split} x="channel" y="total" height={160} legend aria-label="Share of sales by channel" />
+  </card>
+  <Stat label="Online, six months" value={sumBy(rows, "online") * 1000} format="compact" delta={0.6}>
+    <Chart type="spark" data={rows} y="online" height={40} aria-label="Online sales trend" />
+  </Stat>
+</grid>
+```
+
+| Prop | Meaning |
+| --- | --- |
+| `type` | `bar`, `line`, `area`, `donut`, `pie`, `spark` |
+| `data` | The rows, from state or a query |
+| `x`, `y` | The category key, and one value key or a list of them for several series |
+| `stacked` | Stacks the series |
+| `format`, `currency`, `unit` | How values are written: `number`, `currency`, `percent`, `compact` |
+| `names`, `colors` | Labels and design color names for the series |
+| `legend`, `labels`, `height` | The legend, value labels, and the height in pixels |
+| `on:select` | A row was pressed; `$value` is the row |
+
+## Using your charting library
+
+A chart engine goes in the [library](./components#one-library-two-readers). The markup doesn't change: the model still writes `<Chart type="bar" data={rows} x="month" y="revenue" />`.
+
+```ts
+import { defineLibrary } from "@open-intelligent-ui/core"
+import { echartsCharts, g2Charts } from "@open-intelligent-ui/core/charts"
+
+defineLibrary({ charts: echartsCharts(() => import("echarts")) })   // Apache ECharts
+defineLibrary({ charts: g2Charts(() => import("@antv/g2")) })       // AntV G2
+```
+
+```tsx
+import * as Recharts from "recharts"
+import { rechartsCharts } from "@open-intelligent-ui/react/recharts"
+
+defineLibrary({ charts: rechartsCharts(Recharts) })                 // the React renderer only
+```
+
+| Adapter | Renderers | Options |
+| --- | --- | --- |
+| `echartsCharts(echarts, options)` | All five | `renderer: "canvas" \| "svg"`; `option(option, spec)` changes the ECharts option before it is drawn |
+| `g2Charts(g2, options)` | All five | `options(options, spec)` changes the G2 options before they are drawn |
+| `rechartsCharts(recharts, options)` | React | Recharts is made of React components; colors use the design's variables directly |
+
+What the three have in common:
+
+- **The engine can load lazily.** Pass `() => import("echarts")` and it is downloaded when the first chart appears. Passing the module works too.
+- **They follow the design.** Colors, fonts and grid lines are read from `--iui-*` variables, and the chart redraws when the scheme or the design changes.
+- **Three more types**: `scatter`, `radar` and `funnel`. The prompt tells the model that `type` takes them and when to use each.
+- **Everything else is the same**: `on:select`, `format`, the legend, value labels, and reduced motion.
+- **Partial takeover.** `types: ["bar", "line"]` hands only those to the engine; the built-in SVG draws the rest. The Recharts adapter leaves `spark` to the built-in one.
+- **`guide`** adds a paragraph to the prompt, for your product's conventions.
+
+The engine is your dependency and isn't bundled. The adapters were written and checked against ECharts 6, G2 5 and Recharts 3. The playground's Charts demo switches between all of them on one reply.
+
+## Another charting library
+
+Implement `ChartEngine`. The renderer has already turned the markup's props into a `ChartSpec`: rows, categories, series, colors resolved to `rgb()`, a number formatter and the theme.
+
+```ts
+import type { ChartEngine } from "@open-intelligent-ui/core/charts"
+
+const highcharts: ChartEngine = {
+  name: "Highcharts",
+  types: ["bar", "line", "area"],                                      // the rest stay with the built-in SVG
+  extra: { heatmap: "Values across two categories: one cell per row." }, // a new type, with its note for the model
+  async mount(element, spec, context) {
+    const Highcharts = (await import("highcharts")).default
+    const chart = Highcharts.chart(element, toOptions(spec, context))
+    return {
+      update: (next) => chart.update(toOptions(next, context), true, true),
+      destroy: () => chart.destroy(),
+    }
+  },
+}
+
+defineLibrary({ charts: highcharts })
+```
+
+`context.select(index)` reports the pressed row to `on:select`. When `context.reducedMotion` is true, don't animate. For one framework only, `component` (a component of that framework, which receives the markup's props) can stand in for `mount`.
+
+Markup can write `<Chart>`'s props and nothing else. It can't reach the engine's raw options. `ChartSpec.props` holds the markup's props as written; check them yourself before using one.

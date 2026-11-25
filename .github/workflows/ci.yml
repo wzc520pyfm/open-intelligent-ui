@@ -29,3 +29,5 @@ jobs:
       - run: pnpm test
       - run: pnpm typecheck
       - run: pnpm check:packages
+      # The site and the documentation in it. VitePress fails on a link to a page that doesn't exist.
+      - run: pnpm build

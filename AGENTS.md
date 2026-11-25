@@ -50,7 +50,18 @@ semicolons, double quotes, two spaces.
   elements of `@ui-sdk/web` and patches the DOM itself (`src/dom`).
 - `packages/open-intelligent-ui`: the unscoped npm name. It re-exports
   `@open-intelligent-ui/core` and holds no code of its own; keep it that way.
+- `packages/core/src/check`: `checkMarkup` and `repairMessage`. The checker
+  reads a reply the way a renderer would, without drawing it. When a
+  primitive or a preset gains a prop, add it to `specs.ts`; a test fails
+  until the two agree.
+- `packages/core/src/designs`: the shipped designs as strings, generated
+  from `design/` by `pnpm generate`.
 - `apps/playground`: the demo app. Demos are `.iui` files in `src/demos`.
+- `apps/docs`: the documentation site (VitePress), in English and Chinese
+  (`zh/`). It is built into the demo site under `/docs` by the playground's
+  `build` script. A fence written as ```` ```iui live ```` is drawn on the
+  page. Every `iui` fence in it must be a whole interface: a test draws and
+  checks each one. Keep the two languages in step.
 - `apps/playground/src/surface`: one small adapter per renderer, which is
   how the site draws a reply with a renderer that isn't React.
 - `apps/vue-demo`, `apps/solid-demo`, `apps/svelte-demo`, `apps/web-demo`:

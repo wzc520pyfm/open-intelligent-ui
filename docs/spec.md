@@ -331,6 +331,7 @@ CSS 只作用于当前界面。允许 `@keyframes`、`@media`、`@container`、`
 - **状态不回退。** 已存在的状态保留当前值，所以读者在流式过程中拖过的滑块不会被重置。
 - **还没加载完的 UI SDK 部件**先显示占位，加载完成后替换。
 - **流式期间不显示错误。** 某一块渲染失败时显示占位，下一次解析再试；流结束后仍然失败才显示错误。
+- **流式期间不为“还没声明”报警告。** 用到的名字或 `<define>` 组件在流里还没出现时先不报，流结束时仍然缺失才报。声明写在使用之后的回复因此不会在中途闪出警告。
 
 模型侧对应的写作建议是：先写 `<state>`，再写最重要的一块，然后是细节。
 
@@ -345,7 +346,42 @@ CSS 只作用于当前界面。允许 `@keyframes`、`@media`、`@container`、`
 | 未知的小写标签 | 当作文字 |
 | 组件渲染时抛错 | 所在的顶层块显示“这一部分无法显示”，其余照常 |
 | 工具调用失败 | 查询的 `error` 被设置；`call()` 抛出，按钮恢复 |
-| 解析问题 | 记入 `diagnostics`，尽量保留为文字。解析器不抛错 |
+| 解析问题 | 记入 `diagnostics`，每条带代码和位置，尽量保留为文字。解析器不抛错 |
+
+模型常按别的语言的习惯写，下面几种写法解析器认得：
+
+| 写法 | 结果 |
+| --- | --- |
+| `{/* 注释 */}` | 不显示，不报问题 |
+| `{open && <card>…</card>}`、`{items.map(i => <row>…</row>)}` | 花括号里不能写标签：按文字显示，报 `tags-in-expression`，提示改用 `{#if}`、`{#each}` |
+| `<stack>`、`<heading>` 这类不存在的小写标签 | 按文字显示，报 `unknown-tag` |
+| `{count +}` 这类没写完的表达式 | 报 `bad-expression` |
+| 正文里的 `{"ok": true}`、`{a; b}` | 是文字，不报问题 |
+
+### 渲染之前先检查
+
+上表是渲染时的行为。回复写完之后、展示之前，可以先用 `@open-intelligent-ui/core/check` 的 `checkMarkup(source, { library, tools })` 检查一遍，它不需要浏览器。返回 `{ ok, issues, errors, warnings }`，每个问题有代码、严重程度、行列、该行原文，以及能说清楚时应该怎么写。`error` 表示用户看到的会和写的不一样（少一块、控件没反应、界面变成了文字）；`warning` 表示写的某样东西被忽略了。
+
+| 代码 | 含义 |
+| --- | --- |
+| 解析器的代码（`unclosed-tag`、`bad-expression`、`tags-in-expression`、`unknown-tag`、`blocked-tag` 等） | 同解析器的 `diagnostics` |
+| `unknown-component` | 大写标签不是库里的组件、预置组件、UI SDK 部件，也没有在回复里 `<define>` |
+| `misplaced-part` | UI SDK 的部件写在了它所属的组件之外 |
+| `unknown-prop`、`missing-prop`、`wrong-type`、`no-children` | 组件没有这个属性、缺必填属性、值的类型不对、不接受子内容却给了 |
+| `unknown-name` | 名字没有被 `<state>`、`<derive>`、`<query>` 或逻辑块声明 |
+| `unknown-function` | 语言里没有的函数或方法（`setCount(…)`、`fetch(…)`、`toLocaleDateString()`），或者调用了一个存着值的状态 |
+| `bad-write` | 写入派生值或查询结果，或在事件处理之外写入 |
+| `bad-handler` | 事件处理或绑定没有写在花括号里（`on:click="…"`、`onclick="…"`），或绑定了不能写入的东西 |
+| `unknown-tool` | 宿主没有这个工具，或 `<query>` 无法执行 |
+| `unknown-value` | 不存在的图标、动效预设或图表类型 |
+| `blocked-url` | 渲染器会拒绝的地址，如 `javascript:` |
+| `duplicate-name` | 名字声明了两次，以第一次为准 |
+| `fenced` | 界面被包在代码围栏里，会被当作代码显示 |
+| `empty` | 什么都画不出来 |
+
+通过派生值写入时，区分两种情况：`<derive next={tasks.find(t => !t.done)} />` 之后 `next.done = true` 改的是状态里的那个任务，允许；`<derive open={tasks.filter(…)} />` 之后 `open.push(…)`，或者给字面量派生值的属性赋值，改的是一个每次重新计算的值，改了也留不住，报 `bad-write`。
+
+`repairMessage(result)` 把这些问题写成发回给模型的下一条消息。完整的修复循环见 [`extending.md`](extending.md#入口一览) 和文档站的“保证输出正确”。
 
 ## 不允许的内容
 

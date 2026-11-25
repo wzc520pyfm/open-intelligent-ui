@@ -1,0 +1,193 @@
+# 保证输出正确
+
+界面是模型写的，模型会出错。出错之后怎么办，产品得自己定。本页讲三件事：可能出什么错，哪些错能被发现，以及怎样用一个循环让模型在用户看到之前把自己的回复改对。
+
+## 三类错误 {#three-kinds-of-wrong}
+
+| 类别 | 例子 | 由谁发现 |
+| --- | --- | --- |
+| 读不了 | 标签没有闭合，表达式少了括号，回复被 token 上限截断 | 解析器，给出诊断信息和位置 |
+| 读得了，但引用了不存在的东西 | 别的库里的组件，没人声明过的名字，组件没有的 prop，宿主没有的工具 | 检查器，在渲染之前；渲染器，在渲染过程中 |
+| 画得出来，但内容是错的 | 合计加错了列，按钮上的文字和它发送的内容对不上 | 没有自动手段。靠评测、人工审查，并把有后果的写操作放在你控制的工具后面 |
+
+前两类是机械性的错误，本页讲的就是它们。第三类和纯文本回复里写错一句话是同一个问题。
+
+## 分层防护 {#the-layers}
+
+单靠一种检查不够，所以有好几层，每一层都放在成本最低的位置。
+
+| 层 | 做什么 |
+| --- | --- |
+| 提示词由定义生成 | `buildSystemPrompt({ library, tools })` 用渲染器所用的同一批对象来描述组件、图表、动效和工具。不存在的东西，不会出现在给模型的提示词里。提示词里的每个例子，测试套件都会渲染一遍 |
+| 提示词点名常见错误 | 有一节列出会让回复出问题的写法：花括号里写标签、`setCount(…)`、别的库的部件、标签没有的 prop。有一个测试拿检查器逐一核对这一节里的例子 |
+| 解析器很宽容 | 它从不抛异常。流式输出时，写到一半的标签它先扣住不放；遇到多余的闭合标签能恢复；报告每个问题时都带上问题代码和位置 |
+| 组件很严格 | 注册过的组件只接收它声明过的 props，值也必须是声明的类型。其余的一律丢弃并报告 |
+| **检查器** | `checkMarkup` 按渲染器的方式读一条写完的回复，不需要浏览器，返回所有问题，每个问题都带行号和应该怎么改写 |
+| **修复循环** | `repairMessage` 把这些问题变成下一条消息。模型自己修自己的回复 |
+| 渲染器把故障限制在局部 | 渲染失败的块在原位显示一条错误，界面的其余部分照常工作。标记是被解释的，从不当作代码执行 |
+
+## 试一试 {#try-it}
+
+检查器检查的就是输入框里的内容。选一个样例，或者自己输入。
+
+<CheckDemo />
+
+## 检查器 {#the-checker}
+
+```ts
+import { checkMarkup } from "@open-intelligent-ui/core/check"
+
+const result = checkMarkup(reply, {
+  library,                       // 你传给渲染器和 buildSystemPrompt 的那个对象
+  tools: ["listTickets"],        // 宿主能响应的工具，或者它们的描述
+})
+
+result.ok        // 没有任何错误时为 true
+result.errors    // 错误数量
+result.warnings  // 警告数量
+result.issues    // [{ code, severity, message, hint, line, column, excerpt }]
+```
+
+它不需要 DOM，所以能在服务器上、边缘函数里或测试里运行。`library` 可以是对象本身，也可以是 `librarySpec` 生成的 JSON。
+
+**错误**表示用户拿到的和写的不一样：少了一块，控件点了没反应，本该是界面的地方成了文字。**警告**表示写的某些内容被忽略了。
+
+| 代码 | 含义 |
+| --- | --- |
+| `unclosed-element`、`unclosed-tag` | 元素或标签一直没有闭合。回复多半是被截断了 |
+| `stray-close`、`unknown-block` | 闭合标签没有可闭合的对象，或者用了语言里没有的块，比如 `{#await}` |
+| `bad-expression` | 表达式读不了 |
+| `tags-in-expression` | 在 `{…}` 里写了标签，也就是 JSX 的写法 |
+| `unknown-tag`、`blocked-tag` | 语言里没有的小写标签，或者一律不放行的标签，比如 `<script>` |
+| `unknown-component` | 没有任何东西能渲染的组件：不在组件库里，不是预设组件，不是 UI SDK 部件，也没有在回复里定义 |
+| `misplaced-part` | UI SDK 部件写在了它所属的组件之外 |
+| `unknown-prop`、`missing-prop`、`wrong-type`、`no-children` | 组件没有的 prop，漏掉的必填 prop，类型不对的值，给不接收子内容的组件传了子内容 |
+| `unknown-name` | 没有任何 `<state>`、`<derive>`、`<query>` 或块声明过的名字 |
+| `unknown-function` | 调用了语言里没有的函数或方法 |
+| `bad-write` | 写入一个计算出来的值，或者在事件处理之外写入 |
+| `bad-handler` | 事件处理或绑定没有写在花括号里，或者绑定到了不能写入的东西上 |
+| `unknown-tool` | 宿主没有的工具 |
+| `unknown-value` | 不存在的图标、动效或图表类型 |
+| `blocked-url` | 渲染器拒绝的地址，比如 `javascript:` |
+| `duplicate-name` | 同一个名字声明了两次 |
+| `fenced`、`empty` | 界面被包在代码围栏里，或者没有可渲染的内容 |
+
+把宿主额外提供的东西告诉检查器，它就不会把这些报成未知：
+
+```ts
+checkMarkup(reply, {
+  library,
+  tools,
+  components: ["SeatMap"],          // 传给渲染器 `components` 的
+  state: ["user"],                  // 作为 `initialState` 传入的
+  functions: ["fx"],                // 作为 `functions` 传入的
+  actions: ["track"],               // 作为 `actions` 传入的
+})
+```
+
+## 修复循环 {#the-repair-loop}
+
+回复有错误时，把错误发回给模型。这条消息由 `repairMessage` 来写：每个问题连同行号、应该怎么改写，再加上一句要求，让模型把整个界面重写一遍。
+
+```ts
+import { checkMarkup, repairMessage } from "@open-intelligent-ui/core/check"
+
+async function reply(messages: Message[]) {
+  let text = await model(messages)
+  let result = checkMarkup(text, { library, tools })
+  for (let round = 0; !result.ok && round < 2; round++) {
+    log.info("repair", { round, issues: result.issues.map((issue) => issue.code) })
+    messages = [...messages, { role: "assistant", content: text }, { role: "user", content: repairMessage(result) }]
+    text = await model(messages)
+    result = checkMarkup(text, { library, tools })
+  }
+  // result.ok 说的是最终返回的这条回复，调用方由此知道最后一次尝试有没有通过检查。
+  return { text, ok: result.ok, issues: result.issues }
+}
+```
+
+```text
+The interface you wrote can't be shown as written. A checker read it and found:
+
+- Line 4: "setCount" is not a function: state changes by assigning to it. Write count = … instead of setCount(…).
+  <Button onClick={() => setCount(count + 1)}>Add one</Button>
+- Line 8: Tags can't be written inside {…}: write {#if test}…{/if} to show something when a test holds…
+  {open && <card>Details</card>}
+
+Write the whole interface again with these fixed. Keep everything else as it was: the same content, layout and names. Reply with the markup only, with no explanation and no code fence.
+```
+
+- **通常以两轮为限。** 两次都没修好的回复，第三次也很少能修好，而每一轮都要花一条完整回复的成本。
+- **不要保留失败的尝试。** 某一轮成功后，对话里只存最终的回复。
+- **如果还是有错误**，要么照样渲染（渲染器很宽容，写对的部分能正常工作），要么退回纯文本。不管选哪种，都把问题记进日志：它们会告诉你该往 `instructions` 里加什么。
+- **警告不会触发修复。** 只有列完错误后还有余量时，警告才会列进消息里。
+
+## 回复流式输出期间 {#while-a-reply-streams}
+
+回复没写完之前没法下结论：第 3 行用到的名字可能到第 9 行才声明。所以渲染器会等。设置了 `streaming` 时，它能画多少画多少，对流里还没声明的名字和组件，先不发警告。流结束后仍然缺的，再报告出来。
+
+这样一来，流式输出和检查有两种组合方式：
+
+| | 做法 | 用户看到的 |
+| --- | --- | --- |
+| 先流式输出，再修复 | 回复一边到达一边渲染，结束时检查。有错误就让模型修复，然后替换这块界面 | 先是初稿，然后是修复后的版本 |
+| 先检查，再展示 | 等整条回复到齐，跑完修复循环，再渲染 | 只看到检查过的回复，但要晚一些 |
+
+演示站的实时模式用的是第一种，修复回复时会在对话里说明。如果不能接受初稿出错，就选第二种。
+
+## 渲染器给出的警告 {#warnings-from-the-renderer}
+
+`onWarning` 报告渲染器在渲染过程中发现的问题：种类和检查器查的一样，只是在渲染每个块或用户按下某个控件时一个一个发现的。生产环境里把它们记进日志。在演示站里，它们显示在“事件”下面。
+
+在那里看到警告，只有两种可能：
+
+- **回复里确实有错。** “标记”面板会连同行号把它列出来，实时模式下还会让模型修复。
+- **误报。** 到 0.4.0 为止，流式输出的回复可能对一个晚几行才声明的名字发出警告。这个问题已经修复：前向引用会先扣住，等流结束再判断。
+
+## 在你的测试里 {#in-your-tests}
+
+有三项检查应该放进 CI。它们不需要模型就能跑。
+
+```ts
+import { validateLibrary } from "@open-intelligent-ui/core"
+import { checkMarkup } from "@open-intelligent-ui/core/check"
+
+// 1. 组件库描述完整，它的例子也正确地使用了它。
+test("the library", () => expect(validateLibrary(library)).toEqual([]))
+
+// 2. 你给模型看的每个例子，无论写在 instructions 里还是 few-shot 回合里，都通过检查。
+test.each(fewShotExamples)("example %#", (example) => {
+  expect(checkMarkup(example, { library, tools }).issues).toEqual([])
+})
+
+// 3. 从真实会话里存下来的回复，在你改了组件库或提示词之后仍然通过检查。
+test.each(savedReplies)("saved reply %#", (reply) => {
+  expect(checkMarkup(reply, { library, tools }).ok).toBe(true)
+})
+```
+
+把模型接进来之后，同一个函数还能给出值得跟踪的数字：第一次就通过检查的回复占比，以及修复一次后通过的占比。每当提示词、组件库或模型有变化，就把一组固定的测试输入跑一遍。
+
+## 其他项目的做法 {#how-other-projects-do-it}
+
+| | 提示词 | 校验 | 失败时 |
+| --- | --- | --- | --- |
+| [OpenUI](https://www.openui.com) | 由组件库的 schema 生成 | 解析器按 schema 校验每个组件，报告带代码的错误。错误会扣住，等流结束再报 | 错误交还给模型，让它再试一次 |
+| [A2UI](https://a2ui.org) | 由组件目录生成，附带校验过的 few-shot 例子 | 流式修复器先修补不完整的 JSON，再按组件目录校验消息 | 向 agent 返回一条结构化错误，agent 重试，次数有上限 |
+| Open Intelligent UI | 由组件库、设计和工具生成。例子都由测试渲染过 | 解析器诊断，注册组件的严格 props，以及一个还会跟踪名字、写入、工具和部件位置的检查器 | `repairMessage` 的消息发回给模型，最多两次。在此期间，渲染器先把写对的部分画出来 |
+
+三者的套路是一样的：按实际存在的东西生成提示词，照着它校验，再把错误反馈回去。不同的是这里要检查的范围。目录式的格式是拿 schema 去校验一棵由已知组件构成的树。而这种标记里还有表达式、状态和事件处理，所以检查器要沿着作用域跟踪名字，还要区分读和写。
+
+## 测量过什么 {#what-has-been-measured}
+
+- 一个能力较强的模型按默认提示词写的 32 条回复：全部渲染成功，没有警告。检查器发现了一个潜在的错误：有个事件处理通过 `<derive>` 赋值。这种写法现在已经支持。
+- 每个演示、文档里的每个例子、提示词里的每个范例，都通过检查，并且在全部五个渲染器上无警告地渲染出来，流式输出和整段输入两种情况都一样。
+- 一组典型错误（JSX 习惯写法、别的库的标签、未声明的名字、截断）全部被报告出来，每个都附带改法。
+
+没有测量过的：更小或更便宜的模型写的回复，以及真实负载下修复后的通过率。在依赖它们之前，先用你自己的提示词把这两项测一遍。
+
+## 局限 {#limits}
+
+- 检查器按默认语言来检查。UI SDK 部件的 prop 不会对照列表检查，因为生成的目录里没有收全这些部件接受的所有 prop。
+- 它没法知道数据是错的、文字有误导，或者布局不好。
+- 通过检查的回复在运行时仍然可能失败：工具可能抛异常，查询返回的数据形状可能和标记预期的不一样。渲染器通过 `onWarning` 报告这些情况，并让界面继续工作。

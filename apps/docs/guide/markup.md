@@ -1,0 +1,259 @@
+# The markup
+
+A reply is Markdown with tags in it. This page walks through the language with examples you can use: each one is drawn by the renderer from the source shown under it. The [language reference](../reference/language) is the full text a model is given.
+
+## Markdown and tags
+
+Markdown works everywhere, including inside tags. Lowercase tags are layout and text primitives, plus ordinary HTML and inline SVG. PascalCase tags are components.
+
+```iui live
+**Two plans fit a team of five.** Both include SSO.
+
+<grid columns={2} gap={3}>
+  <card padding={4}>
+    <row><title level={3}>Team</title><spacer /><badge color="success">Fits</badge></row>
+    <text color="muted">Up to 10 seats, shared inbox, 30-day history.</text>
+  </card>
+  <card padding={4}>
+    <row><title level={3}>Business</title><spacer /><badge>More than you need</badge></row>
+    <text color="muted">Unlimited seats, audit log, priority support.</text>
+  </card>
+</grid>
+```
+
+Attributes take text (`name="Team"`), text with a value in it (`name="Hi {user}"`), an expression (`columns={2}`), or nothing for true (`wrap`). `{expression}` in text prints a value.
+
+## State
+
+`<state>` declares what the interface remembers. `<derive>` declares what it computes from that. Both are read by name anywhere.
+
+```iui live
+<state nights={3} guests={2} />
+<derive total={nights * 120 + guests * 15 * nights} />
+
+<card padding={4} gap={3}>
+  <row gap={2} wrap>
+    <Button on:click={nights = max(nights - 1, 1)} aria-label="One night fewer"><icon name="minus" /></Button>
+    <text weight="medium">{nights} {plural(nights, "night", "nights")}</text>
+    <Button on:click={nights += 1} aria-label="One night more"><icon name="plus" /></Button>
+    <spacer />
+    <text size="xl" weight="semibold" tabular>{currency(total)}</text>
+  </row>
+  <text size="sm" color="muted">{currency(120)} a night, plus {currency(15)} per guest per night for {guests} guests.</text>
+</card>
+```
+
+State is local to the reply and stays as the reader left it while the rest of the reply is still arriving. Add `persist` to a `<state>` to keep its values between visits.
+
+## Connecting controls
+
+`bind:` connects a control to state in both directions. It works on native inputs and on any component prop with a matching change callback.
+
+```iui live
+<state name="" plan="team" yearly={false} />
+<derive price={(plan == "team" ? 12 : 29) * (yearly ? 10 : 1)} />
+
+<box gap={3} maxWidth={420}>
+  <Field>
+    <FieldLabel>Workspace name</FieldLabel>
+    <Input bind:value={name} placeholder="Acme" />
+  </Field>
+  <SegmentedControl bind:value={plan} aria-label="Plan">
+    <SegmentedControlIndicator />
+    <SegmentedControlItem value="team">Team</SegmentedControlItem>
+    <SegmentedControlItem value="business">Business</SegmentedControlItem>
+  </SegmentedControl>
+  <label>
+    <row gap={2}><Switch bind:checked={yearly}><SwitchThumb /></Switch><text>Pay yearly, two months free</text></row>
+  </label>
+  <text>{name || "Your workspace"} on {capitalize(plan)}: **{currency(price)}** per seat, per {yearly ? "year" : "month"}.</text>
+</box>
+```
+
+## Actions
+
+`on:` runs an action when an event fires: one or more statements separated by `;`. An action can assign, write into objects and lists, use `if` and `else`, and call the built-in actions: `send`, `call`, `refetch`, `reset`, `toast`, `copy`, `open`.
+
+```iui live
+<state todos={[{ title: "Book the venue", done: true }, { title: "Send invitations", done: false }]} draft="" />
+<derive left={todos.filter(t => !t.done).length} />
+
+<box gap={3} maxWidth={440}>
+  <row gap={2}>
+    <Input bind:value={draft} placeholder="Add a task" aria-label="New task" on:keydown={if ($event.key == "Enter" && draft != "") { todos.push({ title: draft, done: false }); draft = "" }} />
+    <Button variant="solid" disabled={draft == ""} on:click={todos.push({ title: draft, done: false }); draft = ""}>Add</Button>
+  </row>
+  {#each todos as todo, i (todo.title)}
+    <row gap={2}>
+      <Checkbox bind:checked={todo.done} aria-label={todo.title}><CheckboxIndicator /></Checkbox>
+      <text strike={todo.done} color={todo.done ? "muted" : "foreground"}>{todo.title}</text>
+      <spacer />
+      <Button variant="ghost" size="sm" aria-label="Remove {todo.title}" on:click={todos.splice(i, 1)}><icon name="x" /></Button>
+    </row>
+  {/each}
+  <text size="sm" color="muted">{left} {plural(left, "task", "tasks")} left</text>
+</box>
+```
+
+Use the DOM event name on HTML (`on:click`, `on:keydown`) and the callback name without `on` on components (`on:valueChange`). Inside a handler, `$event` is the event data and `$value` the new value.
+
+## Logic
+
+`{#if}` shows something when a test holds. `{#each}` repeats over a list; the key in parentheses keeps each row's identity when rows are added, removed or reordered. Writing to the loop variable writes to the list.
+
+```iui live
+<state budget={900} items={[{ name: "Flights", cost: 420 }, { name: "Hotel", cost: 380 }, { name: "Food", cost: 150 }]} />
+<derive total={sumBy(items, "cost")} />
+
+<box gap={2} maxWidth={420}>
+  {#each items as item (item.name)}
+    <row gap={2}>
+      <text>{item.name}</text>
+      <spacer />
+      <Button size="sm" variant="ghost" aria-label="Less for {item.name}" on:click={item.cost = max(item.cost - 50, 0)}><icon name="minus" /></Button>
+      <text tabular weight="medium">{currency(item.cost)}</text>
+      <Button size="sm" variant="ghost" aria-label="More for {item.name}" on:click={item.cost += 50}><icon name="plus" /></Button>
+    </row>
+  {/each}
+  <divider />
+  <row>
+    <text weight="semibold">{currency(total)}</text>
+    <spacer />
+    {#if total > budget}
+      <badge color="danger">{currency(total - budget)} over</badge>
+    {:else}
+      <badge color="success">{currency(budget - total)} to spare</badge>
+    {/if}
+  </row>
+</box>
+```
+
+Tags can't be written inside braces. `{open && <card>…</card>}` and `{items.map(i => <row>…</row>)}` are the JSX way; here they are `{#if}` and `{#each}`. The [checker](./correctness) reports them.
+
+## Expressions
+
+Expressions are JavaScript expressions without access to the page: literals, operators, optional chaining, template strings, arrow functions, and a fixed list of methods and helpers.
+
+| Kind | Helpers |
+| --- | --- |
+| Numbers | `min max sum avg round floor ceil abs clamp range`, and `Math.*` |
+| Formatting | `num currency percent compact signed unit date time datetime relative duration plural ordinal capitalize truncate initials` |
+| Lists | `len sortBy groupBy countBy sumBy maxBy minBy unique toggle without chunk first last keys values entries` |
+| Other | `now today addDays uid json` |
+
+There is no `window`, `document`, `fetch`, timer or `eval`, and no `new Date()`. Data comes from [tools](./data).
+
+## UI SDK components
+
+Every UI SDK component is available by name, with its parts: `<Tabs>`, `<Dialog>`, `<Select>`, `<Popover>`, `<Accordion>`, `<Slider>`, `<Combobox>` and the rest. They bring focus handling, keyboard support and accessibility; the design gives them their look.
+
+```iui live
+<state tab="specs" open={false} />
+
+<Tabs bind:value={tab}>
+  <TabsList aria-label="Laptop">
+    <TabsTab value="specs">Specs</TabsTab>
+    <TabsTab value="reviews">Reviews</TabsTab>
+  </TabsList>
+  <TabsPanel value="specs">
+    <list marker="check">
+      <list-item>14-inch display, 120 Hz</list-item>
+      <list-item>18 hours of battery</list-item>
+      <list-item>1.2 kg</list-item>
+    </list>
+  </TabsPanel>
+  <TabsPanel value="reviews">
+    <text>4.6 out of 5 across 1,284 reviews.</text>
+  </TabsPanel>
+</Tabs>
+
+<row>
+  <Dialog bind:open={open}>
+    <DialogTrigger>Compare with last year's model</DialogTrigger>
+    <DialogBackdrop />
+    <DialogContent>
+      <DialogTitle>What changed</DialogTitle>
+      <DialogDescription>Two more hours of battery and 200 g lighter. The ports are the same.</DialogDescription>
+      <row justify="end"><DialogClose>Close</DialogClose></row>
+    </DialogContent>
+  </Dialog>
+</row>
+```
+
+A part has to sit inside the component it belongs to, and names from other libraries (`<TabsTrigger>`, `<TabsContent>`) don't exist. The prompt lists every component with an example; `describeComponent(name)` from `@open-intelligent-ui/core/prompt` returns one in full.
+
+## Preset widgets
+
+Six widgets cover content UI SDK doesn't have: `<Chart>`, `<Stat>`, `<Number>`, `<DataTable>`, `<CodeBlock>` and `<Skeleton>`.
+
+```iui live
+<state rows={[
+  { month: "Jan", plan: 40, actual: 38 },
+  { month: "Feb", plan: 44, actual: 47 },
+  { month: "Mar", plan: 48, actual: 53 },
+  { month: "Apr", plan: 52, actual: 50 }
+]} />
+<derive actual={sumBy(rows, "actual")} plan={sumBy(rows, "plan")} />
+
+<grid columns={2} gap={3} stagger>
+  <Stat label="Revenue" value={actual * 1000} format="currency" delta={actual / plan - 1} caption="against plan" />
+  <Stat label="Best month" value={maxBy(rows, "actual").month} caption="{currency(maxBy(rows, "actual").actual * 1000)}" />
+</grid>
+
+<Chart type="bar" data={rows} x="month" y={["plan", "actual"]} names={{ plan: "Plan", actual: "Actual" }} height={200} legend aria-label="Plan and actual revenue by month" />
+
+<DataTable data={rows} columns={["month", { key: "plan", label: "Plan", align: "right" }, { key: "actual", label: "Actual", align: "right" }]} sortable />
+```
+
+## Defining a component
+
+`<define>` names a piece of markup so it can be used more than once. It sees its props and the surface's state; `<slot />` is where the caller's children go.
+
+```iui live
+<state choice="b" plans={[
+  { id: "a", name: "Basic", price: 9, blurb: "One project, community support." },
+  { id: "b", name: "Pro", price: 24, blurb: "Unlimited projects, priority support." }
+]} />
+
+<define name="PlanCard" props="plan, selected">
+  <card padding={4} interactive border={selected ? "accent" : true} on:click={choice = plan.id}>
+    <row><title level={3}>{plan.name}</title><spacer /><text weight="semibold">{currency(plan.price)}</text></row>
+    <slot />
+  </card>
+</define>
+
+<grid columns={2} gap={3}>
+  {#each plans as plan (plan.id)}
+    <PlanCard {plan} selected={choice == plan.id}><text color="muted">{plan.blurb}</text></PlanCard>
+  {/each}
+</grid>
+```
+
+This is the model defining a component for one reply. Components your product registers for every reply are [a different thing](./components).
+
+## CSS and SVG
+
+When primitives can't express something, the model writes CSS, which applies to its own surface only, and inline SVG, driven by state. Both use the design's variables instead of fixed values.
+
+```iui live
+<state level={62} />
+
+<row gap={4} wrap>
+  <svg viewBox="0 0 120 70" width="180" role="img" aria-label="Tank at {level} percent">
+    <path d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="var(--iui-color-muted)" stroke-width="10" stroke-linecap="round" />
+    <path class="gauge" d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="var(--iui-color-accent)" stroke-width="10" stroke-linecap="round" stroke-dasharray="{level * 1.571} 157.1" />
+    <text x="60" y="58" text-anchor="middle" font-size="16" font-weight="600" fill="var(--iui-color-foreground)">{level}%</text>
+  </svg>
+  <box flex={1} minWidth={200}>
+    <Slider min={0} max={100} bind:value={level}>
+      <SliderControl><SliderTrack><SliderIndicator /><SliderThumb aria-label="Level" /></SliderTrack></SliderControl>
+    </Slider>
+  </box>
+</row>
+
+<style>
+  .gauge { transition: stroke-dasharray var(--iui-motion-layout-duration) var(--iui-motion-layout-easing); }
+</style>
+```
+
+`<script>`, `<iframe>`, string event attributes, `@import`, `url()` to other sites and `position: fixed` are removed. [Safety](./safety) has the full list.

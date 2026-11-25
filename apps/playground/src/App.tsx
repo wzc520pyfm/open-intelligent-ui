@@ -427,11 +427,11 @@ export function App() {
     if (!next) return
     setMode("demos")
     setDemo(next)
-    if (next.theme) {
-      setThemeId(next.theme)
-      // Noir is dark-first; flip the chrome so the showcase lands looking right.
-      if (next.theme === "noir") setScheme("dark")
-    } else if (demo.theme) setThemeId("paper")
+    // Keep the user's light/dark choice when switching demos. Noir still
+    // defaults to dark on first load (see scheme state init), but never
+    // overrides a scheme the user already picked.
+    if (next.theme) setThemeId(next.theme)
+    else if (demo.theme) setThemeId("paper")
   }
 
   const chooseRenderer = (next: RendererId) => {

@@ -1,36 +1,31 @@
-<state spend={[
-  { month: "Jan", spend: 0.48, revenue: 0.92 },
-  { month: "Feb", spend: 0.52, revenue: 1.05 },
-  { month: "Mar", spend: 0.61, revenue: 1.18 },
-  { month: "Apr", spend: 0.58, revenue: 1.24 },
-  { month: "May", spend: 0.66, revenue: 1.41 },
-  { month: "Jun", spend: 0.71, revenue: 1.55 },
-  { month: "Jul", spend: 0.69, revenue: 1.62 },
-  { month: "Aug", spend: 0.74, revenue: 1.78 },
-  { month: "Sep", spend: 0.78, revenue: 1.91 },
-  { month: "Oct", spend: 0.82, revenue: 2.08 },
-  { month: "Nov", spend: 0.88, revenue: 2.24 }
+<state weeks={[
+  { week: "W1", merged: 18, failed: 3 },
+  { week: "W2", merged: 22, failed: 2 },
+  { week: "W3", merged: 19, failed: 4 },
+  { week: "W4", merged: 27, failed: 1 },
+  { week: "W5", merged: 24, failed: 2 },
+  { week: "W6", merged: 31, failed: 2 },
+  { week: "W7", merged: 28, failed: 1 },
+  { week: "W8", merged: 33, failed: 3 }
 ]} />
-<state regions={[
-  { region: "USA", value: 2.04 },
-  { region: "India", value: 1.31 },
-  { region: "UK", value: 1.17 },
-  { region: "Germany", value: 0.95 },
-  { region: "Other", value: 1.83 }
+<state kinds={[
+  { kind: "Feature", value: 42 },
+  { kind: "Fix", value: 28 },
+  { kind: "Docs", value: 14 },
+  { kind: "Chore", value: 11 }
 ]} />
-<state years={[
-  { year: "2015", sales: 4.8, spend: 3.1 },
-  { year: "2017", sales: 6.2, spend: 3.4 },
-  { year: "2019", sales: 8.1, spend: 3.9 },
-  { year: "2021", sales: 10.4, spend: 4.6 },
-  { year: "2023", sales: 13.2, spend: 5.8 },
-  { year: "2025", sales: 16.2, spend: 7.3 }
+<state releases={[
+  { release: "0.8", downloads: 12.4 },
+  { release: "0.9", downloads: 18.1 },
+  { release: "1.0", downloads: 26.8 },
+  { release: "1.1", downloads: 34.2 },
+  { release: "1.2", downloads: 41.6 }
 ]} />
 <derive
-  totalSpend={sumBy(spend, "spend")}
-  totalSales={sumBy(spend, "revenue")}
-  roi={(totalSales - totalSpend) / totalSpend}
-  perDollar={totalSales / totalSpend}
+  merged={sumBy(weeks, "merged")}
+  failed={sumBy(weeks, "failed")}
+  passRate={(merged - failed) / merged}
+  medianDays={4.2}
 />
 
 <style>
@@ -41,105 +36,99 @@
     padding: 1.15rem 1.25rem 1.25rem;
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 1rem;
   }
-  .panel-head { margin-bottom: 0.85rem; }
-  .metrics {
+  .hero {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0;
-    padding: 0.45rem 0 1.05rem;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 1rem;
+    padding-bottom: 1rem;
     border-bottom: 1px solid var(--iui-color-border);
   }
-  .metric {
+  .hero-stat {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
-    padding: 0.2rem 1.15rem 0.1rem;
-    border-right: 1px solid var(--iui-color-border);
+    gap: 0.35rem;
     min-width: 0;
   }
-  .metric:first-child { padding-left: 0; }
-  .metric:last-child { border-right: none; padding-right: 0; }
-  /* Value + delta on one line so a missing badge doesn't leave a hole. */
-  .metric-head {
+  .side-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+  }
+  .side-card {
+    padding: 0.7rem 0.8rem;
+    border-radius: var(--iui-radius-md);
+    background: color-mix(in oklab, var(--iui-color-muted) 70%, transparent);
+    border: 1px solid var(--iui-color-border);
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.45rem 0.55rem;
+    flex-direction: column;
+    gap: 0.25rem;
     min-width: 0;
   }
-  .section {
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--iui-color-border);
-  }
-  .section:last-child { border-bottom: none; padding-bottom: 0; }
   .split {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-    gap: 1.25rem;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
+    gap: 1.15rem;
   }
-  /* Surface width, not viewport — playground phone mode only shrinks the column. */
-  @container iui (width < 520px) {
+  @container iui (width < 560px) {
     .panel { padding: 1rem 1.05rem 1.1rem; }
-    .metrics { grid-template-columns: 1fr; }
-    .metric { border-right: none; border-bottom: 1px solid var(--iui-color-border); padding: 0.7rem 0; }
-    .metric:last-child { border-bottom: none; }
-    .split { grid-template-columns: 1fr; gap: 1rem; }
+    .hero, .split, .side-stats { grid-template-columns: 1fr; }
   }
 </style>
 
 <div class="panel" motion="pop">
-  <div class="panel-head" motion="blur">
-    <title level={2}>Ad Spend vs Sales</title>
-    <text size="sm" color="muted">Across all regions in 2025 (YTD), every $1 of ad spend returned ${num(perDollar, 2)} in sales.</text>
+  <box gap={1} motion="blur">
+    <title level={2}>harbor CLI release health</title>
+    <text size="sm" color="muted">Last eight weeks on <code>main</code>. Median time from open PR to tagged release is the figure that matters.</text>
+  </box>
+
+  <div class="hero" stagger={45}>
+    <div class="hero-stat" motion="blur">
+      <text size="sm" color="muted">Median time-to-ship</text>
+      <row gap={2} align="end" wrap>
+        <text size="3xl" weight="bold" tabular>{num(medianDays, 1)} days</text>
+        <badge color="success" size="sm">−0.6 vs prior</badge>
+      </row>
+      <text size="sm" color="muted">{merged} merges · {failed} CI failures · <Number value={passRate} format="percent" digits={0} /> green</text>
+    </div>
+    <div class="side-stats" motion="blur">
+      <div class="side-card">
+        <text size="xs" color="muted">Open PRs</text>
+        <text size="lg" weight="bold" tabular>14</text>
+      </div>
+      <div class="side-card">
+        <text size="xs" color="muted">Review lag</text>
+        <text size="lg" weight="bold" tabular>11 h</text>
+      </div>
+      <div class="side-card">
+        <text size="xs" color="muted">Flaky jobs</text>
+        <text size="lg" weight="bold" tabular>2</text>
+      </div>
+      <div class="side-card">
+        <text size="xs" color="muted">v1.2 downloads</text>
+        <text size="lg" weight="bold" tabular>41.6k</text>
+      </div>
+    </div>
   </div>
 
-  <div class="metrics" stagger={50}>
-    <div class="metric" motion="blur">
-      <div class="metric-head">
-        <text size="xl" weight="bold" tabular>{"$" + num(totalSpend, 2) + "Mn"}</text>
-        <badge color="success" size="sm">+4.8%</badge>
-      </div>
-      <text size="sm" color="muted">Total spend</text>
-    </div>
-    <div class="metric" motion="blur">
-      <div class="metric-head">
-        <text size="xl" weight="bold" tabular>{"$" + num(totalSales, 2) + "Mn"}</text>
-        <badge color="success" size="sm">+10.7%</badge>
-      </div>
-      <text size="sm" color="muted">Total sales</text>
-    </div>
-    <div class="metric" motion="blur">
-      <div class="metric-head">
-        <text size="xl" weight="bold" tabular><Number value={roi} format="percent" digits={1} /></text>
-      </div>
-      <text size="sm" color="muted">Return on investment</text>
-    </div>
-  </div>
+  <box gap={2} motion="blur">
+    <title level={3}>Merges and CI failures by week</title>
+    <Chart type="bar" data={weeks} x="week" y={["merged", "failed"]} names={{ merged: "Merged", failed: "Failed CI" }} height={200} legend aria-label="Weekly merged pull requests and failed CI runs" />
+  </box>
 
-  <div class="section" motion="blur">
-    <row gap={2} style="margin-bottom: 0.55rem">
-      <title level={3}>Spend vs revenue, 2025</title>
-      <spacer />
-    </row>
-    <Chart type="bar" data={spend} x="month" y={["spend", "revenue"]} names={{ spend: "Spend", revenue: "Revenue" }} format="currency" currency="USD" unit="M" height={210} legend aria-label="Monthly spend and revenue in millions of dollars" />
-  </div>
-
-  <div class="section">
-    <div class="split">
-      <box gap={2} motion="blur">
-        <title level={3}>Share of global spend</title>
-        <Chart type="donut" data={regions} x="region" y="value" format="currency" currency="USD" unit="M" height={170} legend aria-label="Spend by region in millions of dollars" />
-      </box>
-      <box gap={2} motion="blur">
-        <row gap={2}>
-          <title level={3}>Sales and spend over time</title>
-          <spacer />
-          <badge color="accent" size="sm" motion="pop">3× since 2015</badge>
-        </row>
-        <Chart type="area" data={years} x="year" y={["sales", "spend"]} names={{ sales: "Sales", spend: "Spend" }} format="currency" currency="USD" unit="M" height={170} legend aria-label="Sales and spend from 2015 to 2025 in millions of dollars" />
-      </box>
-    </div>
+  <div class="split">
+    <box gap={2} motion="blur">
+      <title level={3}>PR mix</title>
+      <Chart type="donut" data={kinds} x="kind" y="value" height={168} legend aria-label="Pull request categories" />
+    </box>
+    <box gap={2} motion="blur">
+      <row gap={2}>
+        <title level={3}>Downloads per release</title>
+        <spacer />
+        <badge color="accent" size="sm" motion="pop">+22% QoQ</badge>
+      </row>
+      <Chart type="area" data={releases} x="release" y="downloads" names={{ downloads: "Downloads" }} unit="k" height={168} legend aria-label="Downloads in thousands by release" />
+    </box>
   </div>
 </div>

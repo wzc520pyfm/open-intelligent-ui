@@ -173,23 +173,23 @@ const en: Copy = {
   demos: {
     charts: {
       title: "Charts",
-      caption: "KPIs with bar, donut and line charts that share the same data",
-      prompt: "How does ad spend compare to sales this year?",
+      caption: "Release health: a headline metric with bar, donut and area charts",
+      prompt: "How healthy is the harbor CLI release train?",
     },
     cards: {
       title: "Cards",
-      caption: "Hotel picks with image cards, chips and a featured booking panel",
-      prompt: "Suggest modern hotels in Paris for a long weekend.",
+      caption: "Workshop picks with a featured match and a browseable list",
+      prompt: "What weekend workshops are open near Gion?",
     },
     budgets: {
       title: "Dashboards",
-      caption: "A Q4 budget board: KPIs, cash flow, department bars and invoices",
-      prompt: "Show me the Q4 budget dashboard.",
+      caption: "Sprint load: KPIs, focus heatmap, squad capacity and blockers",
+      prompt: "Show me sprint 14 load across the squads.",
     },
     forms: {
       title: "Forms",
-      caption: "A trip planner with tags, steppers, interest chips and a budget slider",
-      prompt: "Help me plan my next vacation.",
+      caption: "Focus-room booking with tags, steppers, amenity chips and a duration slider",
+      prompt: "Help me book a focus room on Thursday afternoon.",
     },
     gears: {
       title: "Explain",
@@ -298,23 +298,23 @@ const zh: Copy = {
   demos: {
     charts: {
       title: "图表",
-      caption: "共用数据的 KPI、柱状图、环图与折线",
-      prompt: "今年广告花费和销售额怎么比？",
+      caption: "发布健康度：主指标搭配柱状、环图与面积图",
+      prompt: "harbor CLI 的发版节奏健康吗？",
     },
     cards: {
       title: "卡片",
-      caption: "酒店卡片、信息条与精选预订面板",
-      prompt: "推荐几家适合长周末的巴黎现代酒店。",
+      caption: "工作坊推荐：精选匹配与可浏览列表",
+      prompt: "祗园附近周末有哪些开放的工作坊？",
     },
     budgets: {
       title: "仪表盘",
-      caption: "第四季度预算：KPI、现金流、部门进度与发票",
-      prompt: "给我看第四季度预算仪表盘。",
+      caption: "迭代负载：KPI、专注热力、小队容量与阻塞",
+      prompt: "给我看第 14 迭代各小队的负载。",
     },
     forms: {
       title: "表单",
-      caption: "行程规划：标签、步进器、兴趣选项与预算滑块",
-      prompt: "帮我规划下次旅行。",
+      caption: "专注室预订：标签、步进器、设施选项与时长滑块",
+      prompt: "帮我预订周四下午的专注室。",
     },
     gears: {
       title: "解释",

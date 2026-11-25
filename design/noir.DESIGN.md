@@ -202,8 +202,8 @@ tokens. Reduced-motion preferences collapse travel to an instant cross-fade.
 ## Voice & Content Strategy
 
 Calm, specific, short. Lead with the number or the recommendation. Section
-titles name the content ("Ad Spend vs Sales"), not the layout ("Overview").
-Status words stay short: "Paid", "Overdue", "Growing".
+titles name the content ("Sprint 14 load"), not the layout ("Overview").
+Status words stay short: "High", "Med", "Growing".
 
 ## Do's and Don'ts
 

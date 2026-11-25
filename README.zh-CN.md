@@ -4,6 +4,8 @@
 
 让智能体不是从组件库里挑选界面，而是创作界面。
 
+**[文档](https://open-intelligent-ui.pages.dev/docs/zh/)**（[English](https://open-intelligent-ui.pages.dev/docs/)），每个例子都实时渲染 · **[演示站](https://open-intelligent-ui.pages.dev)**
+
 模型写 Markdown 加标签的标记，渲染器边流边把它变成可以操作的界面。交互行为来自 [UI SDK](https://ui-sdk.dev/docs)，视觉来自一份 [DESIGN.md](https://github.com/google-labs-code/design.md)，动效来自设计系统里的动效令牌和一个 motion skill。状态、数据读写和把决定交还给模型，都由标记里的几种语法完成。
 
 | | |
@@ -22,7 +24,7 @@ UI SDK 提供的是另一种东西：组件的行为（焦点、键盘、选中�
 | 地基 | 提供什么 | 在这个仓库里 |
 | --- | --- | --- |
 | UI SDK | 55 个入口、367 个部件的交互行为 | 按名字懒加载，标记里直接写 `<Tabs>`、`<Dialog>`、`<Select>` |
-| DESIGN.md | 颜色、字体、圆角、间距、动效令牌，以及怎么用它们的说明 | 令牌变成 CSS 变量，正文进系统提示词。`design/` 里有四份 |
+| DESIGN.md | 颜色、字体、圆角、间距、动效令牌，以及怎么用它们的说明 | 令牌变成 CSS 变量，正文进系统提示词。包里自带四套：`import { paper, noir, heritage, signal } from "@open-intelligent-ui/core/designs"` |
 | 动效 skill | 什么变化配什么动效，以及在浏览器里逐帧检查的方法 | `skills/motion/`，标记属性 `motion`、`show`、`stagger`、`morph` |
 | 少量预置 | UI SDK 没有的内容类组件 | 15 个布局原语，`Chart`、`Stat`、`Number`、`DataTable`、`CodeBlock`、`Skeleton` |
 
@@ -84,7 +86,7 @@ pnpm install
 pnpm dev
 ```
 
-打开 <http://localhost:5173>。左边有六个示例，可以切换渲染器、调流式速度、切换三套设计、明暗和宽度；Inspect 面板里能直接改标记、看状态、看发给模型的系统提示词。线上演示站：<https://open-intelligent-ui.pages.dev>（Vercel 镜像：<https://open-intelligent-ui-sdk.vercel.app>）。要接真实模型，选左边的「实时」，在 OpenAI、Anthropic、DeepSeek 或自定义端点中选一个；密钥只留在当前标签页里。
+打开 <http://localhost:5173>。左边有十一个示例，可以切换渲染器、调流式速度、切换设计、明暗和宽度；Inspect 面板里能直接改标记、看状态、看发给模型的系统提示词。线上演示站：<https://open-intelligent-ui.pages.dev>（Vercel 镜像：<https://open-intelligent-ui-sdk.vercel.app>）。要接真实模型，选左边的「实时」，在 OpenAI、Anthropic、DeepSeek 或自定义端点中选一个；密钥只留在当前标签页里。
 
 ```bash
 pnpm test
@@ -184,6 +186,24 @@ Svelte 和 Solid 的写法与 React、Vue 相仿，示例和各自框架里的�
 
 这些包都是 ESM，带类型声明；React 包的入口标了 `"use client"`。工具、主题、宿主组件、状态读写和安全边界的说明在 [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md)。
 
+### 检查回复
+
+回复可以在用户看到之前先在服务端检查一遍，有错就让模型自己改：
+
+```ts
+import { checkMarkup, repairMessage } from "@open-intelligent-ui/core/check"
+
+let reply = await model(messages)
+let result = checkMarkup(reply, { library, tools })
+for (let round = 0; !result.ok && round < 2; round++) {
+  messages.push({ role: "assistant", content: reply }, { role: "user", content: repairMessage(result) })
+  reply = await model(messages)
+  result = checkMarkup(reply, { library, tools })
+}
+```
+
+`checkMarkup` 按渲染器的方式读一遍回复，但不渲染。每个问题带有代码、行号、那一行的原文，以及能说清楚时应该怎么写：不存在的组件或名字、基础元素没有的属性、一按就会出错的事件处理、按 JSX 习惯写的标记、产品没有提供的工具。回复还在流式到达时，渲染器对“用到了但还没声明”的名字先不报警告，等流结束、名字仍然缺失时才报。详见[保证输出正确](https://open-intelligent-ui.pages.dev/docs/zh/guide/correctness.html)。
+
 ## 定制
 
 产品要加上或换掉的东西放进一个 `library`，渲染器和提示词读的是同一个对象，所以模型被告知的正好是渲染器能画的。
@@ -239,6 +259,7 @@ packages/solid    Solid 渲染器，建在 @ui-sdk/solid 上
 packages/web      Web Components 渲染器，建在 @ui-sdk/web 上：<intelligent-ui> 和 mount()
 packages/open-intelligent-ui   不带 scope 的 npm 包名，只重导出 packages/core
 apps/playground   演示站（React），可以切换用五个渲染器中的任意一个来画回复
+apps/docs         文档站（VitePress），中英文，构建到演示站的 /docs 下
 apps/vue-demo、apps/svelte-demo、apps/solid-demo、apps/web-demo   同一批示例，各用一个渲染器
 design/           四份 DESIGN.md：Paper、Noir、Heritage、Signal。third-party/ 里是 HeroUI 发布的原文件
 skills/           给编码智能体的两个 skill：intelligent-ui 和 motion
@@ -250,6 +271,7 @@ scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设�
 
 | 文档 | 内容 |
 | --- | --- |
+| [文档站](https://open-intelligent-ui.pages.dev/docs/zh/) | 带实时例子的指南：标记语言、数据与工具、设计、接入自己的组件、图表、动效、保证输出正确、安全、API |
 | [`docs/research.md`](docs/research.md) | A2UI、OpenUI、OpenAI 智能界面、UI SDK、DESIGN.md 的调研；UI SDK 兼容性实测；预置组件和状态语法的取舍 |
 | [`docs/spec.md`](docs/spec.md) | IUI 标记规范 |
 | [`docs/architecture.md`](docs/architecture.md) | 各部分的分工、数据流、安全模型、测试覆盖 |
@@ -261,9 +283,9 @@ scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设�
 
 这是一个可以运行的原型，不是可以直接上线的产品。
 
-- **没有用真实模型验证过。** 示例是手写的标记。系统提示词里的每个示例都经过测试渲染，但模型按这份提示词实际写得怎么样、token 成本如何，没有数据。
+- **只在一个模型上测量过。** 一个较强的模型按默认提示词写的 32 份回复，渲染时都没有警告；检查器在其中发现一处潜在错误，这种写法现在已经支持。更小、更便宜的模型写得怎么样，真实业务里修复之后的通过率，以及 token 成本，都没有数据。演示是手写的标记；每个演示和文档里的每个例子都由测试渲染并检查。
 - **UI SDK 是 beta**（0.1.0-beta.13）。升级后运行 `pnpm generate`，测试会指出变化。
-- **五个渲染器：React、Vue、Svelte、Solid 和 Web Components。** 测试把仓库里的每个示例分别交给 React 和另外四个渲染器，比较画出来的内容和报出的警告。这四个都是新写的：除了这些测试，只在桌面版 Chrome 里用六个演示和 React 对比过，都没有在产品里用过。服务端渲染后的水合没有测过。见 [`docs/research.md`](docs/research.md#其他框架)。
+- **五个渲染器：React、Vue、Svelte、Solid 和 Web Components。** 测试把仓库里的每个示例分别交给 React 和另外四个渲染器，比较画出来的内容和报出的警告。这四个都是新写的：除了这些测试，只在桌面版 Chrome 里用这些演示和 React 对比过，都没有在产品里用过。服务端渲染后的水合没有测过。见 [`docs/research.md`](docs/research.md#其他框架)。
 - **目测只在桌面版 Chrome 里做过。** 位置过渡依赖 View Transitions API，不支持的浏览器会直接切换。
 - **安全模型没有经过外部审计。** 标记不会被当作代码执行，但工具调用的权限检查是宿主的责任。
 - **宿主页面不分层的全局 CSS 会影响界面内部**，接入时需要把 reset 放进层叠层。

@@ -188,6 +188,35 @@ Return `true` to say you handled it and skip the default.
 three sliders, presses "Make this my plan", and the model receives that
 sentence together with the numbers they chose.
 
+## Check a reply before it is shown
+
+A model makes mistakes. Check a finished reply on the server and let the
+model fix what is wrong, twice at most:
+
+```ts
+import { checkMarkup, repairMessage } from "@open-intelligent-ui/core/check"
+
+let reply = await model(messages)
+let result = checkMarkup(reply, { library, tools: ["listTickets", "updateTicket"] })
+for (let round = 0; !result.ok && round < 2; round++) {
+  messages.push({ role: "assistant", content: reply }, { role: "user", content: repairMessage(result) })
+  reply = await model(messages)
+  result = checkMarkup(reply, { library, tools: ["listTickets", "updateTicket"] })
+}
+```
+
+- Each issue has a `code`, a `severity`, a `line` and `column`, the line's
+  text and, where it can be said, a `hint` with what to write instead.
+  `result.ok` is false when there is an error; warnings don't fail a reply.
+- Pass the same `library` and tool names the renderer and the prompt get.
+  Without `tools`, tool names are not checked.
+- Store only the final reply in the conversation, not the failed attempts.
+- If it still has errors after two repairs, draw it anyway (what is right in
+  it works) or fall back to text, and log the issues.
+- While a reply streams, draw it as it arrives and check it when it ends, or
+  hold the reply until it has been checked where a wrong first draft is not
+  acceptable. The renderer reports what it notices through `onWarning`.
+
 ## Theme it
 
 Pass a DESIGN.md as text. The renderer turns its tokens into CSS variables
@@ -203,8 +232,8 @@ import design from "./brand.DESIGN.md?raw"
 - `scheme` is `light`, `dark` or `auto` (follow the system). A design with
   `colors.light` and `colors.dark` supports both.
 - With no `design`, the built-in Paper design is used.
-- `design/` has complete designs to start from (Paper, Noir, Heritage, Signal). `pnpm design:lint`
-  checks them with the DESIGN.md CLI.
+- Four complete designs come with the package:
+  `import { paper, noir, heritage, signal } from "@open-intelligent-ui/core/designs"`.
 - Fonts named in the design are used if the page has them. Load them
   yourself; the renderer does not fetch fonts.
 

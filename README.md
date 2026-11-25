@@ -4,6 +4,8 @@
 
 Let agents author interfaces, not pick them from a component library.
 
+**[Documentation](https://open-intelligent-ui.pages.dev/docs/)** ([中文](https://open-intelligent-ui.pages.dev/docs/zh/)), with every example drawn live · **[Playground](https://open-intelligent-ui.pages.dev)**
+
 The model writes Markdown mixed with tags. The renderer turns that stream into a live interface: behaviors from [UI SDK](https://ui-sdk.dev/docs), look from a [DESIGN.md](https://github.com/google-labs-code/design.md), motion from design-system tokens and a motion skill. State, data I/O, and handing decisions back to the model are all expressed in the markup.
 
 | | |
@@ -22,7 +24,7 @@ UI SDK is different: it ships component *behaviors* (focus, keyboard, selection,
 | Foundation | What it gives | In this repo |
 | --- | --- | --- |
 | UI SDK | Behaviors for 55 entry points, 367 parts | Lazy-loaded by name; write `<Tabs>`, `<Dialog>`, `<Select>` in markup |
-| DESIGN.md | Color, type, radius, spacing, motion tokens, plus prose on how to use them | Tokens become CSS variables; prose goes into the system prompt. Four designs under `design/` |
+| DESIGN.md | Color, type, radius, spacing, motion tokens, plus prose on how to use them | Tokens become CSS variables; prose goes into the system prompt. Four designs come with the package: `import { paper, noir, heritage, signal } from "@open-intelligent-ui/core/designs"` |
 | Motion skill | Which change gets which motion, and a way to review it frame by frame | `skills/motion/`; markup attributes `motion`, `show`, `stagger`, `morph` |
 | Small presets | Content widgets UI SDK does not have | 15 layout primitives; `Chart`, `Stat`, `Number`, `DataTable`, `CodeBlock`, `Skeleton` |
 
@@ -84,7 +86,7 @@ pnpm install
 pnpm dev
 ```
 
-Open <http://localhost:5173> (or the [deployed playground](https://open-intelligent-ui.pages.dev); Vercel mirror: [open-intelligent-ui-sdk.vercel.app](https://open-intelligent-ui-sdk.vercel.app)). Six demos on the left; switch renderer, streaming speed, design, light/dark and width. Inspect shows markup, state and the system prompt. For a real model, pick **Live** and choose OpenAI, Anthropic, DeepSeek or a custom OpenAI-compatible endpoint — the key stays in this tab.
+Open <http://localhost:5173> (or the [deployed playground](https://open-intelligent-ui.pages.dev); Vercel mirror: [open-intelligent-ui-sdk.vercel.app](https://open-intelligent-ui-sdk.vercel.app)). Eleven demos on the left; switch renderer, streaming speed, design, light/dark and width. Inspect shows markup, state and the system prompt. For a real model, pick **Live** and choose OpenAI, Anthropic, DeepSeek or a custom OpenAI-compatible endpoint — the key stays in this tab.
 
 ```bash
 pnpm test
@@ -184,6 +186,24 @@ The [demo site](https://open-intelligent-ui.pages.dev) (Vercel: [open-intelligen
 
 The packages are ESM with type declarations; the React entry is marked `"use client"`. Tools, theming, host components, state and the safety model: [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md).
 
+### Check the reply
+
+A reply can be checked before a reader sees it, on the server, and the model can be asked to fix what is wrong:
+
+```ts
+import { checkMarkup, repairMessage } from "@open-intelligent-ui/core/check"
+
+let reply = await model(messages)
+let result = checkMarkup(reply, { library, tools })
+for (let round = 0; !result.ok && round < 2; round++) {
+  messages.push({ role: "assistant", content: reply }, { role: "user", content: repairMessage(result) })
+  reply = await model(messages)
+  result = checkMarkup(reply, { library, tools })
+}
+```
+
+`checkMarkup` reads the reply the way a renderer would, without drawing it. Each issue has a code, a line, the line's text and, where it can be said, what to write instead: a component or a name that doesn't exist, a prop a primitive doesn't have, a handler that would fail when pressed, markup written as JSX, a tool the product doesn't have. While a reply streams, the renderers hold back a warning about a name the stream hasn't declared yet, and give it at the end if the name is still missing. More: [Correct output](https://open-intelligent-ui.pages.dev/docs/guide/correctness.html).
+
 ## Customize
 
 What a product adds or replaces goes in one `library`, which the renderer and the prompt both read. The model is told about exactly what the renderer can draw.
@@ -239,6 +259,7 @@ packages/solid    Solid renderer, on @ui-sdk/solid
 packages/web      Web Components renderer, on @ui-sdk/web: <intelligent-ui> and mount()
 packages/open-intelligent-ui   The unscoped npm name; re-exports packages/core
 apps/playground   Demo site (React), with a switch that draws a reply with any of the five renderers
+apps/docs         Documentation site (VitePress), in English and Chinese, built into the demo site under /docs
 apps/vue-demo, apps/svelte-demo, apps/solid-demo, apps/web-demo   The same demos on one renderer each
 design/           Four DESIGN.md files: Paper, Noir, Heritage, Signal. third-party/ holds HeroUI's, as published
 skills/           Agent skills: intelligent-ui and motion
@@ -250,6 +271,7 @@ scripts/          UI SDK catalog generation, skill references, design lint
 
 | Doc | Contents |
 | --- | --- |
+| [The documentation site](https://open-intelligent-ui.pages.dev/docs/) | Guides with live examples: the markup, data and tools, design, your components, charts, motion, correct output, safety, API |
 | [`docs/research.md`](docs/research.md) | A2UI, OpenUI, OpenAI Intelligent UI, UI SDK, DESIGN.md; compatibility tests; presets and state syntax |
 | [`docs/spec.md`](docs/spec.md) | IUI markup language |
 | [`docs/architecture.md`](docs/architecture.md) | How the pieces fit, data flow, safety model, tests |
@@ -261,9 +283,9 @@ scripts/          UI SDK catalog generation, skill references, design lint
 
 A working prototype, not a product.
 
-- **Not validated against a real model.** Demos are handwritten. Every example in the system prompt is rendered by tests; how a model writes against that prompt, and at what token cost, is unknown.
+- **Measured against one model only.** 32 replies written by one strong model against the default prompt all drew without a warning, and the checker found one latent mistake in them, which is now supported. Replies from smaller or cheaper models, the pass rate after repair on a real workload, and token cost have not been measured. Demos are handwritten; every demo and every documented example is drawn and checked by tests.
 - **UI SDK is beta** (0.1.0-beta.13). After upgrading, run `pnpm generate`; tests will flag drift.
-- **Five renderers: React, Vue, Svelte, Solid and Web Components.** Tests draw every sample in this repository with React and with each of the other four, and compare what is drawn and the warnings. The four are new: beyond those tests each has been compared with React in desktop Chrome on the six demos, and none has been used in a product. Hydrating server-rendered HTML is untested. See [`docs/research.md`](docs/research.md#其他框架).
+- **Five renderers: React, Vue, Svelte, Solid and Web Components.** Tests draw every sample in this repository with React and with each of the other four, and compare what is drawn and the warnings. The four are new: beyond those tests each has been compared with React in desktop Chrome on the demos, and none has been used in a product. Hydrating server-rendered HTML is untested. See [`docs/research.md`](docs/research.md#其他框架).
 - **Visual checks only in desktop Chrome.** Layout morphing needs View Transitions; unsupported browsers swap instantly.
 - **Safety model has not been audited externally.** Markup is never executed as code; authorizing tool calls is the host's job.
 - **Unlayered host CSS can override the surface.** Put resets in a cascade layer when integrating.

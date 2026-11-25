@@ -368,6 +368,14 @@ import heroui from "./heroui.DESIGN.md?raw"
 defineLibrary({ design: heroui })
 ```
 
+包里自带的四套设计也可以直接引入，不必从仓库里复制文件：
+
+```ts
+import { paper, noir, heritage, signal } from "@open-intelligent-ui/core/designs"
+
+defineLibrary({ design: noir })
+```
+
 读到的包括浅色和深色两套颜色、`--radius`、`--spacing`、字体。`oklch()`、`hsl()`、`color-mix()` 和 `var(--x)` 引用都认。
 
 **按需调整。** `parseDesign(source, options)` 有三个选项，返回的 `Design` 可以直接给 `design`：
@@ -430,5 +438,21 @@ const design = designFromCss(theme, {
 | `@open-intelligent-ui/core/charts` | `echartsCharts`、`g2Charts`；类型 `ChartEngine`、`ChartSpec`、`ChartContext`、`ChartHandle` |
 | `@open-intelligent-ui/core/motion` | `motionAdapter`、`gsapAdapter`、`waapiAdapter`、`createMotionAdapter`、`cssKeyframes`、`cubicBezier`；类型 `MotionAdapter`、`MotionPreset`、`MotionTiming` |
 | `@open-intelligent-ui/react/recharts` | `rechartsCharts` |
+| `@open-intelligent-ui/core/designs` | `paper`、`noir`、`heritage`、`signal`：四份 DESIGN.md 的原文 |
+| `@open-intelligent-ui/core/check` | `checkMarkup`、`repairMessage`；类型 `CheckOptions`、`CheckResult`、`Issue`、`IssueCode` |
+
+注册了自己的组件之后，把同一个 `library` 交给检查器，它就按你声明的属性来查模型写的标记：
+
+```ts
+import { checkMarkup, repairMessage } from "@open-intelligent-ui/core/check"
+
+let reply = await model(messages)
+let result = checkMarkup(reply, { library, tools })
+for (let round = 0; !result.ok && round < 2; round++) {
+  messages.push({ role: "assistant", content: reply }, { role: "user", content: repairMessage(result) })
+  reply = await model(messages)
+  result = checkMarkup(reply, { library, tools })
+}
+```
 
 每个渲染器包也重导出 `defineLibrary`、`defineComponent`、`defineWidget`、`librarySpec` 等，只装一个包时不必再单独引 core。

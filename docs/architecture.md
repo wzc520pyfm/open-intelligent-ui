@@ -269,6 +269,18 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 - **提示词里的每个示例都由测试渲染。** 提示词不能教渲染器做不到的事。
 - **skill 的参考页由同一份指南生成。** `pnpm generate:skills` 写出 `skills/**/references/` 下的三个文件，测试检查它们没有过期。
 
+## 检查器
+
+`packages/core/src/check`，从 `@open-intelligent-ui/core/check` 引入。它按渲染器的方式读一遍回复，但不渲染，所以能在服务端运行。
+
+- `checkMarkup(source, { library, tools, components, state, functions, actions })` 先解析，再走一遍树：声明（`<state>`、`<derive>`、`<query>`、`<define>`）先收集，然后逐个元素检查标签、属性、绑定和事件处理，表达式里的每个名字按作用域查，读和写分开看。
+- 它知道的东西和渲染器是同一份：原语和预置组件的属性表在 `specs.ts`，有一个测试把每个原语带着、不带每个属性各画一次，属性表和视图不一致就失败；UI SDK 的部件归属来自生成的清单；图标名来自 Lucide。
+- UI SDK 部件的属性不查。生成的清单没有列全渲染器接受的属性（比如 `<Button>` 的 `variant`、`size`），查了会误报。
+- `repairMessage(result)` 把问题写成发回模型的消息：每个问题带行号、原文和改法，按行排列；默认最多 12 条，名额先给错误，有余再放警告。
+- `/check` 带着组件清单和图标名，约 290 kB，不在浏览器里检查就不要打进前端包。
+
+渲染器这一侧配合的是流式期间的暂缓：`onWarning` 对“还没声明”的名字和组件先不报，流结束时仍然缺失才报。
+
 ## 安全模型
 
 前提：标记由模型写成，模型可能被提示词注入，所以标记按不可信输入处理。
@@ -317,7 +329,9 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 | `packages/svelte/test/conformance.test.ts` | 同上，对 Svelte。`@ui-sdk/svelte` 自己画得不同的两处（部件之间的空格文本节点、几个不占位置的元素放在别处）先还原再比；哪些示例靠这一步才相同是写死在测试里的，多一个就失败 |
 | `packages/web/test/conformance.test.ts` | 同上，对 Web Components。不含 UI SDK 部件的示例 DOM 逐节点相同；含 UI SDK 部件的示例，部件之外的元素逐节点相同，每个部件按它的 slot、角色、名称、状态和文字比 |
 | 各渲染器包里的 `render.test.ts`、`claims.test.ts`、`ui-sdk.test.ts` | React 那三组测试在该渲染器上的对应版本，另加它特有的部分：Vue 的 `v-model` 式宿主组件、`.prop` 和 `^attr` 写法；Svelte 的 `bind:` 和它自己的属性通道；Web 的属性、处理器、`is`、`slot`、`part`、`for`、`container`，以及修补 DOM 时元素、焦点和输入不丢 |
-| `apps/playground/test/demos.test.tsx` | 六个演示能渲染、能交互、在任意截断点都能流式显示 |
-| `apps/playground/test/docs.test.tsx` | 文档和 skill 里的每个 `iui` 示例；skill 参考页没有过期 |
+| `apps/playground/test/demos.test.tsx` | 每个演示能渲染、能交互、在任意截断点都能流式显示 |
+| `apps/playground/test/docs.test.tsx` | 文档、文档站（`apps/docs`）和 skill 里的每个 `iui` 示例都能渲染、没有警告，并且通过 `checkMarkup`；skill 参考页没有过期 |
+| `packages/core/test/check.test.ts` | 检查器：写对的回复没有问题；每一类错误都报出，带改法；提示词里点名的每个错误都被抓到；属性表和视图一致 |
+| `apps/playground/test/designs.test.tsx` | `/designs` 导出的四套设计和 `design/` 下的文件一致，解析没有问题，都有浅色和深色 |
 
 测试在 jsdom 里运行，不覆盖布局、绘制和动画，一致性测试比较的也只是 DOM。这些是在 Chrome 里用截图检查的，见 [`skills/motion/SKILL.md`](../skills/motion/SKILL.md) 里的截图脚本。

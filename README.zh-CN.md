@@ -84,7 +84,7 @@ pnpm install
 pnpm dev
 ```
 
-打开 <http://localhost:5173>。左边有六个示例，可以切换渲染器、调流式速度、切换三套设计、明暗和宽度；Inspect 面板里能直接改标记、看状态、看发给模型的系统提示词。线上演示站：<https://open-intelligent-ui.pages.dev>。要接真实模型，选左边的「实时」，在 OpenAI、Anthropic、DeepSeek 或自定义端点中选一个；密钥只留在当前标签页里。
+打开 <http://localhost:5173>。左边有六个示例，可以切换渲染器、调流式速度、切换三套设计、明暗和宽度；Inspect 面板里能直接改标记、看状态、看发给模型的系统提示词。线上演示站：<https://open-intelligent-ui.pages.dev>（Vercel 镜像：<https://open-intelligent-ui-sdk.vercel.app>）。要接真实模型，选左边的「实时」，在 OpenAI、Anthropic、DeepSeek 或自定义端点中选一个；密钥只留在当前标签页里。
 
 ```bash
 pnpm test
@@ -180,7 +180,7 @@ Svelte 和 Solid 的写法与 React、Vue 相仿，示例和各自框架里的�
 
 模型给五个渲染器写的是同一份标记，提示词也是同一份。React、Vue、Solid 画出的 DOM 相同；Svelte 除了 `@ui-sdk/svelte` 自己摆放位置不同的几个元素以外也相同；Web Components 渲染器把 UI SDK 组件画成自定义元素（`<ui-tabs>`），角色、名称、状态和外观相同。
 
-[演示站](https://open-intelligent-ui.pages.dev)可以在同一条回复上切换这五个渲染器。`pnpm dev:vue`、`pnpm dev:svelte`、`pnpm dev:solid`、`pnpm dev:web` 各自只用一个渲染器运行同一批示例。
+[演示站](https://open-intelligent-ui.pages.dev)（Vercel：[open-intelligent-ui-sdk.vercel.app](https://open-intelligent-ui-sdk.vercel.app)）可以在同一条回复上切换这五个渲染器。`pnpm dev:vue`、`pnpm dev:svelte`、`pnpm dev:solid`、`pnpm dev:web` 各自只用一个渲染器运行同一批示例。
 
 这些包都是 ESM，带类型声明；React 包的入口标了 `"use client"`。工具、主题、宿主组件、状态读写和安全边界的说明在 [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md)。
 

@@ -1,6 +1,6 @@
 {
   "name": "@open-intelligent-ui/solid",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Solid renderer for Open Intelligent UI: turns IUI markup written by a model into a live, stateful, animated interface built on UI SDK.",
   "keywords": [
     "generative-ui",

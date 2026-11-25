@@ -70,8 +70,28 @@ export type Node =
   | EachNode
   | ConstNode
 
+/** What kind of problem a diagnostic is, for code that sorts or counts them. */
+export type DiagnosticCode =
+  /** A closing tag, `{:else}` or `{/if}` with nothing open to close. */
+  | "stray-close"
+  /** A block the language doesn't have, like `{#await}`. */
+  | "unknown-block"
+  /** A tag that never reaches its `>`. */
+  | "unclosed-tag"
+  /** An element or a block with no closing tag. The reply was probably cut short. */
+  | "unclosed-element"
+  /** A tag that is never let through, like `<script>`. */
+  | "blocked-tag"
+  /** A lowercase tag the language doesn't have. It is shown as text. */
+  | "unknown-tag"
+  /** An expression that can't be read. */
+  | "bad-expression"
+  /** Tags written inside `{…}`, as JSX has them. */
+  | "tags-in-expression"
+
 export interface Diagnostic {
   severity: "error" | "warning"
+  code: DiagnosticCode
   message: string
   pos: number
 }
@@ -85,4 +105,6 @@ export interface Document {
    * middle of a tag or an expression. Only happens while streaming.
    */
   complete: boolean
+  /** True when it was parsed while its source was still arriving: more may follow. */
+  streaming?: boolean
 }

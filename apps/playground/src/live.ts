@@ -1,3 +1,5 @@
+import { type CheckResult, repairMessage } from "@open-intelligent-ui/core/check"
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant"
   content: string
@@ -91,6 +93,47 @@ export async function* streamChat(options: StreamOptions): AsyncGenerator<string
     return
   }
   yield* streamOpenAI(options)
+}
+
+export interface CheckedOptions extends StreamOptions {
+  /** Reads a finished reply and says what is wrong with it. */
+  check: (reply: string) => CheckResult
+  /** How many times the model may be asked to fix its reply. */
+  repairs?: number
+  /** The reply so far. Starts over from empty when the model is asked again. */
+  onText: (text: string) => void
+  /** Called once each reply has been checked: `round` 0 is the first reply. */
+  onChecked?: (result: CheckResult, round: number, willRepair: boolean) => void
+}
+
+/**
+ * Streams a reply, checks it when it ends, and while it has errors sends the
+ * model its own reply with what the check found and streams the next one.
+ * This is the loop a product runs on its server; here it runs in the tab.
+ * Resolves with the last reply, checked.
+ */
+export async function askChecked(
+  options: CheckedOptions
+): Promise<{ text: string; result: CheckResult; rounds: number }> {
+  const { check, repairs = 2, onText, onChecked, ...stream } = options
+  let messages = stream.messages
+  for (let round = 0; ; round++) {
+    let raw = ""
+    for await (const part of streamChat({ ...stream, messages })) {
+      raw += part
+      onText(unwrapFence(raw))
+    }
+    const text = unwrapFence(raw)
+    const result = check(text)
+    const willRepair = !result.ok && round < repairs
+    onChecked?.(result, round, willRepair)
+    if (!willRepair) return { text, result, rounds: round + 1 }
+    messages = [
+      ...stream.messages,
+      { role: "assistant", content: text },
+      { role: "user", content: repairMessage(result) },
+    ]
+  }
 }
 
 async function* streamOpenAI(options: StreamOptions): AsyncGenerator<string> {

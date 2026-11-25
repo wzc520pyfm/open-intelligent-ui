@@ -150,6 +150,58 @@ function fakeMotion(options: Partial<MotionAdapter> = {}) {
 export function librarySuite(harness: SuiteHarness): void {
   const { draw, flush } = harness
 
+  describe("warnings while a reply streams", () => {
+    /** Writes `source` a few characters at a time, then says the stream is over. */
+    async function stream(source: string, warnings: string[]) {
+      const view = await draw({
+        source: "",
+        streaming: true,
+        onWarning: (message) => warnings.push(message),
+      })
+      for (let end = 0; end < source.length; end += 9) {
+        await view.update({ source: source.slice(0, end) })
+      }
+      await view.update({ source })
+      await flush()
+      const during = [...warnings]
+      await view.update({ streaming: false })
+      await flush()
+      return { view, during }
+    }
+
+    test("a name used before the stream declares it is not one", async () => {
+      const warnings: string[] = []
+      const { view } = await stream(
+        `<card>
+  <text class="count">{count} items, {label}</text>
+  <Pill tone="info">new</Pill>
+</card>
+
+<define name="Pill" props="tone"><badge color={tone}><slot /></badge></define>
+<derive label={count > 1 ? "many" : "few"} />
+<state count={2} />`,
+        warnings
+      )
+      expect(warnings).toEqual([])
+      expect(view.container.querySelector(".count")?.textContent).toBe("2 items, many")
+      expect(view.container.querySelector(".iui-badge")?.textContent).toBe("new")
+    })
+
+    test("a name the stream never declares is one, told when the stream ends", async () => {
+      const warnings: string[] = []
+      const { during } = await stream(
+        `<text>{missing} here</text>
+
+<Ghost>and this</Ghost>
+
+<text>the end</text>`,
+        warnings
+      )
+      expect(during).toEqual([])
+      expect([...warnings].sort()).toEqual(['"missing" is not defined', "<Ghost> is not a known component"])
+    })
+  })
+
   describe("widgets from a library", () => {
     const library = defineLibrary({ components: [Stepper] })
 

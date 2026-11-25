@@ -45,6 +45,8 @@ export interface EvalHost {
    * finding it by identity. Returns whether it was found.
    */
   replace?(previous: object, next: unknown): boolean
+  /** Whether a name is worked out from others (a derived value, a query) and so can't be written. */
+  computed?(name: string): boolean
   /** Pure functions and namespaces, available everywhere. */
   functions: Record<string, unknown>
   /** Functions with side effects, available only while an action runs. */
@@ -283,6 +285,17 @@ const NUMBER_METHODS: Record<string, Method<number>> = {
     ),
 }
 
+/** Every method an expression can call on a list, a text or a number. */
+export const METHOD_NAMES: ReadonlySet<string> = new Set([
+  ...Object.keys(ARRAY_METHODS),
+  ...Object.keys(STRING_METHODS),
+  ...Object.keys(NUMBER_METHODS),
+  ...MUTATORS,
+])
+
+/** The list methods that change the list, which only a handler may call. */
+export const MUTATOR_NAMES: ReadonlySet<string> = MUTATORS
+
 function methodOf(target: unknown, key: string): Method<never> | undefined {
   const table = Array.isArray(target)
     ? ARRAY_METHODS
@@ -473,6 +486,8 @@ function assignTo(
       owner.write(target.name, value)
       return
     }
+    // A derived value can't be written, but what it picked out of state can.
+    if (env.host.computed?.(target.name) && replace()) return
     env.host.assign(target.name, value)
     return
   }

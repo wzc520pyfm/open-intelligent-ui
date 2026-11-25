@@ -1,5 +1,6 @@
 import { act, render, waitFor } from "@testing-library/react"
 import { describe, expect, test } from "vitest"
+import { checkMarkup } from "@open-intelligent-ui/core/check"
 import { skillReferences } from "@open-intelligent-ui/core/prompt"
 import { IntelligentUI, preloadUiSdk } from "@open-intelligent-ui/react"
 import { createTicketTools } from "../src/tools"
@@ -44,6 +45,10 @@ describe("documented interfaces render", () => {
     expect(view.container.querySelector(".iui-error")?.textContent ?? null, source).toBeNull()
     expect(warnings, source).toEqual([])
     expect(view.container.querySelector(".iui-root")?.textContent?.trim().length).toBeGreaterThan(0)
+  })
+
+  test.each(examples)("%s checks out before it is drawn", (_name, source) => {
+    expect(checkMarkup(source, { tools: Object.keys(createTicketTools(0)) }).issues).toEqual([])
   })
 })
 

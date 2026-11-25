@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { describe, expect, test } from "vitest"
+import { checkMarkup } from "@open-intelligent-ui/core/check"
 import { IntelligentUI, preloadUiSdk } from "@open-intelligent-ui/react"
 import { DEMOS } from "../src/demos"
 import { createTicketTools } from "../src/tools"
@@ -50,6 +51,15 @@ describe("playground demos", () => {
     expect(view.warnings).toEqual([])
   })
 
+  test.each(DEMOS.map((demo) => demo.id))("%s checks out before it is drawn", (id) => {
+    const demo = DEMOS.find((item) => item.id === id) as (typeof DEMOS)[number]
+    const result = checkMarkup(demo.source, {
+      library: demo.library,
+      tools: Object.keys(createTicketTools(0)),
+    })
+    expect(result.issues).toEqual([])
+  })
+
   test.each(DEMOS.map((demo) => demo.id))("%s survives being streamed", async (id) => {
     const demo = DEMOS.find((item) => item.id === id) as (typeof DEMOS)[number]
     await act(async () => {
@@ -72,7 +82,8 @@ describe("playground demos", () => {
       if (error) errors.push(`${end}: ${error.textContent}`)
     }
     expect(errors).toEqual([])
-  })
+    // A demo is drawn again for every 37 characters of it: seconds on a small CI machine.
+  }, 30_000)
 
   test("gears: presets set both sliders and the ratio follows", async () => {
     const view = await mount("gears")

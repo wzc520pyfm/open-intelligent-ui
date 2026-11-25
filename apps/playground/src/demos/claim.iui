@@ -31,7 +31,7 @@
   </text>
 </card>
 
-<grid columns={2} min={260} gap={3}>
+<grid columns={2} gap={3}>
   <card padding={4} gap={3}>
     <title level={3}>Policy</title>
     <box gap={3} stagger>

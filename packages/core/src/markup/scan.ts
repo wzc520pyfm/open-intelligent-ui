@@ -11,6 +11,7 @@ import type {
   AttrValue,
   ConstNode,
   Diagnostic,
+  DiagnosticCode,
   Document,
   EachNode,
   ElementNode,
@@ -62,6 +63,20 @@ const ATTR_NAME = /[^\s=/>{}"'<]+/y
 const UNQUOTED_VALUE = /[^\s>"'{}=]+/y
 const SVG_ONLY_NAMES = new Set(["text", "title", "image", "a", "style", "switch"])
 
+/** A tag inside braces, as JSX writes `{open && <Panel />}`. */
+const TAG_IN_EXPRESSION = /<[A-Za-z][\w-]*[\s/>]/
+/** What braces hold when code was meant rather than prose: a call, a path, an operator. */
+const CODE_IN_BRACES =
+  /=>|&&|\|\||\?\?|\bnew\s+[A-Z]|[A-Za-z_$][\w$]*\s*\(|[A-Za-z_$][\w$]*\.[A-Za-z_$]|[A-Za-z_$][\w$.]*\s+[-+*/%]\s*$/
+/** A comment as JSX writes it, from its `{`. It can hold quotes and braces an expression couldn't. */
+const JSX_COMMENT = /\{\s*\/\*[\s\S]*?\*\/\s*\}/y
+
+/** A piece of source short enough to quote in a message. */
+function clip(text: string): string {
+  const line = text.replace(/\s+/g, " ").trim()
+  return line.length > 80 ? `${line.slice(0, 77)}…` : line
+}
+
 /** Text held back at most this long while waiting for a closing `}`. */
 const MAX_HELD_EXPRESSION = 1200
 
@@ -89,15 +104,17 @@ class Scanner {
       children: finishChildren(items, "root", this.streaming),
       diagnostics: this.diagnostics,
       complete: this.complete,
+      streaming: this.streaming,
     }
   }
 
   private report(
     severity: Diagnostic["severity"],
+    code: DiagnosticCode,
     message: string,
     pos: number
   ): void {
-    this.diagnostics.push({ severity, message, pos })
+    this.diagnostics.push({ severity, code, message, pos })
   }
 
   /** Stops reading at `pos`; the rest is still being written. */
@@ -127,6 +144,22 @@ class Scanner {
       )
     }
     return isKnownTag(name)
+  }
+
+  /**
+   * Whether `<name` was meant as a tag rather than as "less than": a
+   * lowercase name closed at once, as in `<stack>`, or followed by an
+   * attribute with a value, as in `<stack gap={2}>`. `after` is where the
+   * name ends.
+   */
+  private looksLikeTag(name: string, after: number): boolean {
+    if (!/^[a-z][a-z0-9-]*$/.test(name)) return false
+    const rest = this.src.slice(after, Math.min(this.end, after + 400))
+    if (/^\s*\/?>|^\s+[A-Za-z_:][\w:.-]*=[^<\n]*>/.test(rest)) return true
+    // Bare attributes, as in `<stack disabled>`, read like prose ("m <n and n> p") unless the tag is closed later.
+    return (
+      /^(?:\s+[A-Za-z_:][\w:.-]*)+\s*>/.test(rest) && this.src.indexOf(`</${name}>`, after) !== -1
+    )
   }
 
   private atLineStart(pos: number): boolean {
@@ -209,7 +242,7 @@ class Scanner {
               return { items, end: { type: "outer" } }
             }
             if (!VOID_TAGS.has(name)) {
-              this.report("warning", `</${name}> has no matching opening tag`, at)
+              this.report("warning", "stray-close", `</${name}> has no matching opening tag`, at)
             }
             this.pos = at + closing[0].length
             continue
@@ -248,6 +281,14 @@ class Scanner {
         }
         const next = src[after] as string
         if (!this.isTagName(name) || !/[\s/>]/.test(next)) {
+          if (/[\s/>]/.test(next) && this.looksLikeTag(name, after)) {
+            this.report(
+              "warning",
+              "unknown-tag",
+              `<${name}> is not a tag the language has, so it is shown as text`,
+              at
+            )
+          }
           text += "<"
           this.pos = at + 1
           continue
@@ -262,6 +303,14 @@ class Scanner {
       }
 
       // ch === "{"
+      // A comment as JSX writes it. Nothing is shown for it.
+      JSX_COMMENT.lastIndex = at
+      const comment = JSX_COMMENT.exec(src)
+      if (comment && comment.index === at && at + comment[0].length <= this.end) {
+        this.pos = at + comment[0].length
+        continue
+      }
+
       const close = findClosingBrace(src, at)
       if (close === -1) {
         const rest = src.slice(at, this.end)
@@ -305,7 +354,7 @@ class Scanner {
           flush()
           return { items, end: { type: "outer" } }
         }
-        this.report("warning", "{:else} outside of {#if} or {#each}", at)
+        this.report("warning", "stray-close", "{:else} outside of {#if} or {#each}", at)
         this.pos = close + 1
         continue
       }
@@ -320,7 +369,7 @@ class Scanner {
           flush()
           return { items, end: { type: "outer" } }
         }
-        this.report("warning", `{${head}} has no matching {#${kind}}`, at)
+        this.report("warning", "stray-close", `{${head}} has no matching {#${kind}}`, at)
         this.pos = close + 1
         continue
       }
@@ -334,7 +383,7 @@ class Scanner {
         continue
       }
       if (head?.startsWith("@") || head?.startsWith("#")) {
-        this.report("error", `{${head}} is not supported`, at)
+        this.report("error", "unknown-block", `{${head}} is not supported`, at)
         this.pos = close + 1
         continue
       }
@@ -346,6 +395,17 @@ class Scanner {
         this.pos = close + 1
       } catch (error) {
         if (!(error instanceof ExprSyntaxError)) throw error
+        // Braces in prose are text. Braces around code that can't be read are a mistake.
+        if (TAG_IN_EXPRESSION.test(inner)) {
+          this.report(
+            "error",
+            "tags-in-expression",
+            `Tags can't be written inside {…}: write {#if test}…{/if} to show something when a test holds, and {#each list as item}…{/each} to repeat it, in {${clip(inner)}}`,
+            at
+          )
+        } else if (CODE_IN_BRACES.test(inner)) {
+          this.report("error", "bad-expression", `${error.message} in {${clip(inner)}}`, at)
+        }
         text += "{"
         this.pos = at + 1
       }
@@ -406,7 +466,7 @@ class Scanner {
       if (this.streaming) {
         this.hold(start)
       } else {
-        this.report("error", `<${name}> is never closed with ">"`, start)
+        this.report("error", "unclosed-tag", `<${name}> is never closed with ">"`, start)
         this.pos = this.end
       }
       return null
@@ -415,7 +475,7 @@ class Scanner {
     const src = this.src
 
     if (BLOCKED_TAGS.has(name)) {
-      this.report("warning", `<${name}> is not allowed and was removed`, start)
+      this.report("warning", "blocked-tag", `<${name}> is not allowed and was removed`, start)
       if (!selfClosing) {
         const close = src.indexOf(`</${name}`, this.pos)
         const finish = close === -1 ? -1 : src.indexOf(">", close)
@@ -450,7 +510,7 @@ class Scanner {
         node.closed = false
         this.pos = this.end
         if (!this.streaming) {
-          this.report("warning", `<${name}> is never closed`, start)
+          this.report("warning", "unclosed-element", `<${name}> is never closed`, start)
         }
       } else {
         node.children = [{ type: "text", value: src.slice(this.pos, close) }]
@@ -472,7 +532,7 @@ class Scanner {
     )
     if (name === "svg") this.svgDepth--
     if (!node.closed && !this.streaming) {
-      this.report("warning", `<${name}> is never closed`, start)
+      this.report("warning", "unclosed-element", `<${name}> is never closed`, start)
     }
     return node
   }
@@ -513,7 +573,7 @@ class Scanner {
         } else if (expr.type === "Ident") {
           attrs.push({ name: expr.name, value: { kind: "expr", expr, src: inner } })
         } else {
-          this.report("error", `{${inner}} needs an attribute name`, at)
+          this.report("error", "bad-expression", `{${inner}} needs an attribute name`, at)
         }
         continue
       }
@@ -523,7 +583,7 @@ class Scanner {
       if (!named || named.index + named[0].length > this.end) {
         if (ch === "<") {
           // A new tag started before this one was closed.
-          this.report("error", "Tag is missing its closing \">\"", tagStart)
+          this.report("error", "unclosed-tag", "Tag is missing its closing \">\"", tagStart)
           return { attrs, selfClosing: false }
         }
         this.pos++
@@ -577,7 +637,7 @@ class Scanner {
       return parseProgram(inner)
     } catch (error) {
       if (!(error instanceof ExprSyntaxError)) throw error
-      this.report("error", `${error.message} in {${inner.trim()}}`, at)
+      this.report("error", "bad-expression", `${error.message} in {${inner.trim()}}`, at)
       return null
     }
   }
@@ -652,7 +712,7 @@ class Scanner {
       if (valid) node.branches.push({ test, children })
       if (end.type !== "else") {
         if (end.type !== "close" && !this.streaming) {
-          this.report("warning", "{#if} is never closed with {/if}", start)
+          this.report("warning", "unclosed-element", "{#if} is never closed with {/if}", start)
         }
         break
       }
@@ -663,7 +723,7 @@ class Scanner {
         test = this.condition(end.header.slice(2), end.pos)
         valid = test !== null
       } else {
-        this.report("error", `Unknown block {:else ${end.header}}`, end.pos)
+        this.report("error", "unknown-block", `Unknown block {:else ${end.header}}`, end.pos)
         valid = false
       }
     }
@@ -675,7 +735,7 @@ class Scanner {
       return parseExpression(src)
     } catch (error) {
       if (!(error instanceof ExprSyntaxError)) throw error
-      this.report("error", `${error.message} in {#if ${src.trim()}}`, at)
+      this.report("error", "bad-expression", `${error.message} in {#if ${src.trim()}}`, at)
       return null
     }
   }
@@ -695,7 +755,7 @@ class Scanner {
       if (parsed.key) node.key = parsed.key
     } catch (error) {
       if (!(error instanceof ExprSyntaxError)) throw error
-      this.report("error", `${error.message} in {#each ${header.trim()}}`, start)
+      this.report("error", "bad-expression", `${error.message} in {#each ${header.trim()}}`, start)
     }
     const mode = this.branchMode()
     let first = true
@@ -715,7 +775,7 @@ class Scanner {
       }
       if (end.type !== "else") {
         if (end.type !== "close" && !this.streaming) {
-          this.report("warning", "{#each} is never closed with {/each}", start)
+          this.report("warning", "unclosed-element", "{#each} is never closed with {/each}", start)
         }
         break
       }
@@ -735,10 +795,10 @@ class Scanner {
           pos: start,
         }
       }
-      this.report("error", "{@const} needs a name and a value", start)
+      this.report("error", "bad-expression", "{@const} needs a name and a value", start)
     } catch (error) {
       if (!(error instanceof ExprSyntaxError)) throw error
-      this.report("error", `${error.message} in {@const ${body.trim()}}`, start)
+      this.report("error", "bad-expression", `${error.message} in {@const ${body.trim()}}`, start)
     }
     return null
   }
@@ -766,10 +826,19 @@ function unwrapFence(src: string): string {
  * can't understand is kept as text or dropped, and noted in `diagnostics`.
  */
 export function parse(source: string, options: ParseOptions = {}): Document {
-  const src = unwrapFence(
-    source.replace(/\r\n?/g, "\n").replace(/[\uE000\uE001]/g, "")
-  )
-  return new Scanner(src, options.streaming ?? false).parse()
+  return new Scanner(prepare(source).text, options.streaming ?? false).parse()
+}
+
+/**
+ * The text `parse` reads: line ends made the same, and a code fence around
+ * the whole answer taken off. Positions in a document count from the start
+ * of `text`, which is `lines` lines into the source as it was given.
+ */
+export function prepare(source: string): { text: string; lines: number } {
+  const clean = source.replace(/\r\n?/g, "\n").replace(/[\uE000\uE001]/g, "")
+  const text = unwrapFence(clean)
+  const opening = text === clean ? "" : (WRAPPING_FENCE.exec(clean)?.[0] ?? "")
+  return { text, lines: opening.split("\n").length - 1 }
 }
 
 /** Line and column for a position reported in a diagnostic. */

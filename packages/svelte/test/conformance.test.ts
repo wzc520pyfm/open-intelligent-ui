@@ -185,8 +185,9 @@ test.each(CORPUS.map((sample) => [sample.name, sample] as const))(
 
 // Pinned, so a sample can't start to depend on `undoUiSdkDifferences` unnoticed.
 test("what @ui-sdk/svelte draws differently is known", () => {
-  expect(CORPUS.length - differing.length).toBe(32)
+  expect(CORPUS.length - differing.length).toBe(35)
   expect(differing).toEqual([
+    "demo forms",
     "demo gears",
     "demo invest",
     "demo trip",
@@ -210,5 +211,5 @@ test("what @ui-sdk/svelte draws differently is known", () => {
     "docs/spec.md #1",
     "skills/intelligent-ui/SKILL.md #1",
   ])
-  expect(undone).toEqual({ spaces: 66, moved: 12 })
+  expect(undone).toEqual({ spaces: 70, moved: 15 })
 })

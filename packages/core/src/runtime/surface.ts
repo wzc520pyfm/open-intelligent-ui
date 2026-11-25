@@ -174,6 +174,7 @@ export class Surface {
   private active = false
   private syncQueued = false
   private disposed = false
+  private streaming = false
 
   constructor(options: SurfaceOptions = {}) {
     this.options = options
@@ -237,9 +238,14 @@ export class Surface {
       lookup: (name) => this.lookup(name),
       assign: (name, value) => this.set(name, value),
       replace: (previous, next) => this.replace(previous, next),
+      computed: (name) => this.derived.has(name) || this.queries.has(name),
       functions,
       actions,
-      warn: (message) => this.warn(message),
+      // The one thing an expression warns about is a name nobody declared. While
+      // the source is arriving, the declaration may simply not be written yet.
+      warn: (message) => {
+        if (!this.streaming) this.warn(message)
+      },
     }
   }
 
@@ -407,8 +413,13 @@ export class Surface {
    * Reads the declarations of a parsed document: `<state>`, `<derive>`,
    * `<query>`, `<define>` and `<style>`. Safe to call on every re-parse while
    * streaming; state that already exists keeps its current value.
+   *
+   * In a document parsed while its source was still arriving, a name that
+   * isn't declared is left unreported, since its declaration may come later.
+   * The document parsed when the stream ends reports the ones that never came.
    */
   update(doc: Document): void {
+    this.streaming = doc.streaming === true
     const derived = new Map<string, DerivedEntry>()
     const templates = new Map<string, ElementNode>()
     const styles: string[] = []

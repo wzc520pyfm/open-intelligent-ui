@@ -45,7 +45,7 @@
     background: var(--iui-color-muted);
   }
   .chip-row { display: flex; flex-wrap: wrap; gap: 0.45rem; }
-  /* OpenUI selected chips/tiles: 1px inset ring + lifted fill — not a 2px white border. */
+  /* Selection follows the design accent (Noir: luminous blue), not a white outline. */
   .chip-row button,
   .stay-pick {
     appearance: none;
@@ -61,12 +61,14 @@
     transition:
       background var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
       box-shadow var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
+      color var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing),
       scale var(--iui-motion-state-change-duration) var(--iui-motion-state-change-easing);
   }
   .chip-row button[aria-pressed="true"],
   .stay-pick[aria-pressed="true"] {
-    background: color-mix(in oklab, var(--iui-color-foreground) 10%, transparent);
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--iui-color-foreground) 72%, transparent);
+    background: color-mix(in oklab, var(--iui-color-accent) 18%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--iui-color-accent) 80%, transparent);
+    color: color-mix(in oklab, var(--iui-color-accent) 35%, var(--iui-color-foreground));
   }
   .stay-grid {
     display: grid;

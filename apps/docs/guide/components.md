@@ -211,7 +211,7 @@ The chart types an engine adds go into the charts section, an adapter's presets 
 
 ## Test the library
 
-`validateLibrary` parses every example and returns what is wrong as sentences: a missing description, an example that doesn't use its component, passes an undeclared prop, leaves out a required one, or gives children to a component that takes none. It also reports tokens the design couldn't be read for.
+`validateLibrary` parses every example and returns what is wrong as sentences: a component with no description, or an example that doesn't use its component, passes an undeclared prop, leaves out a required one, or gives children to a component that takes none. It also reports what it couldn't read in the design.
 
 ```ts
 import { validateLibrary } from "@open-intelligent-ui/core"

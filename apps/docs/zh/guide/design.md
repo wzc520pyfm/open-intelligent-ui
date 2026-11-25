@@ -43,7 +43,7 @@
 | `heritage` | 杂志风格：衬线标题、米色纸张、一个陶土色强调色、直角 |
 | `signal` | 紧凑、偏技术，适合运维类界面：等宽字体的标签、青柠色的信号色 |
 
-```ts
+```tsx
 import { noir } from "@open-intelligent-ui/core/designs"
 
 <IntelligentUI source={text} design={noir} scheme="auto" />
@@ -131,7 +131,7 @@ const design = parseDesign(heroui, {
   // 叠加在文件的 token 之上：补上它没写的，或者它只提了名字的颜色。
   tokens: {
     colors: { snow: "oklch(0.9911 0 0)" },
-    motion: { emphasis: { duration: "420ms", easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" } },
+    motion: { emphasis: { duration: "420ms", timingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)" } },
   },
   // 名字对不上时，指定设计里的哪个颜色填哪个角色。
   roles: { primary: "accent", "muted-foreground": "muted" },
@@ -140,7 +140,7 @@ const design = parseDesign(heroui, {
 })
 ```
 
-- **角色**：token 的名字和某个角色相同，就填这个角色。常见的别名能识别：shadcn 的 `card` 和 `destructive`，Material 的 `on-primary`。在某套设计里 `muted` 是文字颜色还是背景色，根据它和页面背景的对比度来判断。`colorSources(design)` 返回每个角色最终用了哪个 token。
+- **角色**：token 的名字和某个角色相同，就填这个角色。别的体系里的叫法也能识别：shadcn 的 `card` 和 `destructive`，Material 的 `on-surface` 和 `on-primary`。在某套设计里 `muted` 是文字颜色还是背景色，根据它和页面背景的对比度来判断。`colorSources(design)` 返回每个角色最终用了哪个 token。
 - **文字说明**：对于为别的组件库写的设计，提示词会告诉模型：采纳它在层级、颜色、形状和语气上的方向，它的 class 名和安装步骤在这里不适用。
 - **问题**：不会抛异常。读不出来的值，或者写进 CSS 不安全的值，会被略过，并列在 `design.issues` 里。`validateLibrary` 也会报告这些问题。
 

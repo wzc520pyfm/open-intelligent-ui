@@ -82,11 +82,11 @@ const message = repairMessage(result, { limit: 12 })
 | --- | --- |
 | `library` | A `Library` or its `librarySpec` JSON |
 | `tools` | The tools the host answers: names, or the descriptions given to `buildSystemPrompt` |
-| `components`, `state`, `functions`, `actions` | What the host passes to the renderer under the same names, or just the names |
+| `components`, `state`, `functions`, `actions` | What the host passes to the renderer as `components`, `initialState`, `functions` and `actions`, or just the names |
 
 `result` is `{ ok, errors, warnings, issues }`. An issue is `{ code, severity, message, hint?, line, column, excerpt }`. [Correct output](../guide/correctness#the-checker) lists the codes.
 
-`repairMessage` returns an empty string when there are no errors. `limit` caps how many issues are listed (12 by default); `warnings: true` lists warnings even when there are no errors.
+`repairMessage` returns an empty string when there is nothing to send: no errors, unless `warnings: true` is set and there are warnings. `limit` caps how many issues are listed (12 by default).
 
 ## Library
 

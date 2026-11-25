@@ -387,7 +387,7 @@ const design = parseDesign(heroui, {
   // 盖在文件声明的令牌之上：补它没有的（动效），或补它只提到名字的颜色
   tokens: {
     colors: { eclipse: "oklch(0.2103 0.0059 285.89)", snow: "oklch(0.9911 0 0)" },
-    motion: { emphasis: { duration: "420ms", easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" } },
+    motion: { emphasis: { duration: "420ms", timingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)" } },
   },
   // 这份设计的哪个颜色充当哪个角色
   roles: { primary: "accent", "muted-foreground": "muted" },

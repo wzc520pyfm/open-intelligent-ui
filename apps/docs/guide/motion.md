@@ -4,7 +4,7 @@ Motion explains what changed. The renderer decides which element moves and when:
 
 ## Built in
 
-Without configuration, motion is CSS. Blocks fade and rise in as they are written, UI SDK popups and tabs animate, charts grow in, and `<Number>` and `<Stat>` count to new values. Markup adds motion with four attributes.
+Without configuration, motion is CSS. Blocks fade and rise in as they are written, UI SDK popups and tabs animate, charts grow in, and `<Number>` and `<Stat>` count to new values. Markup adds motion with five attributes.
 
 | Attribute | Does |
 | --- | --- |
@@ -51,7 +51,7 @@ Without configuration, motion is CSS. Blocks fade and rise in as they are writte
 </box>
 ```
 
-Durations and easings come from the design's `motion` tokens: `state-change`, `surface-enter`, `surface-exit`, `layout` and `emphasis`. CSS the model writes uses the same tokens, as `var(--iui-motion-layout-duration)` and `var(--iui-motion-layout-easing)`. `prefers-reduced-motion` is honored without the model or the host doing anything. `morph` uses View Transitions; a browser without them swaps the elements in place.
+Durations and easings come from the design's `motion` tokens: `state-change`, `surface-enter`, `surface-exit`, `layout` and `emphasis`. CSS the model writes uses the same tokens, as `var(--iui-motion-layout-duration)` and `var(--iui-motion-layout-easing)`. `prefers-reduced-motion` is honored without the model or the host doing anything. Without an adapter, `morph` uses View Transitions; a browser without them swaps the elements in place.
 
 ## Using your motion library
 

@@ -211,7 +211,7 @@ Where something stands in a fixed sequence, such as an approval or an order.
 
 ## 测试组件库 {#test-the-library}
 
-`validateLibrary` 解析每个示例，把问题用一句句话返回：缺少描述，示例没有用到它的组件、传了没声明的 prop、漏了必填的 prop，或者给不接受子内容的组件传了子内容。设计里读不出来的 token 也会报告。
+`validateLibrary` 解析每个示例，把问题用一句句话返回：组件缺少描述，或者示例没有用到它的组件、传了没声明的 prop、漏了必填的 prop、给不接受子内容的组件传了子内容。设计里读不出来的内容也会报告。
 
 ```ts
 import { validateLibrary } from "@open-intelligent-ui/core"

@@ -69,29 +69,46 @@
     display: grid;
     grid-template-columns: 2.25rem minmax(0, 1fr);
     gap: 0.45rem;
-    align-items: stretch;
+    align-items: start;
     margin-top: 0.75rem;
   }
   .heat-days {
     display: grid;
-    grid-template-rows: repeat(5, minmax(0, 1fr));
+    grid-template-rows: repeat(5, 11px);
+    gap: 3px;
+    padding-top: 1px;
     align-items: center;
   }
   .heat {
     width: 100%;
     height: auto;
     display: block;
+    overflow: visible;
   }
-  .heat .cell {
+  .heat .dot {
     transform-box: fill-box;
     transform-origin: center;
-    animation: heat-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: calc(var(--i, 0) * 12ms);
+    animation: heat-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--i, 0) * 6ms);
   }
   .heat-labels {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    margin: 0.25rem 0 0 calc(2.25rem + 0.45rem);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0.35rem 0 0 calc(2.25rem + 0.45rem);
+  }
+  .heat-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.55rem;
+    justify-content: flex-end;
+  }
+  .heat-legend i {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    display: block;
+    background: var(--iui-color-accent);
   }
   .load-bar {
     height: 8px;
@@ -144,7 +161,7 @@
     from { transform: scaleX(0); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .heat .cell { animation: none; }
+    .heat .dot { animation: none; }
   }
   @container iui (width < 720px) {
     .kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -173,13 +190,14 @@
 </style>
 
 <state heatDays={["Mon", "Tue", "Wed", "Thu", "Fri"]} />
-<!-- Hours 9–17 focus intensity 0–4 per day; invented for the demo. -->
-<state heat={[
-  [1, 2, 3, 4, 3, 2, 1, 0],
-  [2, 3, 4, 4, 3, 2, 1, 1],
-  [1, 1, 2, 3, 4, 3, 2, 1],
-  [2, 2, 3, 3, 2, 2, 1, 0],
-  [1, 2, 2, 3, 3, 2, 1, 1]
+<state heatWeeks={["W1", "W2", "W3", "W4"]} />
+<!-- Commit intensity 0–4 per weekday across four sprint weeks; invented for the demo. -->
+<state commits={[
+  [1, 2, 0, 3, 2, 1, 4, 3, 2, 0, 3, 4, 2, 1, 3, 2, 4, 3, 1, 2],
+  [2, 3, 1, 4, 3, 2, 3, 4, 1, 2, 4, 3, 2, 3, 4, 2, 3, 4, 2, 1],
+  [0, 1, 2, 2, 3, 1, 2, 3, 4, 2, 1, 2, 3, 4, 2, 1, 2, 3, 1, 0],
+  [1, 2, 3, 3, 2, 2, 4, 2, 3, 1, 3, 2, 4, 3, 1, 2, 3, 2, 2, 1],
+  [2, 1, 2, 4, 3, 1, 3, 2, 2, 3, 2, 4, 3, 2, 1, 3, 2, 4, 3, 2]
 ]} />
 <state squads={[
   { name: "Platform", load: 0.92, pts: "34 / 37" },
@@ -192,7 +210,7 @@
   committed={118}
   done={86}
   spill={9}
-  focus={0.71}
+  commitCount={214}
 />
 
 <div class="board" motion="pop">
@@ -246,16 +264,16 @@
     </div>
     <div class="kpi" motion="blur">
       <row gap={2}>
-        <span class="kpi-icon"><icon name="focus" size="sm" /></span>
-        <text size="sm" color="muted" class="label">Focus time</text>
+        <span class="kpi-icon"><icon name="git-commit-horizontal" size="sm" /></span>
+        <text size="sm" color="muted" class="label">Commits</text>
         <spacer />
         <icon name="ellipsis" size="sm" color="muted" class="menu" />
       </row>
       <row gap={2} wrap>
-        <text size="xl" weight="bold" tabular class="value"><Number value={focus} format="percent" digits={0} /></text>
-        <badge color="success" size="sm">+6 pt</badge>
+        <text size="xl" weight="bold" tabular class="value">{commitCount}</text>
+        <badge color="success" size="sm">+18%</badge>
       </row>
-      <div class="kpi-note">Deep work blocks kept</div>
+      <div class="kpi-note">On sprint branches</div>
     </div>
   </div>
 
@@ -263,9 +281,9 @@
     <div class="board-main">
       <div class="board-panel" motion="blur">
         <row gap={2}>
-          <title level={3}>Focus heatmap</title>
+          <title level={3}>Commit activity</title>
           <spacer />
-          <text size="xs" color="muted">9:00 – 17:00 · brighter = deeper focus</text>
+          <text size="xs" color="muted">Last 4 weeks · brighter = more commits</text>
         </row>
         <div class="heat-wrap">
           <div class="heat-days">
@@ -273,28 +291,37 @@
               <text size="xs" color="muted">{day}</text>
             {/each}
           </div>
-          <svg class="heat" viewBox="0 0 392 140" role="img" aria-label="Weekday focus intensity from 9 to 17">
-            {#each heat as day, d}
-              {#each day as level, h}
+          <svg class="heat" viewBox="0 0 277 67" role="img" aria-label="Commit counts by weekday across four weeks">
+            {#each commits as day, d}
+              {#each day as level, w}
                 <rect
-                  class="cell"
-                  style="--i: {d * 8 + h}"
-                  x={h * 49}
-                  y={d * 28}
-                  width="41"
-                  height="22"
-                  rx="5"
-                  fill="var(--iui-color-accent)"
-                  opacity={0.12 + level * 0.2}
+                  class="dot"
+                  style="--i: {d * 20 + w}"
+                  x={w * 14}
+                  y={d * 14}
+                  width="11"
+                  height="11"
+                  rx="2"
+                  fill={level == 0 ? "color-mix(in oklab, var(--iui-color-foreground) 10%, transparent)" : "var(--iui-color-accent)"}
+                  opacity={level == 0 ? 1 : 0.22 + level * 0.2}
                 />
               {/each}
             {/each}
           </svg>
         </div>
         <div class="heat-labels">
-          {#each ["9", "11", "13", "15", "17"] as label (label)}
-            <text size="xs" color="muted" align="center">{label}</text>
+          {#each heatWeeks as week (week)}
+            <text size="xs" color="muted" align="center">{week}</text>
           {/each}
+        </div>
+        <div class="heat-legend">
+          <text size="xs" color="muted">Less</text>
+          <i style="opacity: 0.15"></i>
+          <i style="opacity: 0.35"></i>
+          <i style="opacity: 0.55"></i>
+          <i style="opacity: 0.8"></i>
+          <i style="opacity: 1"></i>
+          <text size="xs" color="muted">More</text>
         </div>
       </div>
 

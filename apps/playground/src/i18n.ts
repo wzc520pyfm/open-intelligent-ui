@@ -183,7 +183,7 @@ const en: Copy = {
     },
     budgets: {
       title: "Dashboards",
-      caption: "Sprint load: KPIs, focus heatmap, squad capacity and blockers",
+      caption: "Sprint load: KPIs, commit dots, squad capacity and blockers",
       prompt: "Show me sprint 14 load across the squads.",
     },
     forms: {
@@ -308,7 +308,7 @@ const zh: Copy = {
     },
     budgets: {
       title: "仪表盘",
-      caption: "迭代负载：KPI、专注热力、小队容量与阻塞",
+      caption: "迭代负载：KPI、提交点阵、小队容量与阻塞",
       prompt: "给我看第 14 迭代各小队的负载。",
     },
     forms: {

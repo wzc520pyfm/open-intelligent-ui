@@ -48,7 +48,7 @@ export const DEMOS: Demo[] = [
   {
     id: "budgets",
     title: "Dashboards",
-    caption: "Sprint load: KPIs, focus heatmap, squad capacity and blockers",
+    caption: "Sprint load: KPIs, commit dots, squad capacity and blockers",
     prompt: "Show me sprint 14 load across the squads.",
     source: budgets,
     theme: "noir",

@@ -185,28 +185,38 @@ function textProps(rest: Record<string, unknown>) {
   return { style, data }
 }
 
-function textView(props: ViewProps, children: unknown): View {
-  const { rest, className, style } = box(props, "iui-text")
+/**
+ * Like `box`, for a primitive that holds words. What says how the words look
+ * is read first, so `align` places the words rather than children.
+ */
+function textBox(props: ViewProps, base: string) {
+  const { class: className, style, ...rest } = props
   const text = textProps(rest)
+  const boxStyle = takeBoxStyle(rest)
+  return {
+    rest,
+    text,
+    className: joinClass("iui-el", base, className),
+    style: { ...boxStyle, ...text.style, ...style } as StyleMap,
+  }
+}
+
+function textView(props: ViewProps, children: unknown): View {
+  const { rest, text, className, style } = textBox(props, "iui-text")
   const block = flag(rest.block)
   delete rest.block
   return view(
     block ? "div" : "span",
-    { pass: dom(rest), ...text.data, class: className, style: { ...text.style, ...style } },
+    { pass: dom(rest), ...text.data, class: className, style },
     [children]
   )
 }
 
 function titleView(props: ViewProps, children: unknown): View {
-  const { rest, className, style } = box(props, "iui-title")
+  const { rest, text, className, style } = textBox(props, "iui-title")
   const level = Math.min(6, Math.max(1, Number(rest.level) || 2))
   delete rest.level
-  const text = textProps(rest)
-  return view(
-    `h${level}`,
-    { pass: dom(rest), ...text.data, class: className, style: { ...text.style, ...style } },
-    [children]
-  )
+  return view(`h${level}`, { pass: dom(rest), ...text.data, class: className, style }, [children])
 }
 
 function badgeView(props: ViewProps, children: unknown): View {
@@ -363,11 +373,9 @@ export function imageView(props: ViewProps, state: ImageState): View {
 }
 
 function linkView(props: ViewProps, children: unknown): View {
-  const { rest, className, style } = box(props, "iui-link")
+  const { rest, text, className, style: merged } = textBox(props, "iui-link")
   const href = safeUrl(rest.href)
   delete rest.href
-  const text = textProps(rest)
-  const merged = { ...text.style, ...style }
   if (!href) {
     return view(
       "button",

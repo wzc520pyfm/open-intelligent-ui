@@ -10,6 +10,7 @@ import {
   lazyRecord,
   numberView,
   plainArg,
+  PRIMITIVE_VIEWS,
   readChartData,
   type View,
 } from "../src/renderer"
@@ -366,5 +367,22 @@ describe("what a host is told about a component", () => {
 <Panel><TabsPanel value="a">A</TabsPanel>`
     expect(openness(source, true)).toEqual({ Tabs: [true], TabsList: [true], TabsPanel: [false] })
     expect(openness(`${source}</Panel>`, true)).toEqual({ Tabs: [false], TabsList: [false], TabsPanel: [false] })
+  })
+})
+
+describe("text", () => {
+  const drawn = (tag: string, props: Record<string, unknown>) =>
+    (PRIMITIVE_VIEWS[tag] as (props: Record<string, unknown>, children: unknown) => View)(props, ["Hi"])
+
+  test.each(["text", "title", "link"])("in a <%s>, align says where the words go", (tag) => {
+    for (const align of ["center", "right", "justify"]) {
+      const view = drawn(tag, { align })
+      expect(view.attrs.style).toMatchObject({ textAlign: align })
+      expect(view.attrs.style).not.toHaveProperty("alignItems")
+    }
+  })
+
+  test("in a box, align still says where the children go", () => {
+    expect(drawn("box", { align: "center" }).attrs.style).toMatchObject({ alignItems: "center" })
   })
 })

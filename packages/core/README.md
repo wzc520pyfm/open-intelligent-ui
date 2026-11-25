@@ -29,12 +29,14 @@ const system = buildSystemPrompt({
 import { checkMarkup, repairMessage } from "@open-intelligent-ui/core/check"
 
 let reply = await model(messages)
-for (let round = 0; round < 2; round++) {
-  const result = checkMarkup(reply, { library, tools })
-  if (result.ok) break
+let result = checkMarkup(reply, { library, tools })
+for (let round = 0; !result.ok && round < 2; round++) {
   messages.push({ role: "assistant", content: reply }, { role: "user", content: repairMessage(result) })
   reply = await model(messages)
+  result = checkMarkup(reply, { library, tools })
 }
+// result.ok says whether the reply you now hold checked out. If it didn't after two repairs,
+// draw it anyway (what is right in it works) or fall back to text, and log result.issues.
 ```
 
 `checkMarkup` reads a reply the way a renderer would, without drawing it, so it runs on a server. It finds what a renderer would report (a component that doesn't exist, a name nobody declared, a prop your component doesn't take) and what a renderer can only ignore: a prop a primitive doesn't have, a handler that would fail when pressed, an icon that doesn't exist, markup written as JSX. Each issue has a code, a line, the line's text and, where it can be said, what to write instead. `repairMessage` turns them into the next message for the model. `/check` carries the component catalog and the icon names, about 290 kB: keep it out of the browser bundle unless you check there.

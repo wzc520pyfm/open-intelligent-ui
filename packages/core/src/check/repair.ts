@@ -24,13 +24,15 @@ function line(issue: Issue): string {
  *
  * ```ts
  * let reply = await model(messages)
- * for (let round = 0; round < 2; round++) {
- *   const result = checkMarkup(reply, { library, tools })
- *   if (result.ok) break
+ * let result = checkMarkup(reply, { library, tools })
+ * for (let round = 0; !result.ok && round < 2; round++) {
  *   messages.push({ role: "assistant", content: reply }, { role: "user", content: repairMessage(result) })
  *   reply = await model(messages)
+ *   result = checkMarkup(reply, { library, tools })
  * }
  * ```
+ *
+ * `result.ok` then says whether the reply you hold checked out.
  */
 export function repairMessage(result: CheckResult, options: RepairOptions = {}): string {
   const limit = options.limit ?? 12

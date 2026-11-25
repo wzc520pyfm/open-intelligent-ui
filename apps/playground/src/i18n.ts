@@ -14,7 +14,8 @@ export function readLocale(): Locale {
   } catch {
     /* ignore */
   }
-  return typeof navigator !== "undefined" && /^zh\b/i.test(navigator.language) ? "zh" : "en"
+  // Playground chrome defaults to English; users switch to 中文 explicitly.
+  return "en"
 }
 
 export function writeLocale(locale: Locale): void {

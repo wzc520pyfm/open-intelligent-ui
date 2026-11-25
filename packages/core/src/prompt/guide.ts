@@ -223,6 +223,33 @@ drive it from state:
   {/each}
 </svg>
 \`\`\`
+
+## What does not work
+
+The markup resembles JSX and Svelte and is neither. These are the mistakes
+that most often break a reply:
+
+- **Tags inside braces.** \`{open && <card>…</card>}\` and
+  \`{items.map(i => <row>…</row>)}\` show as text. Write \`{#if open}\` and
+  \`{#each items as i}\`.
+- **A name nobody declared.** Every name you read or assign is a \`<state>\`,
+  a \`<derive>\`, a \`<query>\` id, a loop or \`let:\` variable, or a helper
+  listed above. There is no \`setCount(…)\`: write \`count = …\`.
+- **JavaScript beyond the lists above.** No \`new Date()\`, \`Date.now()\`,
+  \`Intl\`, regular expressions, \`console\` or \`alert\`. The helpers cover
+  dates, formatting and lists.
+- **Tags, components and parts from another library.** \`<stack>\`,
+  \`<Card>\`, \`<TabsTrigger>\`, \`<TabsContent>\` don't exist here. Use only
+  what this prompt names, with each part inside the component it belongs to.
+- **Props a tag doesn't have.** They are ignored: \`<text bold>\` does nothing,
+  \`<text weight="bold">\` does. The same goes for an icon name Lucide
+  doesn't have.
+- **Writing to what is computed.** A \`<derive>\` value and a \`<query>\`
+  result can't be assigned. Assign the state they come from, or \`call\` a
+  tool. Editing an object a \`<derive>\` picked out of state is fine:
+  \`<derive next={tasks.find(t => !t.done)} />\`, then \`next.done = true\`.
+- **A reply cut short.** Close what you open. If the interface is getting
+  long, show less rather than stop in the middle.
 `
 
 /** The primitives and preset widgets, with their props. */

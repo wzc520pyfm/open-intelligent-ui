@@ -448,6 +448,36 @@ Write the whole interface again with these fixed. Keep everything else as it was
   })
 })
 
+describe("what the prompt warns against", () => {
+  test.each([
+    ["<state open={true} />\n{open && <card>Details</card>}", "tags-in-expression"],
+    ['<state items={[1]} />\n{items.map(i => <row>{i}</row>)}', "tags-in-expression"],
+    ["<state count={0} />\n<Button on:click={setCount(count + 1)}>Add</Button>", "unknown-function"],
+    ["<text>{new Date()}</text>", "bad-expression"],
+    ["<text>{Date.now()}</text>", "unknown-function"],
+    ['<text>{Intl.NumberFormat("en").format(1)}</text>', "unknown-name"],
+    ['<Button on:click={alert("hi")}>Say</Button>', "unknown-function"],
+    ["<stack>One</stack>", "unknown-tag"],
+    ["<Card>One</Card>", "unknown-component"],
+    ['<Tabs defaultValue="a"><TabsTrigger value="a">A</TabsTrigger><TabsContent value="a">One</TabsContent></Tabs>', "unknown-component"],
+    ["<text bold>One</text>", "unknown-prop"],
+    ['<icon name="not-an-icon-at-all" />', "unknown-value"],
+    ["<state n={1} />\n<derive double={n * 2} />\n<Button on:click={double = 4}>Set</Button>", "bad-write"],
+    ["<card>\n  <row>\n    <text>Step 1 of", "unclosed-element"],
+  ])("%s is found", (source, code) => {
+    expect(checkMarkup(source).issues.map((issue) => issue.code)).toContain(code)
+  })
+
+  test("and what it allows is allowed", () => {
+    expect(
+      issues(`<state tasks={[{ title: "a", done: false }]} count={0} />
+<derive next={tasks.find(t => !t.done)} />
+{#if next}<Button on:click={next.done = true; count = count + 1}>Finish {next.title}</Button>{/if}
+<text weight="bold">{count} done, {date(now(), "medium")}</text>`)
+    ).toEqual([])
+  })
+})
+
 describe("what the checker knows about props", () => {
   const SAMPLES = [true, false, 2, "2", "center", "lg", "full", "row", "danger", "16/9", "absolute", "hidden", "check", "soft", "bold", "0.1em", "vertical", "contain", "a b"]
   /** What a prop needs beside it before it can show. */

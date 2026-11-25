@@ -1,5 +1,7 @@
 import { Button, Chip, Tabs } from "@heroui/react"
-import { RotateCcw } from "lucide-react"
+import type { Issue } from "@open-intelligent-ui/core/check"
+import { CircleCheck, RotateCcw } from "lucide-react"
+import { useRef } from "react"
 import type { Copy } from "../i18n"
 
 export type Panel = "source" | "state" | "events" | "prompt"
@@ -7,7 +9,7 @@ export type Panel = "source" | "state" | "events" | "prompt"
 export interface LogEntry {
   id: number
   time: string
-  kind: "send" | "tool" | "toast" | "copy" | "open" | "warning"
+  kind: "send" | "tool" | "toast" | "copy" | "open" | "warning" | "check"
   title: string
   detail?: string
 }
@@ -19,6 +21,7 @@ const KIND_COLOR = {
   copy: "default",
   open: "default",
   warning: "warning",
+  check: "danger",
 } as const
 
 function Hint(props: { children: string }) {
@@ -32,13 +35,29 @@ export function Inspector(props: {
   onPanel: (panel: Panel) => void
   source: string
   onSource: (source: string) => void
+  /** What a check of the markup found, or null while it is still being written. */
+  issues: Issue[] | null
   state: Record<string, unknown>
   onReset: () => void
   log: LogEntry[]
   prompt: string
   promptHint: string
 }) {
-  const { copy, log } = props
+  const { copy, log, issues } = props
+  const editor = useRef<HTMLTextAreaElement>(null)
+  const errors = issues?.filter((issue) => issue.severity === "error").length ?? 0
+
+  /** Selects the line an issue is on, and brings it into view. */
+  const show = (issue: Issue) => {
+    const node = editor.current
+    if (!node) return
+    const lines = props.source.split("\n")
+    const start = lines.slice(0, issue.line - 1).reduce((sum, line) => sum + line.length + 1, 0)
+    node.focus()
+    node.setSelectionRange(start, start + (lines[issue.line - 1]?.length ?? 0))
+    const height = Number.parseFloat(getComputedStyle(node).lineHeight) || 18
+    node.scrollTop = Math.max(0, (issue.line - 4) * height)
+  }
   const tabs: [Panel, string][] = [
     ["source", copy.markup],
     ["state", copy.state],
@@ -57,6 +76,17 @@ export function Inspector(props: {
           {tabs.map(([id, label]) => (
             <Tabs.Tab key={id} id={id} data-pg-panel={id}>
               {label}
+              {id === "source" && issues?.length ? (
+                <Chip
+                  size="sm"
+                  variant="soft"
+                  color={errors ? "danger" : "warning"}
+                  className="ml-1.5"
+                  data-pg="issue-count"
+                >
+                  {issues.length}
+                </Chip>
+              ) : null}
               {id === "events" && log.length ? (
                 <Chip size="sm" variant="soft" color="accent" className="ml-1.5">
                   {log.length}
@@ -70,12 +100,52 @@ export function Inspector(props: {
       <Tabs.Panel id="source" className="flex min-h-0 flex-1 flex-col p-0">
         <Hint>{copy.markupHint}</Hint>
         <textarea
+          ref={editor}
           className="pg-code min-h-0 flex-1 resize-none bg-transparent px-4 pb-4 whitespace-pre text-foreground outline-none"
           spellCheck={false}
           aria-label={copy.markup}
           value={props.source}
           onChange={(event) => props.onSource(event.target.value)}
         />
+        {issues === null ? null : (
+          <div className="shrink-0 border-t border-separator" data-pg="check" data-issues={issues.length}>
+            {issues.length === 0 ? (
+              <p className="flex items-center gap-2 px-4 py-3 text-xs text-muted">
+                <CircleCheck className="size-3.5 text-success" aria-hidden="true" />
+                {copy.checkClean}
+              </p>
+            ) : (
+              <>
+                <p className="px-4 pt-3 pb-1 text-xs font-medium text-foreground">
+                  {copy.checkFound(errors, issues.length - errors)}
+                </p>
+                <ol className="flex max-h-64 flex-col gap-1 overflow-auto px-2 pb-2">
+                  {issues.map((issue) => (
+                    <li key={`${issue.line}:${issue.column}:${issue.code}:${issue.message}`}>
+                      <button
+                        type="button"
+                        data-severity={issue.severity}
+                        className="flex w-full flex-col gap-0.5 rounded-lg px-2 py-1.5 text-left hover:bg-default"
+                        onClick={() => show(issue)}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Chip size="sm" variant="soft" color={issue.severity === "error" ? "danger" : "warning"}>
+                            {copy.line(issue.line)}
+                          </Chip>
+                          <span className="font-mono text-[11px] text-muted">{issue.code}</span>
+                        </span>
+                        <span className="text-xs leading-relaxed break-words text-foreground">{issue.message}</span>
+                        {issue.hint ? (
+                          <span className="text-xs leading-relaxed break-words text-muted">{issue.hint}</span>
+                        ) : null}
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+          </div>
+        )}
       </Tabs.Panel>
       <Tabs.Panel id="state" className="flex min-h-0 flex-1 flex-col p-0">
         <Hint>{copy.stateHint}</Hint>

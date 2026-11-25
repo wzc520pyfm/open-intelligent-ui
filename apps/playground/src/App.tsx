@@ -1,5 +1,6 @@
 import { Button, Chip, Drawer, InputGroup, Link, ScrollShadow, Spinner, Tooltip } from "@heroui/react"
 import { defineLibrary, type SurfaceAction, type ToolEvent } from "@open-intelligent-ui/core"
+import { checkMarkup, type Issue } from "@open-intelligent-ui/core/check"
 import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
 import {
   ArrowUp,
@@ -18,7 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { DEMOS, type Demo } from "./demos"
 import { LOCALES, readLocale, t, writeLocale, type Locale } from "./i18n"
 import { CHARTS, type ChartsId, MOTIONS, type MotionId, useEngines } from "./library/engines"
-import { type ChatMessage, type LiveSettings, providerById, streamChat, unwrapFence } from "./live"
+import { askChecked, type ChatMessage, type LiveSettings, providerById } from "./live"
 import { Surface } from "./surface/Surface"
 import { RENDERERS, type RendererId, type SurfaceHandle } from "./surface/types"
 import { THEMES } from "./themes"
@@ -49,6 +50,9 @@ type Speed = (typeof SPEEDS)[number]["id"]
 
 const WIDTHS: Width[] = ["phone", "chat", "wide"]
 const PANELS: Panel[] = ["source", "state", "events", "prompt"]
+
+/** How many times a live reply that doesn't check out is sent back to the model. */
+const REPAIRS = 2
 
 const REPOSITORY = "https://github.com/wzc520pyfm/open-intelligent-ui"
 const LIVE_KEY = "oiui.live"
@@ -210,6 +214,12 @@ export function App() {
     [theme, library, useTools]
   )
 
+  // What a reply is checked against: what the renderer below is given.
+  const check = useCallback(
+    (source: string) => checkMarkup(source, { library, tools: Object.keys(tools) }),
+    [library, tools]
+  )
+
   const record = useCallback((entry: Omit<LogEntry, "id" | "time">) => {
     const time = new Date().toLocaleTimeString([], { hour12: false })
     setLog((entries) => [{ ...entry, id: nextId++, time }, ...entries].slice(0, 200))
@@ -290,17 +300,46 @@ export function App() {
       let text = ""
       setThinking(false)
       try {
-        for await (const part of streamChat({
+        const done = await askChecked({
           ...live,
           messages,
           signal: controller.signal,
+          check,
+          repairs: REPAIRS,
           onReasoning: () => {
             if (!text) setThinking(true)
           },
-        })) {
-          if (text.length === 0) setThinking(false)
-          text += part
-          patchTurn(reply.id, unwrapFence(text))
+          onText: (next) => {
+            if (text.length === 0) setThinking(false)
+            text = next
+            patchTurn(reply.id, next)
+          },
+          onChecked: (result, round, willRepair) => {
+            for (const issue of [...result.issues].reverse()) {
+              record({
+                kind: issue.severity === "error" ? "check" : "warning",
+                title: `${copyRef.current.line(issue.line)}: ${issue.message}`,
+                detail: issue.hint ?? issue.excerpt,
+              })
+            }
+            if (!willRepair) return
+            text = ""
+            setTurns((list) => [
+              ...list.filter((turn) => turn.id !== reply.id),
+              {
+                id: nextId++,
+                role: "note",
+                text: copyRef.current.fixing(result.errors, round + 1, REPAIRS),
+              },
+              reply,
+            ])
+          },
+        })
+        if (done.rounds > 1) {
+          const note = done.result.ok
+            ? copyRef.current.fixed(done.rounds - 1)
+            : copyRef.current.notFixed(done.result.errors)
+          setTurns((list) => [...list, { id: nextId++, role: "note", text: note }])
         }
       } catch (error) {
         if (!controller.signal.aborted) {
@@ -315,7 +354,7 @@ export function App() {
         }
       }
     },
-    [live, systemPrompt, patchTurn, stop]
+    [live, systemPrompt, patchTurn, stop, check, record]
   )
 
   const say = useCallback(
@@ -377,6 +416,18 @@ export function App() {
   }, [turnCount])
 
   const latestSurface = [...turns].reverse().find((turn) => turn.role === "assistant")
+
+  // The markup is checked once it has stopped arriving, and again as it is edited.
+  const [issues, setIssues] = useState<Issue[] | null>(null)
+  const settled = streamingId === null ? (latestSurface?.text ?? "") : null
+  useEffect(() => {
+    if (settled === null || !settled.trim()) {
+      setIssues(null)
+      return
+    }
+    const wait = window.setTimeout(() => setIssues(check(settled).issues), 120)
+    return () => window.clearTimeout(wait)
+  }, [settled, check])
 
   const onAction = useCallback(
     (action: SurfaceAction) => {
@@ -493,6 +544,7 @@ export function App() {
         stop()
         patchTurn(latestSurface.id, text)
       }}
+      issues={issues}
       state={surfaceState}
       onReset={() => handle.current?.reset()}
       log={log}

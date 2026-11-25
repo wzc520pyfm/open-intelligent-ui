@@ -89,6 +89,14 @@ export interface Copy {
   resetState: string
   eventsHint: string
   eventsEmpty: string
+  /** The line under the markup once it has been checked. */
+  checkClean: string
+  checkFound: (errors: number, warnings: number) => string
+  line: (line: number) => string
+  /** Notes in the thread while a live reply is being fixed. */
+  fixing: (errors: number, round: number, of: number) => string
+  fixed: (rounds: number) => string
+  notFixed: (errors: number) => string
   promptHint: (design: string, tokens: number) => string
   connectNote: string
   demoNote: string
@@ -160,8 +168,22 @@ const en: Copy = {
   markupHint: "What the agent wrote. Edit it and the interface follows; its state is kept.",
   stateHint: "What the interface remembers. It travels with every message sent back to the agent.",
   resetState: "Reset state",
-  eventsHint: "Messages to the agent, tool calls and warnings, newest first.",
+  eventsHint: "Messages to the agent, tool calls, checks and warnings, newest first.",
   eventsEmpty: "Nothing yet. Use the interface.",
+  checkClean: "Checked: nothing wrong with this markup.",
+  checkFound: (errors, warnings) =>
+    [
+      errors ? `${errors} ${errors === 1 ? "error" : "errors"}` : "",
+      warnings ? `${warnings} ${warnings === 1 ? "warning" : "warnings"}` : "",
+    ]
+      .filter(Boolean)
+      .join(", "),
+  line: (line) => `Line ${line}`,
+  fixing: (errors, round, of) =>
+    `The check found ${errors} ${errors === 1 ? "error" : "errors"} in this reply. Asking the model to fix ${errors === 1 ? "it" : "them"} (${round} of ${of})…`,
+  fixed: (rounds) => `The model fixed its reply in ${rounds === 1 ? "one round" : `${rounds} rounds`}.`,
+  notFixed: (errors) =>
+    `${errors} ${errors === 1 ? "error is" : "errors are"} still in this reply after two fixes. The Markup panel lists ${errors === 1 ? "it" : "them"}.`,
   promptHint: (design, tokens) =>
     `The system prompt built from the language guide, UI SDK, the ${design} DESIGN.md and the motion rules. About ${tokens}k tokens.`,
   connectNote: "Connect a model above to get a reply.",
@@ -286,8 +308,15 @@ const zh: Copy = {
   markupHint: "智能体写下的内容。改这里，界面跟着变；状态会保留。",
   stateHint: "界面记住的东西。每次交还给智能体的消息都会带上它。",
   resetState: "重置状态",
-  eventsHint: "发给智能体的消息、工具调用和警告，最新的在前。",
+  eventsHint: "发给智能体的消息、工具调用、检查结果和警告，最新的在前。",
   eventsEmpty: "还没有。先操作一下界面。",
+  checkClean: "已检查：这段标记没有问题。",
+  checkFound: (errors, warnings) =>
+    [errors ? `${errors} 个错误` : "", warnings ? `${warnings} 个警告` : ""].filter(Boolean).join("，"),
+  line: (line) => `第 ${line} 行`,
+  fixing: (errors, round, of) => `检查发现这条回复有 ${errors} 个错误，正在让模型修正（第 ${round} 次，最多 ${of} 次）…`,
+  fixed: (rounds) => `模型用 ${rounds} 轮修正了它的回复。`,
+  notFixed: (errors) => `修正两次后，这条回复里还有 ${errors} 个错误，“标记”面板里列出了它们。`,
   promptHint: (design, tokens) =>
     `由语言指南、UI SDK、${design} DESIGN.md 和动效规则拼成的系统提示词。大约 ${tokens}k token。`,
   connectNote: "先在上方连接一个模型，才能得到回复。",

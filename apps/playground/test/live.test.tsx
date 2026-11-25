@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest"
-import { streamChat, unwrapFence } from "../src/live"
+import { checkMarkup } from "@open-intelligent-ui/core/check"
+import { askChecked, type ChatMessage, streamChat, unwrapFence } from "../src/live"
 
 function sse(chunks: string[], status = 200): typeof fetch {
   return (async () =>
@@ -173,5 +174,82 @@ describe("streaming from Anthropic Messages", () => {
       system: "Be brief.",
       messages: [{ role: "user", content: "hi" }],
     })
+  })
+})
+
+describe("a reply that doesn't check out", () => {
+  function model(replies: string[]) {
+    const asked: ChatMessage[][] = []
+    const request = ((_url: string, init: RequestInit) => {
+      asked.push((JSON.parse(init.body as string) as { messages: ChatMessage[] }).messages)
+      const reply = replies[asked.length - 1] ?? ""
+      return sse([delta(reply.slice(0, 9)) + delta(reply.slice(9)) + "data: [DONE]\n\n"])("", init)
+    }) as unknown as typeof fetch
+    return { asked, request }
+  }
+
+  const settings = { provider: "openai", baseUrl: "https://example.test/v1", model: "m", apiKey: "k" } as const
+  const first: ChatMessage[] = [
+    { role: "system", content: "Write an interface." },
+    { role: "user", content: "A counter" },
+  ]
+  const broken = '<state count={0} />\n<stack><Button on:click={setCount(count + 1)}>Add {count}</Button></stack>'
+  const fixed = '<state count={0} />\n<box><Button on:click={count += 1}>Add {count}</Button></box>'
+
+  test("is sent back with what is wrong, and the next reply replaces it", async () => {
+    const { asked, request } = model([broken, fixed])
+    const shown: string[] = []
+    const rounds: [number, number, boolean][] = []
+    const done = await askChecked({
+      ...settings,
+      messages: first,
+      fetch: request,
+      check: (reply) => checkMarkup(reply),
+      onText: (text) => shown.push(text),
+      onChecked: (result, round, willRepair) => rounds.push([round, result.errors, willRepair]),
+    })
+    expect(done.text).toBe(fixed)
+    expect(done.result.ok).toBe(true)
+    expect(done.rounds).toBe(2)
+    expect(rounds).toEqual([
+      [0, 2, true],
+      [1, 0, false],
+    ])
+    expect(shown.at(-1)).toBe(fixed)
+    expect(asked).toHaveLength(2)
+    expect(asked[0]).toEqual(first)
+    expect(asked[1]?.slice(0, 3)).toEqual([...first, { role: "assistant", content: broken }])
+    expect(asked[1]?.[3]?.role).toBe("user")
+    expect(asked[1]?.[3]?.content).toContain("Line 2: <stack> is not a tag the language has")
+    expect(asked[1]?.[3]?.content).toContain("Write count = … instead of setCount(…).")
+  })
+
+  test("a model that keeps getting it wrong is asked twice, then shown as it is", async () => {
+    const { asked, request } = model([broken, broken, broken, fixed])
+    const done = await askChecked({
+      ...settings,
+      messages: first,
+      fetch: request,
+      check: (reply) => checkMarkup(reply),
+      onText: () => {},
+    })
+    expect(asked).toHaveLength(3)
+    expect(done.rounds).toBe(3)
+    expect(done.result.ok).toBe(false)
+    // Each request starts from the conversation, not from a pile of earlier attempts.
+    expect(asked[2]).toHaveLength(4)
+  })
+
+  test("a reply with only warnings is left alone", async () => {
+    const { asked, request } = model(["<text bold>Hello</text>"])
+    const done = await askChecked({
+      ...settings,
+      messages: first,
+      fetch: request,
+      check: (reply) => checkMarkup(reply),
+      onText: () => {},
+    })
+    expect(asked).toHaveLength(1)
+    expect(done.result.warnings).toBe(1)
   })
 })

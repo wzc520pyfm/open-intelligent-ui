@@ -62,42 +62,35 @@
     padding: 1rem 1.05rem 1.1rem;
     min-width: 0;
   }
-  .cash-plot {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.35rem;
-    align-items: end;
-    height: 7.5rem;
-    margin-top: 0.65rem;
-  }
-  .cash-month {
-    display: grid;
-    grid-template-columns: repeat(16, minmax(0, 1fr));
-    gap: 1.5px;
-    height: 100%;
-    align-items: end;
-  }
-  .cash-col {
-    display: flex;
-    flex-direction: column-reverse;
-    gap: 2px;
-    height: 100%;
-  }
-  .cash-col i {
+  /* OpenUI HeroScenes cash cells: one SVG, columns grow as stacks — not 700 DOM dots. */
+  .cash-cells {
+    width: 100%;
+    height: auto;
+    margin-top: 0.85rem;
     display: block;
-    height: 8px;
-    border-radius: 1.6px;
-    background: color-mix(in oklab, var(--iui-color-foreground) 8%, transparent);
-    animation: cash-cell 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: calc(var(--mi, 0) * 90ms + var(--ci, 0) * 10ms);
+    overflow: visible;
   }
-  .cash-col i.in { background: #8cc4fb; }
-  .cash-col i.out { background: #2b8cf6; }
+  .cash-cells .col {
+    transform-box: fill-box;
+    transform-origin: center bottom;
+    animation: cash-grow 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--i, 0) * 18ms);
+  }
+  .cash-cells rect {
+    fill: color-mix(in oklab, var(--iui-color-foreground) 10%, transparent);
+  }
+  .cash-cells rect[data-c="in"] { fill: #8cc4fb; }
+  .cash-cells rect[data-c="out"] { fill: #2b8cf6; }
   .cash-labels {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.35rem;
-    margin-top: 0.45rem;
+    margin-top: 0.2rem;
+  }
+  .cash-swatch {
+    width: 4px;
+    height: 11px;
+    border-radius: 1px;
+    display: block;
   }
   .dept-bar {
     height: 8px;
@@ -144,11 +137,14 @@
     color: var(--iui-color-foreground);
     flex: 0 0 auto;
   }
-  @keyframes cash-cell {
-    from { opacity: 0; transform: scaleY(0.4); }
+  @keyframes cash-grow {
+    from { transform: scaleY(0); }
   }
   @keyframes bar-fill {
     from { transform: scaleX(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cash-cells .col { animation: none; }
   }
   @media (max-width: 720px) {
     .kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -158,12 +154,14 @@
   }
 </style>
 
-<state cash={[
-  { month: "Aug", inn: 182, out: 146 },
-  { month: "Sep", inn: 198, out: 161 },
-  { month: "Oct", inn: 214, out: 168 },
-  { month: "Nov", inn: 231, out: 175 }
+<!-- Column stacks copied from OpenUI's Cash flow cells: [cash-out, cash-in] per column. -->
+<state cashCols={[
+  [3, 3], [4, 2], [4, 3], [5, 3], [5, 3], [5, 3], [4, 4], [4, 4], [4, 4], [4, 3], [3, 4], [3, 3], [3, 3], [3, 3], [4, 2], [4, 2],
+  [4, 2], [4, 3], [4, 3], [4, 3], [4, 4], [4, 4], [4, 4], [4, 3], [4, 3], [4, 2], [4, 2], [3, 2], [3, 2], [3, 1], [2, 2], [2, 2],
+  [2, 2], [2, 2], [2, 3], [3, 3], [3, 3], [4, 3], [4, 3], [4, 3], [5, 3], [5, 3], [4, 4], [4, 3], [4, 3], [3, 4], [3, 4], [3, 4],
+  [3, 3], [4, 3], [4, 3], [4, 3], [5, 3], [5, 4], [5, 4], [5, 4], [5, 5], [5, 5], [5, 5], [5, 4], [5, 4], [5, 3], [4, 4], [4, 3]
 ]} />
+<state cashMonths={["Aug", "Sep", "Oct", "Nov"]} />
 <state depts={[
   { name: "Engineering", spent: 316, budget: 516 },
   { name: "Sales", spent: 248, budget: 320 },
@@ -250,26 +248,28 @@
           <title level={3}>Cash flow</title>
           <spacer />
           <row gap={3}>
-            <row gap={1}><box width={10} height={10} radius="sm" style="background: #8cc4fb" /><text size="xs" color="muted">Cash in</text></row>
-            <row gap={1}><box width={10} height={10} radius="sm" style="background: #2b8cf6" /><text size="xs" color="muted">Cash out</text></row>
+            <row gap={1}><span class="cash-swatch" style="background: #8cc4fb"></span><text size="xs" color="muted">Cash in</text></row>
+            <row gap={1}><span class="cash-swatch" style="background: #2b8cf6"></span><text size="xs" color="muted">Cash out</text></row>
           </row>
         </row>
-        <div class="cash-plot" aria-label="Monthly cash in and cash out as a block chart">
-          {#each cash as row, mi (row.month)}
-            <div class="cash-month" style="--mi: {mi}">
-              {#each range(0, 16) as c}
-                <div class="cash-col" style="--ci: {c}">
-                  {#each range(0, 12) as r}
-                    <i class="{r < max(2, floor(row.out / 24) + (c % 3) - 1) ? "out" : r < max(3, floor(row.inn / 20) + (c % 5) - 2) ? "in" : "ghost"}"></i>
-                  {/each}
-                </div>
+        <svg class="cash-cells" viewBox="0 0 640 110" role="img" aria-label="Monthly cash in and cash out">
+          {#each cashCols as col, i}
+            <g class="col" style="--i: {i}">
+              {#each range(0, col[0]) as r}
+                <rect x={i * 10} y={100 - r * 10} width="8" height="8" rx="1.6" data-c="out" />
               {/each}
-            </div>
+              {#each range(0, col[1]) as r}
+                <rect x={i * 10} y={100 - (col[0] + r) * 10} width="8" height="8" rx="1.6" data-c="in" />
+              {/each}
+              {#if col[0] + col[1] < 10}
+                <rect x={i * 10} y={100 - (col[0] + col[1]) * 10} width="8" height="8" rx="1.6" />
+              {/if}
+            </g>
           {/each}
-        </div>
+        </svg>
         <div class="cash-labels">
-          {#each cash as row (row.month)}
-            <text size="xs" color="muted" align="center">{row.month}</text>
+          {#each cashMonths as month (month)}
+            <text size="xs" color="muted" align="center">{month}</text>
           {/each}
         </div>
       </div>

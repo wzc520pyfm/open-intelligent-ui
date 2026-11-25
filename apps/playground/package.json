@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@antv/g2": "^5.4.8",
+    "@open-intelligent-ui/docs": "workspace:*",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "echarts": "^6.1.0",
     "gsap": "^3.15.1",

@@ -9,3 +9,6 @@ coverage
 packages/*/LICENSE
 packages/*/NOTICE
 *.tgz
+
+# VitePress
+apps/docs/.vitepress/cache

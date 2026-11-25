@@ -1,0 +1,41 @@
+name: Deploy playground to Cloudflare Pages
+
+# Direct Upload via Wrangler. Needs repository secrets:
+#   CLOUDFLARE_API_TOKEN   — Pages Write (and Account Read)
+#   CLOUDFLARE_ACCOUNT_ID  — 966b90254dea747c8ca106d2b40c2ce4
+# Create a token: https://dash.cloudflare.com/profile/api-tokens
+# Template: "Edit Cloudflare Workers" is enough, or a custom token with Pages:Edit.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Build and deploy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/playground/dist --project-name=open-intelligent-ui --branch=main
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

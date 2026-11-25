@@ -84,7 +84,7 @@ pnpm install
 pnpm dev
 ```
 
-Open <http://localhost:5173> (or the [deployed playground](https://open-intelligent-ui-one.vercel.app)). Six demos on the left; switch renderer, streaming speed, design, light/dark and width. Inspect shows markup, state and the system prompt. For a real model, pick **Live** and choose OpenAI, Anthropic, DeepSeek or a custom OpenAI-compatible endpoint — the key stays in this tab.
+Open <http://localhost:5173> (or the [deployed playground](https://open-intelligent-ui.pages.dev)). Six demos on the left; switch renderer, streaming speed, design, light/dark and width. Inspect shows markup, state and the system prompt. For a real model, pick **Live** and choose OpenAI, Anthropic, DeepSeek or a custom OpenAI-compatible endpoint — the key stays in this tab.
 
 ```bash
 pnpm test
@@ -180,7 +180,7 @@ Svelte and Solid look like React and Vue; each package's README has its example 
 
 A model writes the same markup for all five, and the prompt is the same. React, Vue and Solid draw it to the same DOM. Svelte draws the same DOM apart from a few elements `@ui-sdk/svelte` places differently. The web renderer draws UI SDK components as custom elements (`<ui-tabs>`), with the same roles, names, states and look.
 
-The [demo site](https://open-intelligent-ui-one.vercel.app) switches between the five on one reply. `pnpm dev:vue`, `pnpm dev:svelte`, `pnpm dev:solid` and `pnpm dev:web` each run the same demos on one renderer alone.
+The [demo site](https://open-intelligent-ui.pages.dev) switches between the five on one reply. `pnpm dev:vue`, `pnpm dev:svelte`, `pnpm dev:solid` and `pnpm dev:web` each run the same demos on one renderer alone.
 
 The packages are ESM with type declarations; the React entry is marked `"use client"`. Tools, theming, host components, state and the safety model: [`skills/intelligent-ui/references/integration.md`](skills/intelligent-ui/references/integration.md).
 

@@ -82,7 +82,8 @@ describe("playground demos", () => {
       if (error) errors.push(`${end}: ${error.textContent}`)
     }
     expect(errors).toEqual([])
-  })
+    // A demo is drawn again for every 37 characters of it: seconds on a small CI machine.
+  }, 30_000)
 
   test("gears: presets set both sliders and the ratio follows", async () => {
     const view = await mount("gears")

@@ -82,11 +82,11 @@ const message = repairMessage(result, { limit: 12 })
 | --- | --- |
 | `library` | 一个 `Library`，或它的 `librarySpec` JSON |
 | `tools` | 宿主能响应的工具：名字，或传给 `buildSystemPrompt` 的那些描述 |
-| `components`、`state`、`functions`、`actions` | 宿主用同样的名字传给渲染器的内容，或者只传名字 |
+| `components`、`state`、`functions`、`actions` | 宿主作为 `components`、`initialState`、`functions`、`actions` 传给渲染器的内容，或者只传名字 |
 
 `result` 是 `{ ok, errors, warnings, issues }`。每个问题是 `{ code, severity, message, hint?, line, column, excerpt }`。[保证输出正确](../guide/correctness#the-checker)列出了所有代码。
 
-`repairMessage` 在没有错误时返回空字符串。`limit` 限制最多列出多少个问题（默认 12 个）；`warnings: true` 表示即使没有错误也列出警告。
+没有可发回的内容时，`repairMessage` 返回空字符串：也就是没有错误，并且没有“设了 `warnings: true` 且存在警告”这种情况。`limit` 限制最多列出多少个问题（默认 12 个）。
 
 ## 组件库 {#library}
 

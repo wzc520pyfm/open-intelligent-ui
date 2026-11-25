@@ -1,6 +1,6 @@
 # 数据、工具与回合
 
-生成的界面如果只能显示模型写进去的内容，画出来的那一刻就过时了。工具让它直接读写你的数据；某个决定需要模型再走一个回合时，`send()` 把回合交回给模型。
+生成的界面如果只能显示模型写进去的内容，画出来的那一刻就过时了。工具让它直接读写你的数据；某个决定需要模型再参与时，`send()` 把回合交回给模型。
 
 ## 工具 {#tools}
 
@@ -96,7 +96,7 @@ buildSystemPrompt({
 
 ## 把回合交回去 {#handing-the-turn-back}
 
-界面靠 `send(text, data)` 变成对话。用户调整三个滑块，按下按钮，模型就收到一句话，里面带着用户选的数字。
+界面靠 `send(text, data)` 变成对话。用户做完选择，按下按钮，模型就收到一句话，里面带着用户选的数字。
 
 ```iui live
 <state seats={8} plan="team" />
@@ -165,4 +165,4 @@ surface.current?.reset()
 surface.current?.refetch("tickets")
 ```
 
-`<state persist>` 的值保存在 `storage` 里的 `storageKey` 之下，前提是这两个 prop 你都传了，例如分别传 `localStorage` 和消息 id。
+`<state persist>` 的值保存在 `storage` 里，前提是 `storage` 和 `storageKey` 这两个 prop 你都传了，例如 `storage={localStorage}`，并把消息 id 作为 `storageKey`。它们存成一条 JSON，条目名是 `iui:` 加上这个 key。

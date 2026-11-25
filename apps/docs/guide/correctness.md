@@ -19,7 +19,7 @@ No single check is enough, so there are several, each placed where it is cheapes
 | Layer | What it does |
 | --- | --- |
 | The prompt is written from definitions | `buildSystemPrompt({ library, tools })` describes the components, charts, motion and tools from the same objects the renderer uses. The model isn't told about anything that doesn't exist. Every example in the prompt is drawn by the test suite |
-| The prompt names the common mistakes | A section lists what breaks a reply: tags inside braces, `setCount(…)`, other libraries' parts, props a tag doesn't have. A test holds each example in it to the checker |
+| The prompt names the common mistakes | A section lists what breaks a reply: tags inside braces, `setCount(…)`, other libraries' parts, props a tag doesn't have. A test makes sure the checker reports each example in it |
 | The parser is tolerant | It never throws. It holds back a half-written tag while streaming, recovers from a stray closing tag, and reports each problem with a code and a position |
 | Components are strict | A registered component receives only the props it declared, with values of the declared type. Anything else is dropped and reported |
 | **The checker** | `checkMarkup` reads a finished reply the way the renderer would, without a browser, and returns every issue with a line and what to write instead |
@@ -142,7 +142,7 @@ The playground's live mode does the first, and says in the thread when it is fix
 If you see a warning there, it is one of two things:
 
 - **A real mistake in the reply.** The Markup panel lists it with its line, and in live mode the model is asked to fix it.
-- **A false alarm.** Up to 0.4.0 a streamed reply could warn about a name it declared a few lines later. That is fixed: forward references are held until the stream ends.
+- **A false alarm.** In 0.4.0 and earlier, a streamed reply could warn about a name it declared a few lines later. Since 0.5.0, forward references are held until the stream ends.
 
 ## In your tests
 

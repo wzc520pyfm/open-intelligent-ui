@@ -43,7 +43,7 @@ Four complete designs are included, each with light and dark colors. Switch betw
 | `heritage` | Editorial: serif headlines, cream paper, one terracotta accent, square corners |
 | `signal` | Dense and technical, for operations surfaces: mono labels, a lime signal color |
 
-```ts
+```tsx
 import { noir } from "@open-intelligent-ui/core/designs"
 
 <IntelligentUI source={text} design={noir} scheme="auto" />
@@ -131,7 +131,7 @@ const design = parseDesign(heroui, {
   // Laid over the file's tokens: what it leaves out, or a color it only names.
   tokens: {
     colors: { snow: "oklch(0.9911 0 0)" },
-    motion: { emphasis: { duration: "420ms", easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" } },
+    motion: { emphasis: { duration: "420ms", timingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)" } },
   },
   // Which of the design's colors fills which role, when the names differ.
   roles: { primary: "accent", "muted-foreground": "muted" },
@@ -140,7 +140,7 @@ const design = parseDesign(heroui, {
 })
 ```
 
-- **Roles.** A token with a role's name fills it. Common aliases are recognized: shadcn's `card` and `destructive`, Material's `on-primary`. Whether `muted` is a text color or a background in a given design is decided from its contrast with the page background. `colorSources(design)` returns which token each role ended up with.
+- **Roles.** A token with a role's name fills it. Names other systems use are recognized too: shadcn's `card` and `destructive`, Material's `on-surface` and `on-primary`. Whether `muted` is a text color or a background in a given design is decided from its contrast with the page background. `colorSources(design)` returns which token each role ended up with.
 - **Prose.** For a design written for another library, the prompt tells the model to take its direction on hierarchy, color, shape and tone, and that its class names and install steps don't apply here.
 - **Problems.** Nothing throws. A value that can't be read, or isn't safe to write into CSS, is left out and listed in `design.issues`. `validateLibrary` reports those too.
 

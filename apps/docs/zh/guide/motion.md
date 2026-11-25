@@ -4,7 +4,7 @@
 
 ## 内置 {#built-in}
 
-不做任何配置时，动效用 CSS 实现。块在写出来的同时淡入并上升，UI SDK 的弹出层和标签页带动画，图表以生长的方式出现，`<Number>` 和 `<Stat>` 会滚动到新的数值。标记用四个属性添加动效。
+不做任何配置时，动效用 CSS 实现。块在写出来的同时淡入并上升，UI SDK 的弹出层和标签页带动画，图表以生长的方式出现，`<Number>` 和 `<Stat>` 会滚动到新的数值。标记用五个属性添加动效。
 
 | 属性 | 作用 |
 | --- | --- |
@@ -51,7 +51,7 @@
 </box>
 ```
 
-时长和缓动来自设计的 `motion` token：`state-change`、`surface-enter`、`surface-exit`、`layout` 和 `emphasis`。模型写的 CSS 用的是同一批 token，写成 `var(--iui-motion-layout-duration)` 和 `var(--iui-motion-layout-easing)`。`prefers-reduced-motion` 会被遵守，模型和宿主都不用做任何事。`morph` 用 View Transitions；不支持它的浏览器会原地替换元素。
+时长和缓动来自设计的 `motion` token：`state-change`、`surface-enter`、`surface-exit`、`layout` 和 `emphasis`。模型写的 CSS 用的是同一批 token，写成 `var(--iui-motion-layout-duration)` 和 `var(--iui-motion-layout-easing)`。`prefers-reduced-motion` 会被遵守，模型和宿主都不用做任何事。没有配置适配器时，`morph` 用 View Transitions；不支持它的浏览器会原地替换元素。
 
 ## 用你自己的动效库 {#using-your-motion-library}
 

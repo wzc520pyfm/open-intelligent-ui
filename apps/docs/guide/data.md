@@ -1,6 +1,6 @@
 # Data, tools and turns
 
-A generated interface that can only show what the model put in it goes stale the moment it is drawn. Tools let it read and write your data directly, and `send()` hands the turn back to the model when a decision needs one.
+A generated interface that can only show what the model put in it goes stale the moment it is drawn. Tools let it read and write your data directly, and `send()` hands the turn back to the model when a decision needs the model again.
 
 ## Tools
 
@@ -96,7 +96,7 @@ Tools run in the browser, with the reader's session, on behalf of markup a model
 
 ## Handing the turn back
 
-`send(text, data)` is how an interface becomes a conversation. The reader adjusts three sliders, presses a button, and the model receives a sentence with the numbers they chose.
+`send(text, data)` is how an interface becomes a conversation. The reader makes their choices, presses a button, and the model receives a sentence with the numbers they chose.
 
 ```iui live
 <state seats={8} plan="team" />
@@ -165,4 +165,4 @@ surface.current?.reset()
 surface.current?.refetch("tickets")
 ```
 
-`<state persist>` values are kept in `storage` under `storageKey` when you pass both, for example `localStorage` and the message id.
+`<state persist>` values are kept in `storage` when you pass both `storage` and `storageKey`, for example `storage={localStorage}` and the message id as `storageKey`. They are saved as one JSON entry named `iui:` followed by the key.

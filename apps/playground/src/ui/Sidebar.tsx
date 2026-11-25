@@ -101,12 +101,7 @@ export function Sidebar(props: {
         </ListBox.Section>
       </ListBox>
       <div className="mt-auto flex items-center gap-4 px-3 text-xs text-muted">
-        <Link
-          className="text-xs text-muted"
-          href="https://github.com/wzc520pyfm/open-intelligent-ui#readme"
-          target="_blank"
-          rel="noreferrer"
-        >
+        <Link className="text-xs text-muted" href={copy.docsUrl}>
           {copy.docs}
         </Link>
         <Link

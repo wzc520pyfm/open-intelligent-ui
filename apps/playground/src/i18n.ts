@@ -50,6 +50,8 @@ export interface Copy {
   rendererFailed: string
   retry: string
   docs: string
+  /** The documentation, served from this site. */
+  docsUrl: string
   modelSettings: string
   examples: string
   agentAsked: string
@@ -126,6 +128,7 @@ const en: Copy = {
   rendererFailed: "This renderer could not be loaded.",
   retry: "Try again",
   docs: "Docs",
+  docsUrl: "/docs/",
   modelSettings: "Model settings",
   examples: "Examples",
   agentAsked: "An agent was asked",
@@ -270,6 +273,7 @@ const zh: Copy = {
   rendererFailed: "这个渲染器没能加载。",
   retry: "重试",
   docs: "文档",
+  docsUrl: "/docs/zh/",
   modelSettings: "模型设置",
   examples: "示例",
   agentAsked: "有人问智能体",

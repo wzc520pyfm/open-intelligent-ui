@@ -111,9 +111,14 @@
     gap: 0.65rem;
     background: var(--iui-color-surface);
   }
-  @media (max-width: 720px) {
+  @container iui (width < 560px) {
     .poster-grid, .info-grid { grid-template-columns: 1fr; }
     .feature { grid-template-columns: 1fr; }
+    .feature-art { min-height: 10rem; }
+  }
+  @container iui (width < 420px) {
+    .panel { padding: 0.95rem 0.95rem 1.05rem; }
+    .poster { aspect-ratio: 5 / 4; }
   }
 </style>
 

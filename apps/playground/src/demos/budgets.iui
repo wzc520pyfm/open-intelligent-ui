@@ -4,6 +4,7 @@
     border-radius: 18px;
     overflow: hidden;
     background: var(--iui-color-surface);
+    min-width: 0;
   }
   .board-head {
     display: flex;
@@ -26,7 +27,9 @@
     border-bottom: 1px solid var(--iui-color-border);
     min-width: 0;
   }
-  .kpi .label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .kpi .value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .kpi .menu { flex: 0 0 auto; }
   .kpi:last-child { border-right: none; }
   .kpi-icon {
     width: 1.375rem;
@@ -107,7 +110,11 @@
     animation: bar-fill 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
   .nowrap { white-space: nowrap; overflow-wrap: normal; }
-  .invoice-scroll { overflow-x: auto; }
+  .invoice-scroll {
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
   .invoice-row {
     display: grid;
     grid-template-columns: 7.5rem 5.5rem 5.5rem 4.5rem 4.5rem 5.5rem;
@@ -117,6 +124,7 @@
     border-bottom: 1px solid var(--iui-color-border);
     font-size: 0.8125rem;
     min-width: 36rem;
+    width: max-content;
   }
   .invoice-row.head {
     color: var(--iui-color-muted-foreground);
@@ -146,11 +154,33 @@
   @media (prefers-reduced-motion: reduce) {
     .cash-cells .col { animation: none; }
   }
-  @media (max-width: 720px) {
+  @container iui (width < 720px) {
     .kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .kpi:nth-child(2n) { border-right: none; }
     .board-body { grid-template-columns: 1fr; }
     .board-main { border-right: none; }
+    .board-side { border-top: 1px solid var(--iui-color-border); }
+  }
+  @container iui (width < 520px) {
+    /* Table → compact rows: vendor | amount | status. */
+    .invoice-scroll { overflow-x: visible; }
+    .invoice-row {
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 0.45rem 0.65rem;
+      min-width: 0;
+      width: 100%;
+    }
+    .invoice-row.head { display: none; }
+    .invoice-row > :nth-child(2),
+    .invoice-row > :nth-child(3),
+    .invoice-row > :nth-child(4) { display: none; }
+  }
+  @container iui (width < 420px) {
+    .board-head { gap: 0.4rem; padding: 0.75rem 0.85rem; }
+    .kpi { padding: 0.8rem 0.75rem 0.7rem; }
+    .kpi .value { font-size: 1.25rem; }
+    .kpi .menu { display: none; }
+    .kpi .label { font-size: 0.75rem; }
   }
 </style>
 
@@ -192,10 +222,10 @@
         <span class="kpi-icon"><icon name="landmark" size="sm" /></span>
         <text size="sm" color="muted" class="label">Revenue</text>
         <spacer />
-        <icon name="ellipsis" size="sm" color="muted" />
+        <icon name="ellipsis" size="sm" color="muted" class="menu" />
       </row>
       <row gap={2} wrap>
-        <text size="xl" weight="bold" tabular>$1.24M</text>
+        <text size="xl" weight="bold" tabular class="value">$1.24M</text>
         <badge color="success" size="sm">+8.1%</badge>
       </row>
       <div class="kpi-note">Quarter to date</div>
@@ -205,10 +235,10 @@
         <span class="kpi-icon"><icon name="receipt" size="sm" /></span>
         <text size="sm" color="muted" class="label">Operating spend</text>
         <spacer />
-        <icon name="ellipsis" size="sm" color="muted" />
+        <icon name="ellipsis" size="sm" color="muted" class="menu" />
       </row>
       <row gap={2} wrap>
-        <text size="xl" weight="bold" tabular>$815k</text>
+        <text size="xl" weight="bold" tabular class="value">$815k</text>
         <badge color="success" size="sm">4.0% under</badge>
       </row>
       <div class="kpi-note">Against budget</div>
@@ -218,10 +248,10 @@
         <span class="kpi-icon"><icon name="pie-chart" size="sm" /></span>
         <text size="sm" color="muted" class="label">Gross margin</text>
         <spacer />
-        <icon name="ellipsis" size="sm" color="muted" />
+        <icon name="ellipsis" size="sm" color="muted" class="menu" />
       </row>
       <row gap={2} wrap>
-        <text size="xl" weight="bold" tabular>62.6%</text>
+        <text size="xl" weight="bold" tabular class="value">62.6%</text>
         <badge color="success" size="sm">+1.2 pt</badge>
       </row>
       <div class="kpi-note">Trailing twelve months</div>
@@ -231,10 +261,10 @@
         <span class="kpi-icon"><icon name="timer" size="sm" /></span>
         <text size="sm" color="muted" class="label">Runway</text>
         <spacer />
-        <icon name="ellipsis" size="sm" color="muted" />
+        <icon name="ellipsis" size="sm" color="muted" class="menu" />
       </row>
       <row gap={2} wrap>
-        <text size="xl" weight="bold" tabular>22 mo</text>
+        <text size="xl" weight="bold" tabular class="value">22 mo</text>
         <badge color="success" size="sm">+2 mo</badge>
       </row>
       <div class="kpi-note">At current burn</div>

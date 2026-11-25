@@ -71,11 +71,13 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
     gap: 1.25rem;
   }
-  @media (max-width: 640px) {
+  /* Surface width, not viewport — playground phone mode only shrinks the column. */
+  @container iui (width < 520px) {
+    .panel { padding: 1rem 1.05rem 1.1rem; }
     .metrics { grid-template-columns: 1fr; }
     .metric { border-right: none; border-bottom: 1px solid var(--iui-color-border); padding: 0.7rem 0; }
     .metric:last-child { border-bottom: none; }
-    .split { grid-template-columns: 1fr; }
+    .split { grid-template-columns: 1fr; gap: 1rem; }
   }
 </style>
 

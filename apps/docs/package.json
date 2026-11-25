@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",
-    "preview": "vitepress preview"
+    "preview": "vitepress preview",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@open-intelligent-ui/core": "workspace:*",
@@ -16,6 +17,8 @@
     "vue": "^3.5.46"
   },
   "devDependencies": {
-    "vitepress": "^1.6.4"
+    "typescript": "^6.0.3",
+    "vitepress": "^1.6.4",
+    "vue-tsc": "^3.3.14"
   }
 }

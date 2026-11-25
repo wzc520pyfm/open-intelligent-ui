@@ -37,6 +37,8 @@ interface Turn {
   id: number
   role: "user" | "assistant" | "note"
   text: string
+  /** Which attempt at this reply is shown. A repaired reply is a new surface, with its own state. */
+  round?: number
 }
 
 const SPEEDS = [
@@ -331,7 +333,7 @@ export function App() {
                 role: "note",
                 text: copyRef.current.fixing(result.errors, round + 1, REPAIRS),
               },
-              reply,
+              { ...reply, round: round + 1 },
             ])
           },
         })
@@ -761,7 +763,7 @@ export function App() {
                         </div>
                       ) : null}
                       <Surface
-                        key={`${renderer}:${turn.id}`}
+                        key={`${renderer}:${turn.id}:${turn.round ?? 0}`}
                         renderer={renderer}
                         handle={turn.id === latestSurface?.id ? handle : undefined}
                         source={turn.text}

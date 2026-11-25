@@ -532,3 +532,113 @@ describe("what the checker knows about props", () => {
     expect(names.filter((name) => !box.has(name) && !UNIVERSAL.has(name))).toEqual([])
   })
 })
+
+describe("what a review of the checker found", () => {
+  test("a name that is read is matched against what was declared, not against the helpers", () => {
+    const missing = only(`<state amount={1200} />\n<derive fee={amount * rate} />\n\n{fee}`)
+    expect(missing.message).toBe('"rate" is not defined')
+    expect(missing.hint).toBe("Declare it first: <state rate={…} />.")
+    expect(only(`<state amount={1} />\n\n{amont}`).hint).toBe("Did you mean amount?")
+  })
+
+  test("state that holds a value can't be called, and state that holds a function can", () => {
+    const called = only(`<state count={1} />\n\n<Button on:click={count()}>Add</Button>`)
+    expect(called.code).toBe("unknown-function")
+    expect(called.message).toBe('"count" holds a value, not a function, so it can\'t be called')
+    expect(issues(`<state double={x => x * 2} />\n\n{double(4)}`)).toEqual([])
+  })
+
+  test("a method called through brackets is checked like one called with a dot", () => {
+    expect(issues(`<state items={[1]} />\n\n{items["push"](2)}`)).toEqual([
+      "error bad-write: push() can only run from an event handler",
+    ])
+    expect(issues(`<state items={[1]} />\n\n{items["explode"]()}`)).toEqual([
+      "error unknown-function: .explode() is not a method the language has",
+    ])
+    expect(issues(`<state items={[1]} key="length" />\n\n{items[key]}`)).toEqual([])
+  })
+
+  test("a change to a value that is computed anew each time is lost, and is said to be", () => {
+    expect(
+      issues(`<derive draft={{ done: false }} />\n\n<Button on:click={draft.done = true}>Done</Button>`)
+    ).toEqual(['error bad-write: "draft" is computed anew each time, so a change to it is lost'])
+    expect(issues(`<derive items={[1]} />\n\n<Button on:click={items.push(2)}>Add</Button>`)).toEqual([
+      'error bad-write: "items" is computed anew each time, so .push() changes nothing',
+    ])
+    expect(
+      issues(
+        `<state tasks={[{ done: false }]} />\n<derive open={tasks.filter(t => !t.done)} />\n\n<Button on:click={open.push({ done: false })}>Add</Button>`
+      )
+    ).toEqual(['error bad-write: "open" is computed anew each time, so .push() changes nothing'])
+  })
+
+  test("what a derived value picked out of state can still be edited", () => {
+    const source = `<state tasks={[{ done: false, tags: [] }]} />
+<derive next={tasks.find(t => !t.done)} open={tasks.filter(t => !t.done)} pair={[tasks[0]]} />
+
+<Button on:click={next.done = true; next.tags.push("x"); open[0].done = true; pair[0].done = true}>Done</Button>`
+    expect(issues(source)).toEqual([])
+  })
+
+  test("a spread only stands for the props it could bring", () => {
+    const library = defineLibrary({
+      components: [
+        defineComponent({
+          name: "Report",
+          description: "A report.",
+          props: { data: { type: "array", required: true } },
+          example: `<Report data={rows} />`,
+        }),
+      ],
+    })
+    const state = `<state rows={[1]} rest={{ data: [1] }} />\n\n`
+    expect(issues(`${state}<Report {...{}} />`, { library }).map((issue) => issue.split(":")[0])).toEqual([
+      "error missing-prop",
+    ])
+    expect(issues(`${state}<Report {...{ data: rows }} />`, { library })).toEqual([])
+    expect(issues(`${state}<Report {...rest} />`, { library })).toEqual([])
+  })
+
+  test("a definition nothing uses draws nothing", () => {
+    expect(issues(`<define name="Summary"><text>Ready</text></define>`)).toEqual([
+      "error empty: The reply draws nothing",
+    ])
+    expect(issues(`<define name="Summary"><text>Ready</text></define>\n\n<Summary />`)).toEqual([])
+  })
+
+  test("a reply that draws nothing is an error, whatever else it is warned about", () => {
+    const result = checkMarkup(`<slot />`)
+    expect(result.ok).toBe(false)
+    expect(result.issues.map((issue) => issue.code)).toEqual(["unknown-component", "empty"])
+  })
+
+  test("one element of ours in a fence is an interface; one tag in a sample of something else is not", () => {
+    expect(issues("Here it is:\n\n```html\n<card>Report</card>\n```").map((issue) => issue.split(":")[0])).toEqual([
+      "error fenced",
+    ])
+    expect(issues('In HTML you would write:\n\n```html\n<div class="x"><title>Report</title></div>\n```')).toEqual([])
+  })
+
+  test("an expression that stops at an operator is reported", () => {
+    const broken = only(`<state count={1} />\n\n<text>{count +}</text>`)
+    expect(broken.code).toBe("bad-expression")
+    expect(issues(`A grade of {A-} or {a; b} is prose.`)).toEqual([])
+  })
+
+  test("an unknown tag with bare attributes is reported when it is closed", () => {
+    expect(issues(`<stack disabled>Report</stack>`).map((issue) => issue.split(":")[0])).toEqual([
+      "error unknown-tag",
+    ])
+    expect(issues(`When m <n and n> p, nothing is a tag.`)).toEqual([])
+  })
+
+  test("a JSX comment is left out, whatever it holds", () => {
+    expect(issues(`<card>{/* don't show this } */}Total</card>`)).toEqual([])
+    expect(checkMarkup(`{/* only a comment */}`).issues.map((issue) => issue.code)).toEqual(["empty"])
+  })
+
+  test("a column is counted in the reply as it was given", () => {
+    const issue = only(`Report\n\n  \uE000<MissingWidget />`)
+    expect([issue.line, issue.column]).toEqual([3, 4])
+  })
+})

@@ -425,7 +425,8 @@ export const OTHER_METHODS: Record<string, string> = {
   toBoolean: "Boolean(value)",
   then: "await: write let result = await call(…) and use result on the next statement",
   catch: "nothing: a failed call is shown to the reader as a message",
-  finally: "nothing: the statements after an await run when it is done",
+  finally:
+    "nothing: there is no finally. The statements after an await run only when it succeeds, and a failed call is shown to the reader as a message",
   preventDefault: "nothing: a form here never leaves the page",
   stopPropagation: "nothing",
   clear: "list = []",

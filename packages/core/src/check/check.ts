@@ -185,6 +185,48 @@ function nearest(name: string, candidates: Iterable<string>): string | undefined
   return best
 }
 
+/** A column in a line as it was given, from one in the same line without the marks the parser drops. */
+function columnIn(line: string | undefined, column: number): number {
+  if (!line || !/[\uE000\uE001]/.test(line)) return column
+  let kept = 0
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === "\uE000" || line[i] === "\uE001") continue
+    kept++
+    if (kept === column) return i + 1
+  }
+  return column
+}
+
+/** Methods and helpers that hand back a new list each time. */
+const FRESH_METHODS = new Set(["filter", "map", "flatMap", "flat", "slice", "concat", "toSorted", "toReversed", "with", "split"])
+const FRESH_HELPERS = new Set([
+  "sortBy",
+  "unique",
+  "without",
+  "toggle",
+  "chunk",
+  "range",
+  "keys",
+  "values",
+  "entries",
+  "groupBy",
+  "countBy",
+])
+
+/** A value that isn't a function: what `<state>` usually holds. */
+function isData(expr: Expr): boolean {
+  return expr.type === "Literal" || expr.type === "Template" || expr.type === "Array" || expr.type === "Object"
+}
+
+/** Whether an expression makes a new list or object each time, rather than picking one out of state. */
+function isFresh(expr: Expr): boolean {
+  if (expr.type === "Array" || expr.type === "Object") return true
+  if (expr.type !== "Call") return false
+  const callee = expr.callee
+  if (callee.type === "Ident") return FRESH_HELPERS.has(callee.name)
+  return callee.type === "Member" && typeof callee.property === "string" && FRESH_METHODS.has(callee.property)
+}
+
 interface PartInfo {
   slug: string
   /** The component the entry is named for. */
@@ -329,6 +371,8 @@ export function checkMarkup(source: string, options: CheckOptions = {}): CheckRe
   const { text, lines: skipped } = prepare(source)
   const doc = parse(source)
   const sourceLines = text.split("\n")
+  /** The lines as they were given, with the private-use marks the parser drops still in them. */
+  const givenLines = source.replace(/\r\n?/g, "\n").split("\n")
   const lineStarts: number[] = [0]
   for (let i = 0; i < text.length; i++) if (text[i] === "\n") lineStarts.push(i + 1)
 
@@ -371,7 +415,7 @@ export function checkMarkup(source: string, options: CheckOptions = {}): CheckRe
       severity,
       message,
       line: low + 1 + skipped,
-      column: pos - (lineStarts[low] as number) + 1,
+      column: columnIn(givenLines[low + skipped], pos - (lineStarts[low] as number) + 1),
       excerpt: clip(sourceLines[low] ?? ""),
     }
     if (hint) issue.hint = hint
@@ -409,6 +453,10 @@ export function checkMarkup(source: string, options: CheckOptions = {}): CheckRe
 
   const state = new Map<string, number>()
   const derived = new Map<string, number>()
+  /** State whose declared value can't be called: a number, a text, a list, an object. */
+  const plainState = new Set<string>()
+  /** Derived values that are new each time they are computed, so nothing in state is behind them. */
+  const freshDerived = new Set<string>()
   const queries = new Map<string, number>()
   const templates = new Map<string, { node: ElementNode; props: Set<string> }>()
   /** Keys that hold a function somewhere in the reply, so `actions.save()` is a call to one. */
@@ -442,6 +490,9 @@ export function checkMarkup(source: string, options: CheckOptions = {}): CheckRe
           for (const attr of node.attrs) {
             if (attr.name === "persist" || attr.name === "...") continue
             if (attr.value.kind === "expr") noteFunctions(attr.value.expr)
+            if (!state.has(attr.name) && !derived.has(attr.name) && (attr.value.kind !== "expr" || isData(attr.value.expr))) {
+              plainState.add(attr.name)
+            }
             if (state.has(attr.name) || derived.has(attr.name)) {
               add(
                 "duplicate-name",
@@ -473,6 +524,8 @@ export function checkMarkup(source: string, options: CheckOptions = {}): CheckRe
               )
             }
             derived.set(attr.name, node.pos)
+            if (isFresh(attr.value.expr)) freshDerived.add(attr.name)
+            else freshDerived.delete(attr.name)
           }
           break
         case "query": {
@@ -578,7 +631,8 @@ export function checkMarkup(source: string, options: CheckOptions = {}): CheckRe
       }
     }
     const close =
-      inside ?? nearest(name, called ? [...functions, ...actions] : [...declared(), ...functions])
+      // A name that is read is most often a declared one misspelt; a helper is only a guess for a call.
+      inside ?? nearest(name, called ? [...functions, ...actions] : declared())
     const hint = other
       ? `Use what the language has: ${other}.`
       : close
@@ -644,12 +698,27 @@ export function checkMarkup(source: string, options: CheckOptions = {}): CheckRe
               else if (kind === "action") {
                 write(`${name}()`)
                 checkActionCall(name, node.args, pos)
+              } else if (kind === "state" && plainState.has(name)) {
+                add(
+                  "unknown-function",
+                  "error",
+                  `"${name}" holds a value, not a function, so it can't be called`,
+                  pos,
+                  `Read it as ${name}, and change it by assigning to it.`
+                )
               }
             }
           } else if (callee.type === "Member") {
             visit(callee.object, scope)
-            if (typeof callee.property !== "string") visit(callee.property, scope)
-            else checkMethod(callee.object, callee.property, node.optional || callee.optional, scope, write, pos)
+            // `items["push"](x)` is the same call as `items.push(x)`.
+            const method =
+              typeof callee.property === "string"
+                ? callee.property
+                : callee.property.type === "Literal" && typeof callee.property.value === "string"
+                  ? callee.property.value
+                  : undefined
+            if (method === undefined) visit(callee.property as Expr, scope)
+            else checkMethod(callee.object, method, node.optional || callee.optional, scope, write, pos)
           } else visit(callee, scope)
           for (const arg of node.args) visit(arg.type === "Spread" ? arg.arg : arg, scope)
           return
@@ -741,6 +810,18 @@ export function checkMarkup(source: string, options: CheckOptions = {}): CheckRe
             at,
             `Change it with call(…): every <query> loads again afterwards.`
           )
+        } else if (
+          target.object.type === "Ident" &&
+          !scope.has(target.object.name) &&
+          freshDerived.has(target.object.name)
+        ) {
+          add(
+            "bad-write",
+            "error",
+            `"${target.object.name}" is computed anew each time, so a change to it is lost`,
+            at,
+            `Keep it in <state ${target.object.name}={…} /> instead of <derive>.`
+          )
         }
         visit(target.object, scope)
         if (typeof target.property !== "string") visit(target.property, scope)
@@ -777,7 +858,18 @@ export function checkMarkup(source: string, options: CheckOptions = {}): CheckRe
       }
     }
     if (METHOD_NAMES.has(name)) {
-      if (MUTATOR_NAMES.has(name)) write(`${name}()`)
+      if (MUTATOR_NAMES.has(name)) {
+        write(`${name}()`)
+        if (object.type === "Ident" && !scope.has(object.name) && freshDerived.has(object.name)) {
+          add(
+            "bad-write",
+            "error",
+            `"${object.name}" is computed anew each time, so .${name}() changes nothing`,
+            pos,
+            `Keep the list in <state> and change it there.`
+          )
+        }
+      }
       return
     }
     if (optional || functionKeys.has(name)) return
@@ -1054,8 +1146,18 @@ export function checkMarkup(source: string, options: CheckOptions = {}): CheckRe
     )
   }
 
+  /** Whether a spread could bring the prop: yes when its keys aren't all written out. */
+  const spreads = (expr: Expr, prop: string): boolean =>
+    expr.type !== "Object" ||
+    expr.props.some((item) => item.type === "Spread" || typeof item.key !== "string" || item.key === prop)
+
   const given = (node: ElementNode, prop: string): boolean =>
-    node.attrs.some((attr) => attr.name === prop || attr.name === `bind:${prop}` || attr.name === "...")
+    node.attrs.some(
+      (attr) =>
+        attr.name === prop ||
+        attr.name === `bind:${prop}` ||
+        (attr.name === "..." && (attr.value.kind !== "expr" || spreads(attr.value.expr, prop)))
+    )
 
   const checkElement = (node: ElementNode, locals: Locals, within: string[], inTemplate: boolean): void => {
     const tag = node.name
@@ -1294,7 +1396,10 @@ export function checkMarkup(source: string, options: CheckOptions = {}): CheckRe
         const name = staticText(node.attrs.find((attr) => attr.name === "name")?.value)
         const template = name === undefined ? undefined : templates.get(name)
         const locals = new Locals().add(...(template?.props ?? []))
+        // A definition shows nothing until it is used.
+        const before = drawn
         walk(node.children, locals, [], true)
+        drawn = before
         break
       }
     }
@@ -1335,7 +1440,9 @@ export function checkMarkup(source: string, options: CheckOptions = {}): CheckRe
     const ours = tags.filter(
       (tag) => PRIMITIVE_TAGS.has(tag) || DECLARATIONS.has(tag) || Object.hasOwn(PRESET_PROPS, tag) || uiSdk().has(tag)
     )
-    if (ours.length < 2) continue
+    // Two tags of ours, or a fence that is one element of ours from start to end. One tag in a sample of something else is not an interface.
+    const whole = /^<([A-Za-z][\w-]*)[\s\S]*>$/.exec(body.trim())?.[1]
+    if (ours.length < 2 && !(whole !== undefined && ours[0] === whole)) continue
     add(
       "fenced",
       "error",
@@ -1345,7 +1452,7 @@ export function checkMarkup(source: string, options: CheckOptions = {}): CheckRe
     )
   }
 
-  if (!drawn && issues.length === 0) {
+  if (!drawn && !issues.some((issue) => issue.severity === "error")) {
     add("empty", "error", "The reply draws nothing", 0, "Write what the reader should see, after the declarations.")
   }
 

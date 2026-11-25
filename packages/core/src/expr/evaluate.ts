@@ -45,6 +45,8 @@ export interface EvalHost {
    * finding it by identity. Returns whether it was found.
    */
   replace?(previous: object, next: unknown): boolean
+  /** Whether a name is worked out from others (a derived value, a query) and so can't be written. */
+  computed?(name: string): boolean
   /** Pure functions and namespaces, available everywhere. */
   functions: Record<string, unknown>
   /** Functions with side effects, available only while an action runs. */
@@ -473,6 +475,8 @@ function assignTo(
       owner.write(target.name, value)
       return
     }
+    // A derived value can't be written, but what it picked out of state can.
+    if (env.host.computed?.(target.name) && replace()) return
     env.host.assign(target.name, value)
     return
   }

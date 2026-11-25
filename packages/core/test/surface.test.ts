@@ -110,6 +110,31 @@ describe("state", () => {
     expect(surface.snapshot()).toEqual({ board: surface.get("board") })
   })
 
+  test("a handler can edit what a derived value picked out of state", () => {
+    const warnings: string[] = []
+    const surface = new Surface({ onWarning: (message) => warnings.push(message) })
+    surface.update(
+      parse(`<state groups={[{ name: "a", tasks: [{ title: "one", done: true }, { title: "two", done: false }] }]} />
+<derive next={groups[0].tasks.find(t => !t.done)} group={groups[0]} open={groups[0].tasks.filter(t => !t.done)} />
+<query id="orders" tool="orders.list" />`)
+    )
+    act(surface, "next.done = true")
+    act(surface, "group.tasks[0].title = 'first'; group.name = 'b'")
+    expect(surface.get("groups")).toEqual([
+      { name: "b", tasks: [{ title: "first", done: true }, { title: "two", done: true }] },
+    ])
+    expect(surface.get("next")).toBeUndefined()
+    expect(warnings).toEqual([])
+
+    // What a derived value made itself is nowhere in state to write to.
+    act(surface, "open.push({ title: 'three', done: false })")
+    act(surface, "orders.loading = false")
+    expect(warnings).toEqual([
+      '"open" is computed and can\'t be assigned',
+      '"orders" is computed and can\'t be assigned',
+    ])
+  })
+
   test("derived values can't be assigned and cycles don't hang", () => {
     const warnings: string[] = []
     const surface = new Surface({ onWarning: (message) => warnings.push(message) })

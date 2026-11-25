@@ -238,6 +238,7 @@ export class Surface {
       lookup: (name) => this.lookup(name),
       assign: (name, value) => this.set(name, value),
       replace: (previous, next) => this.replace(previous, next),
+      computed: (name) => this.derived.has(name) || this.queries.has(name),
       functions,
       actions,
       // The one thing an expression warns about is a name nobody declared. While

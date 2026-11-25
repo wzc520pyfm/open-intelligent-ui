@@ -181,12 +181,13 @@ Before a finished reply is kept, check it, and let the model fix what is wrong. 
 ```ts
 import { checkMarkup, repairMessage } from "@open-intelligent-ui/core/check"
 
+const tools = ["listTickets", "updateTicket"]
 let reply = await model(messages)
-for (let round = 0; round < 2; round++) {
-  const result = checkMarkup(reply, { tools: ["listTickets", "updateTicket"] })
-  if (result.ok) break
+let result = checkMarkup(reply, { tools })
+for (let round = 0; !result.ok && round < 2; round++) {
   messages.push({ role: "assistant", content: reply }, { role: "user", content: repairMessage(result) })
   reply = await model(messages)
+  result = checkMarkup(reply, { tools })
 }
 ```
 

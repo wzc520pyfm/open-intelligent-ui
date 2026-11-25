@@ -94,14 +94,15 @@ import { checkMarkup, repairMessage } from "@open-intelligent-ui/core/check"
 
 async function reply(messages: Message[]) {
   let text = await model(messages)
-  for (let round = 0; round < 2; round++) {
-    const result = checkMarkup(text, { library, tools })
-    if (result.ok) break
+  let result = checkMarkup(text, { library, tools })
+  for (let round = 0; !result.ok && round < 2; round++) {
     log.info("repair", { round, issues: result.issues.map((issue) => issue.code) })
     messages = [...messages, { role: "assistant", content: text }, { role: "user", content: repairMessage(result) }]
     text = await model(messages)
+    result = checkMarkup(text, { library, tools })
   }
-  return text
+  // result.ok is about the reply being returned, so the caller knows whether the last attempt checked out.
+  return { text, ok: result.ok, issues: result.issues }
 }
 ```
 

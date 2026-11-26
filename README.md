@@ -13,7 +13,7 @@ The model writes Markdown mixed with tags. The renderer turns that stream into a
 | <img src="docs/images/dashboard.png" alt="Sales dashboard: stats, charts and a sortable table" width="420"> | <img src="docs/images/workbench.png" alt="Support workbench: filters, table, detail pane and writes" width="420"> |
 | <img src="docs/images/board.png" alt="Sprint board defined in markup with primitives and CSS" width="420"> | <img src="docs/images/gears.png" alt="SVG gear diagram driven by sliders" width="420"> |
 
-None of these four is a pre-built component. The markup is handwritten under `apps/playground/src/demos/`. This repository has not been run against a real model yet; see [Status](#status).
+None of these four is a pre-built component. The markup is handwritten under `apps/playground/src/demos/`.
 
 ## Why
 

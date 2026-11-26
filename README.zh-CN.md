@@ -294,7 +294,7 @@ scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设�
 | [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | 给智能体：怎么写 IUI 标记 |
 | [`skills/motion/SKILL.md`](skills/motion/SKILL.md) | 给智能体：怎么设计和检查动效 |
 
-## 亮点
+## 特性
 
 - **创作，而不是从目录里挑。** 模型在 UI SDK 行为之上用布局、CSS、SVG 塑形——比 A2UI / OpenUI 更自由，又不跑任意 HTML/JS。
 - **完整的线上回路。** `buildSystemPrompt` → 流式进渲染器 → `checkMarkup` + `repairMessage` 自动打回修复，交付检查过的回复。脚手架：`npm create open-intelligent-ui`。

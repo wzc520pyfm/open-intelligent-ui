@@ -294,7 +294,7 @@ scripts/          UI SDK catalog generation, skill references, design lint
 | [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | For agents: write IUI markup |
 | [`skills/motion/SKILL.md`](skills/motion/SKILL.md) | For agents: designing and reviewing motion |
 
-## Highlights
+## Features
 
 - **Author, don't pick from a catalog.** The model shapes the interface with layout, CSS and SVG on top of UI SDK behaviors — freer than A2UI / OpenUI, without running arbitrary HTML/JS.
 - **Production live loop.** `buildSystemPrompt` → stream into the renderer → `checkMarkup` + `repairMessage` drive automatic repair so you ship a checked reply. Scaffold with `npm create open-intelligent-ui`.

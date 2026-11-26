@@ -730,7 +730,10 @@ export function App() {
               <div className="pg-column" data-width={width}>
                 {turns.length === 0 ? (
                   <div className="mx-auto flex max-w-xl flex-col items-center gap-3 py-16 text-center">
-                    <Logo variant="full" className="mb-1" />
+                    <div className="mb-1 flex items-center gap-2.5">
+                      <Logo className="size-11" />
+                      <span className="text-lg font-semibold tracking-tight">Open Intelligent UI</span>
+                    </div>
                     <h2 className="text-2xl font-semibold tracking-tight text-balance">{copy.emptyTitle}</h2>
                     <p className="text-sm leading-relaxed text-muted">{copy.emptyBody(theme.name)}</p>
                     <div className="mt-3 flex flex-wrap justify-center gap-2">

@@ -92,13 +92,13 @@ export function Logo(props: { className?: string; variant?: "mark" | "full" }) {
       <img
         src="/logo-full.png"
         srcSet="/logo-full.png 2013w"
-        sizes="min(100vw - 2rem, 26rem)"
+        sizes="min(100vw - 2rem, 28rem)"
         width={420}
         height={101}
         alt=""
         aria-hidden="true"
         draggable={false}
-        className={["h-auto w-[min(100%,26rem)]", props.className].filter(Boolean).join(" ")}
+        className={["h-auto w-[min(100%,28rem)]", props.className].filter(Boolean).join(" ")}
       />
     )
   }
@@ -106,7 +106,7 @@ export function Logo(props: { className?: string; variant?: "mark" | "full" }) {
     <img
       src="/logo-mark.png"
       srcSet="/logo-mark.png 512w"
-      sizes="2.25rem"
+      sizes="2.75rem"
       width={512}
       height={512}
       alt=""

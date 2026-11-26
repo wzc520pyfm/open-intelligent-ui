@@ -13,7 +13,7 @@
 | <img src="docs/images/dashboard.png" alt="模型生成的销售看板：指标卡、柱状图、环形图和可排序的表格" width="420"> | <img src="docs/images/workbench.png" alt="模型生成的工单工作台：筛选、表格、详情和写操作" width="420"> |
 | <img src="docs/images/board.png" alt="模型用原语和 CSS 现场定义的冲刺看板" width="420"> | <img src="docs/images/gears.png" alt="由滑块驱动的 SVG 齿轮示意图" width="420"> |
 
-这四个界面都是一段标记，没有一个是预先写好的组件。它们在 `apps/playground/src/demos/` 里，是手写的示例标记，不是模型的输出；本仓库还没有用真实模型跑过，见[现状与限制](#现状与限制)。
+这四个界面都是一段标记，没有一个是预先写好的组件。它们在 `apps/playground/src/demos/` 里，是手写的示例标记，不是模型的输出。
 
 ## 为什么
 

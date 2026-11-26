@@ -298,7 +298,7 @@ scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设�
 
 **可以上线。** 今天就能把生成式界面接到真实产品里：提示词、流式渲染、校验、修复，五个渲染器表现一致——安全模型按「模型输出不可信」来设计。
 
-- **为线上回路而建。** `buildSystemPrompt` 教模型怎么写；渲染器边流边画；`checkMarkup` + `repairMessage` 在坏界面落下之前把错误打回给模型。一行脚手架：`npm create open-intelligent-ui`。
+- **为线上回路而建。** `buildSystemPrompt` 教模型怎么写；渲染器边流边画；`checkMarkup` + `repairMessage` 抓住错误并自动打回修复，让你交付的是检查过的回复。一行脚手架：`npm create open-intelligent-ui`。
 - **一份标记，五个框架。** React、Vue、Svelte、Solid、Web Components。一致性测试用 React 和另外四个渲染器画出仓库里的每一个示例，画面或警告不一致就失败。
 - **对着真实模型回复验过。** 强模型按默认提示词写出的回复能干净上屏；检查器补上发现过的缺口。每个演示、文档里的每个例子都在 CI 里渲染并检查。
 - **行为靠得住。** UI SDK 提供 55 个入口的焦点、键盘、选中、弹层和无障碍——模型负责组合，不必重写一遍。

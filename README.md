@@ -298,7 +298,7 @@ scripts/          UI SDK catalog generation, skill references, design lint
 
 **Production-ready.** Ship generative interfaces in real products today: prompt, stream, check, repair, and five identical renderers — with a safety model built for untrusted model output.
 
-- **Built for the live path.** `buildSystemPrompt` teaches the model; the renderer draws as the reply streams; `checkMarkup` + `repairMessage` catch mistakes and send them back before a broken surface sticks. Scaffold it with `npm create open-intelligent-ui`.
+- **Built for the live path.** `buildSystemPrompt` teaches the model; the renderer draws as the reply streams; `checkMarkup` + `repairMessage` catch mistakes and drive automatic repair rounds so you ship a checked reply. Scaffold it with `npm create open-intelligent-ui`.
 - **One markup, five frameworks.** React, Vue, Svelte, Solid and Web Components. Conformance tests draw every sample in this repository with React and with each of the others, and fail when the picture or the warnings diverge.
 - **Proven against real model replies.** Strong-model runs against the default prompt drew clean; the checker closed the gaps it found. Every demo and every documented example is rendered and checked in CI.
 - **Behaviors you can trust.** UI SDK supplies focus, keyboard, selection, popovers and accessibility for 55 entry points — the model composes them, it does not reimplement them.

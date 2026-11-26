@@ -49,18 +49,19 @@ export function GitHubMark(props: { className?: string }) {
   )
 }
 
+/** Hamster mark. Served from the playground root this site sits under. */
 export function Logo(props: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={props.className} aria-hidden="true">
-      <rect x="2" y="2" width="20" height="20" rx="6" fill="currentColor" />
-      <path
-        d="M7 15.5 L11 8.5 L13.5 13 L17 9"
-        fill="none"
-        stroke="var(--accent-foreground)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <img
+      src="/logo-mark.png"
+      srcSet="/logo-mark.png 512w"
+      sizes="1.5rem"
+      width={512}
+      height={512}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      className={props.className}
+    />
   )
 }

@@ -1,5 +1,9 @@
 # Open Intelligent UI
 
+<p align="center">
+  <img src="docs/images/logo-full.png" alt="Open Intelligent UI" width="420" />
+</p>
+
 [English](README.md) · 中文
 
 智能体自己写界面。控件的焦点、键盘、选中、弹层和无障碍用 [UI SDK](https://ui-sdk.dev/docs) 现成的行为，外观不锁在组件里；颜色、字体、圆角、间距跟你的 [DESIGN.md](https://github.com/google-labs-code/design.md) 走，令牌给界面用，说明给模型读。屏幕不必先做成组件放进目录。

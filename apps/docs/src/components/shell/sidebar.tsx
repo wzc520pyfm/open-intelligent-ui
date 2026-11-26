@@ -49,7 +49,7 @@ export function Brand(props: { lang: Lang }) {
   return (
     <div className="flex items-center gap-2">
       <Link href={homeUrl(props.lang)} className="flex items-center gap-2 rounded-lg">
-        <Logo className="size-6 text-accent" />
+        <Logo className="size-7" />
         <span className="text-[15px] font-semibold tracking-tight text-foreground">Open Intelligent UI</span>
       </Link>
       <a

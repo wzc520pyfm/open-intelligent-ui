@@ -563,9 +563,11 @@ export function App() {
             <Menu className="size-4" aria-hidden="true" />
           </Button>
         )}
-        <a href={REPOSITORY} target="_blank" rel="noreferrer" className="flex items-center gap-2.5">
-          <Logo className="size-11" />
-          <span className="text-[15px] font-semibold tracking-tight">Open Intelligent UI</span>
+        <a href={REPOSITORY} target="_blank" rel="noreferrer" className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+          <Logo className="size-8 shrink-0 sm:size-11" />
+          <span className="truncate text-[15px] font-semibold tracking-tight whitespace-nowrap">
+            Open Intelligent UI
+          </span>
         </a>
         <Chip size="sm" variant="soft" className="hidden sm:inline-flex">
           v{__VERSION__}

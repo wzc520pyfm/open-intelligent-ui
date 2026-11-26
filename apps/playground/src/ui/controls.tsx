@@ -91,7 +91,7 @@ export function Logo(props: { className?: string; variant?: "mark" | "full" }) {
     return (
       <img
         src="/logo-full.png"
-        srcSet="/logo-full.png 1600w"
+        srcSet="/logo-full.png 2400w"
         sizes="min(100vw - 2rem, 28rem)"
         width={420}
         height={101}

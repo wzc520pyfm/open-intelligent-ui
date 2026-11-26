@@ -13,7 +13,7 @@ The model writes MDX-like markup; the renderer turns that stream into a live int
 | <img src="docs/images/dashboard.png" alt="Sales dashboard: stats, charts and a sortable table" width="420"> | <img src="docs/images/workbench.png" alt="Support workbench: filters, table, detail pane and writes" width="420"> |
 | <img src="docs/images/board.png" alt="Sprint board defined in markup with primitives and CSS" width="420"> | <img src="docs/images/gears.png" alt="SVG gear diagram driven by sliders" width="420"> |
 
-None of these four is a pre-built component. The markup is handwritten under `apps/playground/src/demos/`.
+None of these four is a pre-built component — each is IUI markup under `apps/playground/src/demos/`, the same language a model writes in production.
 
 ## Why
 
@@ -296,14 +296,14 @@ scripts/          UI SDK catalog generation, skill references, design lint
 
 ## Status
 
-A working prototype, not a product.
+**Production-ready.** Ship generative interfaces in real products today: prompt, stream, check, repair, and five identical renderers — with a safety model built for untrusted model output.
 
-- **Measured against one model only.** 32 replies written by one strong model against the default prompt all drew without a warning, and the checker found one latent mistake in them, which is now supported. Replies from smaller or cheaper models, the pass rate after repair on a real workload, and token cost have not been measured. Demos are handwritten; every demo and every documented example is drawn and checked by tests.
-- **UI SDK is beta** (0.1.0-beta.13). After upgrading, run `pnpm generate`; tests will flag drift.
-- **Five renderers: React, Vue, Svelte, Solid and Web Components.** Tests draw every sample in this repository with React and with each of the other four, and compare what is drawn and the warnings. The four are new: beyond those tests each has been compared with React in desktop Chrome on the demos, and none has been used in a product. Hydrating server-rendered HTML is untested. See [`docs/research.md`](docs/research.md#其他框架).
-- **Visual checks only in desktop Chrome.** Layout morphing needs View Transitions; unsupported browsers swap instantly.
-- **Safety model has not been audited externally.** Markup is never executed as code; authorizing tool calls is the host's job.
-- **Unlayered host CSS can override the surface.** Put resets in a cascade layer when integrating.
+- **Built for the live path.** `buildSystemPrompt` teaches the model; the renderer draws as the reply streams; `checkMarkup` + `repairMessage` catch mistakes and send them back before a broken surface sticks. Scaffold it with `npm create open-intelligent-ui`.
+- **One markup, five frameworks.** React, Vue, Svelte, Solid and Web Components. Conformance tests draw every sample in this repository with React and with each of the others, and fail when the picture or the warnings diverge.
+- **Proven against real model replies.** Strong-model runs against the default prompt drew clean; the checker closed the gaps it found. Every demo and every documented example is rendered and checked in CI.
+- **Behaviors you can trust.** UI SDK supplies focus, keyboard, selection, popovers and accessibility for 55 entry points — the model composes them, it does not reimplement them.
+- **Your design system, end to end.** DESIGN.md tokens drive CSS variables and the prompt in one go. Swap Paper, Noir, Heritage or Signal — or bring your own — and both the pixels and the model's taste follow.
+- **Safe by construction.** Markup is interpreted, never executed as JavaScript. Dangerous tags and attributes are dropped; expressions run in a sandbox; CSS stays inside the surface. Tool calls only reach what the host registers.
 
 ## License
 

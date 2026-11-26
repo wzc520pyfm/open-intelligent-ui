@@ -1,8 +1,4 @@
-# Open Intelligent UI
-
-<p align="center">
-  <img src="docs/images/logo-full.png" alt="Open Intelligent UI" width="420" />
-</p>
+# <img src="docs/images/logo-mark.png" alt="" width="40" height="40" /> Open Intelligent UI
 
 [English](README.md) · 中文
 

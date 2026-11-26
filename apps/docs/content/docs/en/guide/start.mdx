@@ -6,6 +6,17 @@ icon: "rocket"
 
 Three things connect a model to a screen: a system prompt that teaches the markup, a component that draws what comes back, and the callbacks through which the interface reaches your product.
 
+## Scaffold [#scaffold]
+
+The fastest path is a Vite + React app that already runs the prompt, stream, checker and repair loop:
+
+```bash
+npm create open-intelligent-ui@latest my-app
+cd my-app && npm install && npm run dev
+```
+
+Coding agents should load [`skills/integrate/SKILL.md`](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/skills/integrate/SKILL.md) and the repository [`llms.txt`](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/llms.txt). The chat model that *writes* markup only needs `buildSystemPrompt(...)`.
+
 ## Install [#install]
 
 Install the renderer for your framework, the core, and the UI SDK package the renderer is built on.

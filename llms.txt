@@ -1,0 +1,72 @@
+# Open Intelligent UI
+
+> Let agents author interfaces as IUI markup. Renderers draw the stream with UI SDK behaviors, a DESIGN.md, and client-side state/tools.
+
+Docs: https://open-intelligent-ui.pages.dev/docs/
+Repo: https://github.com/wzc520pyfm/open-intelligent-ui
+Playground: https://open-intelligent-ui.pages.dev/
+
+## Two roles (do not mix)
+
+| Role | Job | What to load |
+| --- | --- | --- |
+| **Integrator agent** | Wire the product: install renderer, `buildSystemPrompt`, stream, `checkMarkup` / repair, `onAction` / tools | `skills/integrate/SKILL.md`, this file, [Getting started](https://open-intelligent-ui.pages.dev/docs/guide/start) |
+| **Author model** | Write IUI in the chat reply | System message from `buildSystemPrompt(...)` only — not the integrator skill |
+
+## Quick start for a product
+
+```bash
+npm create open-intelligent-ui@latest my-app
+cd my-app && npm install && npm run dev
+```
+
+Or install by hand:
+
+```bash
+npm install @open-intelligent-ui/react @open-intelligent-ui/core @ui-sdk/react @ui-sdk/core
+```
+
+Minimal loop:
+
+1. Server: `buildSystemPrompt({ design?, library?, tools?, instructions? })` → system message.
+2. Model streams text → strip a wrapping Markdown code fence if present → `<IntelligentUI source streaming tools onAction onWarning />`.
+3. When the stream ends: `checkMarkup(reply, { library, tools })`; if `!ok`, send `repairMessage(result)` back (max 2 rounds), then draw the final reply.
+4. `onAction` for `send`: append as a user turn and call the model again.
+
+## Packages
+
+| Package | Use |
+| --- | --- |
+| `@open-intelligent-ui/core` | Parse, state, DESIGN.md, library helpers |
+| `@open-intelligent-ui/core/prompt` | `buildSystemPrompt` (server only; large) |
+| `@open-intelligent-ui/core/check` | `checkMarkup`, `repairMessage` |
+| `@open-intelligent-ui/react` / `vue` / `svelte` / `solid` / `web` | Renderers |
+| `open-intelligent-ui` | Unscoped re-export of core |
+| `create-open-intelligent-ui` | Scaffold (`npm create open-intelligent-ui`) |
+
+## Agent skills in this repo
+
+| Skill | When |
+| --- | --- |
+| `skills/integrate/SKILL.md` | Add Open Intelligent UI to an app |
+| `skills/intelligent-ui/SKILL.md` | Write or fix IUI markup / `.iui` demos |
+| `skills/motion/SKILL.md` | Motion attributes and review |
+
+Hand-written product docs: `skills/intelligent-ui/references/integration.md`.
+Generated language/component refs: `skills/**/references/` (except `integration.md`) — run `pnpm generate:skills` after prompt edits.
+
+## Correctness (production)
+
+- Do not rely on the model alone. Use `checkMarkup` + `repairMessage` before or after first paint.
+- Log `onWarning` from the renderer.
+- Full guide: https://open-intelligent-ui.pages.dev/docs/guide/correctness
+
+## Markup is not HTML
+
+IUI looks like Markdown + tags. Tags are whitelisted; expressions run in a sandbox; no arbitrary JS. Spec: `docs/spec.md`. Safety: `docs/architecture.md` (安全模型).
+
+## Optional deeper reading
+
+- Extending (library, charts, motion): `docs/extending.md`
+- Research vs A2UI / OpenUI: `docs/research.md`
+- Architecture: `docs/architecture.md`

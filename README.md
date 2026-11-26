@@ -101,9 +101,20 @@ pnpm check:packages   # build the packages and check the tarballs npm would get
 
 ## Integrate
 
+Scaffold a Vite + React app that already has the prompt, stream, checker and repair loop:
+
+```bash
+npm create open-intelligent-ui@latest my-app
+cd my-app && npm install && npm run dev
+```
+
+Or install by hand:
+
 ```bash
 npm install @open-intelligent-ui/react @open-intelligent-ui/core @ui-sdk/react @ui-sdk/core
 ```
+
+Coding agents: copy [`skills/integrate/SKILL.md`](skills/integrate/SKILL.md) and read [`llms.txt`](llms.txt). The chat model that *writes* interfaces should only see `buildSystemPrompt(...)`, not the integrator skill.
 
 `open-intelligent-ui`, without a scope, is the same project: it re-exports `@open-intelligent-ui/core`.
 
@@ -266,7 +277,9 @@ apps/playground   Demo site (React), with a switch that draws a reply with any o
 apps/docs         Documentation site (Next.js, Fumadocs and HeroUI), in English and Chinese, built into the demo site under /docs
 apps/vue-demo, apps/svelte-demo, apps/solid-demo, apps/web-demo   The same demos on one renderer each
 design/           Four DESIGN.md files: Paper, Noir, Heritage, Signal. third-party/ holds HeroUI's, as published
-skills/           Agent skills: intelligent-ui and motion
+packages/create-open-intelligent-ui   `npm create open-intelligent-ui` scaffold
+skills/           Agent skills: integrate, intelligent-ui, motion
+llms.txt          Short index for coding agents
 docs/             Research, language spec, architecture
 scripts/          UI SDK catalog generation, skill references, design lint
 ```
@@ -276,11 +289,13 @@ scripts/          UI SDK catalog generation, skill references, design lint
 | Doc | Contents |
 | --- | --- |
 | [The documentation site](https://open-intelligent-ui.pages.dev/docs/) | Guides with live examples: the markup, data and tools, design, your components, charts, motion, correct output, safety, API |
+| [`llms.txt`](llms.txt) | Compact index for coding agents (roles, packages, quick loop) |
 | [`docs/research.md`](docs/research.md) | A2UI, OpenUI, OpenAI Intelligent UI, UI SDK, DESIGN.md; compatibility tests; presets and state syntax |
 | [`docs/spec.md`](docs/spec.md) | IUI markup language |
 | [`docs/architecture.md`](docs/architecture.md) | How the pieces fit, data flow, safety model, tests |
 | [`docs/extending.md`](docs/extending.md) | Replacing the design, charts and motion; registering components and widgets; how the prompt follows |
-| [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | For agents: writing and integrating interfaces |
+| [`skills/integrate/SKILL.md`](skills/integrate/SKILL.md) | For agents: wire a product (prompt, renderer, check/repair) |
+| [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | For agents: write IUI markup |
 | [`skills/motion/SKILL.md`](skills/motion/SKILL.md) | For agents: designing and reviewing motion |
 
 ## Status

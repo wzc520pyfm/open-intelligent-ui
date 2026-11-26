@@ -564,7 +564,7 @@ export function App() {
           </Button>
         )}
         <a href={REPOSITORY} target="_blank" rel="noreferrer" className="flex items-center gap-2.5">
-          <Logo className="size-7" />
+          <Logo className="size-9" />
           <span className="text-[15px] font-semibold tracking-tight">Open Intelligent UI</span>
         </a>
         <Chip size="sm" variant="soft" className="hidden sm:inline-flex">

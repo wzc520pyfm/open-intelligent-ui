@@ -294,16 +294,14 @@ scripts/          UI SDK catalog generation, skill references, design lint
 | [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | For agents: write IUI markup |
 | [`skills/motion/SKILL.md`](skills/motion/SKILL.md) | For agents: designing and reviewing motion |
 
-## Status
+## Highlights
 
-**Production-ready.** Ship generative interfaces in real products today: prompt, stream, check, repair, and five identical renderers — with a safety model built for untrusted model output.
-
-- **Built for the live path.** `buildSystemPrompt` teaches the model; the renderer draws as the reply streams; `checkMarkup` + `repairMessage` catch mistakes and drive automatic repair rounds so you ship a checked reply. Scaffold it with `npm create open-intelligent-ui`.
-- **One markup, five frameworks.** React, Vue, Svelte, Solid and Web Components. Conformance tests draw every sample in this repository with React and with each of the others, and fail when the picture or the warnings diverge.
-- **Proven against real model replies.** Strong-model runs against the default prompt drew clean; the checker closed the gaps it found. Every demo and every documented example is rendered and checked in CI.
-- **Behaviors you can trust.** UI SDK supplies focus, keyboard, selection, popovers and accessibility for 55 entry points — the model composes them, it does not reimplement them.
-- **Your design system, end to end.** DESIGN.md tokens drive CSS variables and the prompt in one go. Swap Paper, Noir, Heritage or Signal — or bring your own — and both the pixels and the model's taste follow.
-- **Safe by construction.** Markup is interpreted, never executed as JavaScript. Dangerous tags and attributes are dropped; expressions run in a sandbox; CSS stays inside the surface. Tool calls only reach what the host registers.
+- **Author, don't pick from a catalog.** The model shapes the interface with layout, CSS and SVG on top of UI SDK behaviors — freer than A2UI / OpenUI, without running arbitrary HTML/JS.
+- **Production live loop.** `buildSystemPrompt` → stream into the renderer → `checkMarkup` + `repairMessage` drive automatic repair so you ship a checked reply. Scaffold with `npm create open-intelligent-ui`.
+- **One markup, five frameworks.** React, Vue, Svelte, Solid and Web Components. Conformance tests draw every sample in this repository across all five and fail when the picture or the warnings diverge.
+- **Behaviors you can trust.** Focus, keyboard, selection, popovers and accessibility for 55 entry points come from UI SDK — the model composes them, it does not reimplement them.
+- **Your design system, end to end.** DESIGN.md tokens drive CSS variables and the prompt together. Swap Paper, Noir, Heritage or Signal — or bring your own — and both the pixels and the model's taste follow.
+- **Safe by construction.** Markup is interpreted, never executed as JavaScript. Dangerous tags and attributes are dropped; expressions run in a sandbox; CSS stays inside the surface; tools only reach what the host registers.
 
 ## License
 

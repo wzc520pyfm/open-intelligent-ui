@@ -294,16 +294,14 @@ scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设�
 | [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | 给智能体：怎么写 IUI 标记 |
 | [`skills/motion/SKILL.md`](skills/motion/SKILL.md) | 给智能体：怎么设计和检查动效 |
 
-## 现状
+## 亮点
 
-**可以上线。** 今天就能把生成式界面接到真实产品里：提示词、流式渲染、校验、修复，五个渲染器表现一致——安全模型按「模型输出不可信」来设计。
-
-- **为线上回路而建。** `buildSystemPrompt` 教模型怎么写；渲染器边流边画；`checkMarkup` + `repairMessage` 抓住错误并自动打回修复，让你交付的是检查过的回复。一行脚手架：`npm create open-intelligent-ui`。
-- **一份标记，五个框架。** React、Vue、Svelte、Solid、Web Components。一致性测试用 React 和另外四个渲染器画出仓库里的每一个示例，画面或警告不一致就失败。
-- **对着真实模型回复验过。** 强模型按默认提示词写出的回复能干净上屏；检查器补上发现过的缺口。每个演示、文档里的每个例子都在 CI 里渲染并检查。
-- **行为靠得住。** UI SDK 提供 55 个入口的焦点、键盘、选中、弹层和无障碍——模型负责组合，不必重写一遍。
-- **设计系统从头跟到尾。** DESIGN.md 的令牌同时驱动 CSS 变量和提示词。换 Paper、Noir、Heritage、Signal，或带上你自己的设计，像素和模型的品味一起换。
-- **天生安全。** 标记只被解释，绝不当作 JavaScript 执行。危险标签和属性丢弃；表达式进沙箱；样式锁在界面内。工具调用只能碰到宿主注册过的那些。
+- **创作，而不是从目录里挑。** 模型在 UI SDK 行为之上用布局、CSS、SVG 塑形——比 A2UI / OpenUI 更自由，又不跑任意 HTML/JS。
+- **完整的线上回路。** `buildSystemPrompt` → 流式进渲染器 → `checkMarkup` + `repairMessage` 自动打回修复，交付检查过的回复。脚手架：`npm create open-intelligent-ui`。
+- **一份标记，五个框架。** React、Vue、Svelte、Solid、Web Components。一致性测试用五个渲染器画出仓库里每一个示例，画面或警告不一致就失败。
+- **行为靠得住。** 55 个入口的焦点、键盘、选中、弹层和无障碍来自 UI SDK——模型负责组合，不必重写一遍。
+- **设计系统从头跟到尾。** DESIGN.md 的令牌同时驱动 CSS 变量和提示词。换 Paper、Noir、Heritage、Signal，或带上你自己的，像素和模型的品味一起换。
+- **天生安全。** 标记只被解释，绝不当作 JavaScript 执行。危险标签和属性丢弃；表达式进沙箱；样式锁在界面内；工具只能碰到宿主注册过的那些。
 
 ## 许可
 

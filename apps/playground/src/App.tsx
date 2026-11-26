@@ -564,7 +564,7 @@ export function App() {
           </Button>
         )}
         <a href={REPOSITORY} target="_blank" rel="noreferrer" className="flex items-center gap-2.5">
-          <Logo className="size-6 text-accent" />
+          <Logo className="size-7" />
           <span className="text-[15px] font-semibold tracking-tight">Open Intelligent UI</span>
         </a>
         <Chip size="sm" variant="soft" className="hidden sm:inline-flex">
@@ -728,7 +728,7 @@ export function App() {
               <div className="pg-column" data-width={width}>
                 {turns.length === 0 ? (
                   <div className="mx-auto flex max-w-xl flex-col items-center gap-3 py-16 text-center">
-                    <Logo className="size-10 text-accent" />
+                    <Logo variant="full" className="mb-1" />
                     <h2 className="text-2xl font-semibold tracking-tight text-balance">{copy.emptyTitle}</h2>
                     <p className="text-sm leading-relaxed text-muted">{copy.emptyBody(theme.name)}</p>
                     <div className="mt-3 flex flex-wrap justify-center gap-2">

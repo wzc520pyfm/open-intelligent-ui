@@ -1,5 +1,9 @@
 # Open Intelligent UI
 
+<p align="center">
+  <img src="docs/images/logo-full.png" alt="Open Intelligent UI" width="420" />
+</p>
+
 [English](README.md) · [中文](README.zh-CN.md)
 
 Agents write the interface themselves. Focus, keyboard, selection, popovers and accessibility come from [UI SDK](https://ui-sdk.dev/docs) behaviors, and the look is not locked inside a component. Color, type, radius and spacing follow your [DESIGN.md](https://github.com/google-labs-code/design.md): tokens for the interface, written guidance for the model. A screen does not have to be turned into a component and filed in a catalog first.

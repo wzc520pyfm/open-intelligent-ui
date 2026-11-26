@@ -1,0 +1,120 @@
+---
+title: "图表"
+description: "六种无依赖的图表，也可以在同一个标签背后换成 ECharts、G2、Recharts 或你自己的引擎。"
+icon: "chart-column"
+---
+
+`<Chart>` 是一个标签，用 `type` 区分类型。默认由这个包自己画成 SVG，没有任何依赖。产品如果已经在用某个图表库，可以把 `<Chart>` 交给它来画，模型写的内容不用变。
+
+## 内置 [#built-in]
+
+六种类型：`bar`、`line`、`area`、`donut`、`pie` 和 `spark`。颜色、字体和网格来自设计，配色方案切换时图表会重画。
+
+```iui live designs
+<state mode="bar" picked={null} rows={[
+  { month: "Jan", online: 42, store: 31 },
+  { month: "Feb", online: 48, store: 29 },
+  { month: "Mar", online: 55, store: 34 },
+  { month: "Apr", online: 61, store: 30 },
+  { month: "May", online: 58, store: 36 },
+  { month: "Jun", online: 67, store: 33 }
+]} />
+<derive split={[{ channel: "Online", total: sumBy(rows, "online") }, { channel: "Store", total: sumBy(rows, "store") }]} />
+
+<row gap={3} wrap>
+  <SegmentedControl aria-label="Chart type" bind:value={mode}>
+    <SegmentedControlIndicator />
+    <SegmentedControlItem value="bar">Bar</SegmentedControlItem>
+    <SegmentedControlItem value="line">Line</SegmentedControlItem>
+    <SegmentedControlItem value="area">Area</SegmentedControlItem>
+  </SegmentedControl>
+  <spacer />
+  <text size="sm" color="muted">{picked ? picked.month + ": " + compact((picked.online + picked.store) * 1000) : "Press a month"}</text>
+</row>
+
+<Chart type={mode} data={rows} x="month" y={["online", "store"]} stacked={mode != "line"} names={{ online: "Online", store: "Store" }} format="compact" height={220} legend on:select={picked = $value} aria-label="Sales by month and channel" />
+
+<grid columns={2} gap={3}>
+  <card padding={4}>
+    <Chart type="donut" data={split} x="channel" y="total" height={160} legend aria-label="Share of sales by channel" />
+  </card>
+  <Stat label="Online, six months" value={sumBy(rows, "online") * 1000} format="compact" delta={0.6}>
+    <Chart type="spark" data={rows} y="online" height={40} aria-label="Online sales trend" />
+  </Stat>
+</grid>
+```
+
+| Prop | 含义 |
+| --- | --- |
+| `type` | `bar`、`line`、`area`、`donut`、`pie`、`spark` |
+| `data` | 数据行，来自状态或查询 |
+| `x`、`y` | 类别的键；值的键，可以是一个，有多个系列时给一个列表 |
+| `stacked` | 把各个系列堆叠起来 |
+| `format`、`currency`、`unit` | 数值怎么写：`number`、`currency`、`percent`、`compact` |
+| `names`、`colors` | 各个系列的标签，以及它们用的设计颜色名 |
+| `legend`、`labels`、`height` | 图例、数值标签，以及以像素为单位的高度 |
+| `on:select` | 某一行被按下；`$value` 是这一行 |
+
+## 用你自己的图表库 [#using-your-charting-library]
+
+图表引擎放在[组件库](/zh/guide/components#one-library-two-readers)里。标记不变：模型写的仍然是 `<Chart type="bar" data={rows} x="month" y="revenue" />`。
+
+```ts
+import { defineLibrary } from "@open-intelligent-ui/core"
+import { echartsCharts, g2Charts } from "@open-intelligent-ui/core/charts"
+
+defineLibrary({ charts: echartsCharts(() => import("echarts")) })   // Apache ECharts
+defineLibrary({ charts: g2Charts(() => import("@antv/g2")) })       // AntV G2
+```
+
+```tsx
+import * as Recharts from "recharts"
+import { rechartsCharts } from "@open-intelligent-ui/react/recharts"
+
+defineLibrary({ charts: rechartsCharts(Recharts) })                 // 只用于 React 渲染器
+```
+
+| 适配器 | 渲染器 | 选项 |
+| --- | --- | --- |
+| `echartsCharts(echarts, options)` | 全部五个 | `renderer: "canvas" \| "svg"`；`option(option, spec)` 在渲染前修改 ECharts 的 option |
+| `g2Charts(g2, options)` | 全部五个 | `options(options, spec)` 在渲染前修改 G2 的 options |
+| `rechartsCharts(recharts, options)` | React | Recharts 本身由 React 组件构成；颜色直接用设计的变量 |
+
+三者的共同点：
+
+- **引擎可以懒加载**。传 `() => import("echarts")`，第一个图表出现时才下载。直接传模块也可以。
+- **跟随设计**。颜色、字体和网格线从 `--iui-*` 变量读取，配色方案或设计变化时图表会重画。
+- **多出三种类型**：`scatter`、`radar` 和 `funnel`。提示词会告诉模型 `type` 可以取这些值，以及各自什么时候用。
+- **其余都一样**：`on:select`、`format`、图例、数值标签，以及减弱动效。
+- **部分接管**。`types: ["bar", "line"]` 只把这两种交给引擎，其余的由内置的 SVG 来画。Recharts 适配器把 `spark` 留给内置的实现。
+- **`guide`** 给提示词加一段话，用来写你的产品自己的约定。
+
+引擎是你自己的依赖，不会被打包进来。这些适配器是对照 ECharts 6、G2 5 和 Recharts 3 编写并检查的。演示站的 Charts 演示可以在同一条回复上切换所有这些引擎。
+
+## 其他图表库 [#another-charting-library]
+
+实现 `ChartEngine`。渲染器已经把标记里的 props 转成了 `ChartSpec`：数据行、类别、系列、解析成 `rgb()` 的颜色、一个数字格式化函数和主题。
+
+```ts
+import type { ChartEngine } from "@open-intelligent-ui/core/charts"
+
+const highcharts: ChartEngine = {
+  name: "Highcharts",
+  types: ["bar", "line", "area"],                                      // 其余的仍由内置的 SVG 来画
+  extra: { heatmap: "Values across two categories: one cell per row." }, // 一个新类型，附带给模型看的说明
+  async mount(element, spec, context) {
+    const Highcharts = (await import("highcharts")).default
+    const chart = Highcharts.chart(element, toOptions(spec, context))
+    return {
+      update: (next) => chart.update(toOptions(next, context), true, true),
+      destroy: () => chart.destroy(),
+    }
+  },
+}
+
+defineLibrary({ charts: highcharts })
+```
+
+`context.select(index)` 把被按下的行报告给 `on:select`。`context.reducedMotion` 为 true 时不要做动画。如果只面向一个框架，可以用 `component`（该框架的一个组件，接收标记的 props）代替 `mount`。
+
+标记只能写 `<Chart>` 的 props，别的都写不了。它碰不到引擎的原始选项。`ChartSpec.props` 里是标记原样写下的 props，用其中任何一个之前，你要自己检查。

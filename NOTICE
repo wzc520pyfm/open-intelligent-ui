@@ -25,3 +25,10 @@ https://github.com/heroui-inc/heroui (commit b58fb7a). HeroUI is
 Copyright 2025 NextUI Inc. and licensed under the Apache License,
 Version 2.0. The file is an example of a design written for another
 component library; the playground and the tests read it.
+
+The documentation site (apps/docs) follows the look of HeroUI's
+documentation site (apps/docs in the same repository, commit 796b692,
+under the same license): the docs-shell tokens in
+apps/docs/src/app/global.css (the steps of text, item, card, demo and
+code colours, and the typography of a page) are adapted from its
+src/app/global.css.

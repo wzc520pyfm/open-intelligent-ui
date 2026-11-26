@@ -11,8 +11,7 @@ const pages = import.meta.glob<string>(
     "../../../README.md",
     "../../../docs/**/*.md",
     "../../../skills/**/*.md",
-    "../../docs/**/*.md",
-    "!../../docs/node_modules/**",
+    "../../docs/content/**/*.mdx",
   ],
   { query: "?raw", import: "default", eager: true }
 )
@@ -76,44 +75,69 @@ describe("skill references", () => {
 /** The code blocks of a page: the language of each, and what the ones the tests draw hold. */
 function blocks(content: string): string[] {
   return [...content.matchAll(/^```([^\n]*)\n([\s\S]*?)\n```$/gm)].map((match) => {
-    const info = (match[1] as string).replace(/\[[^\]]*\]/, "").trim()
+    const info = (match[1] as string).replace(/\s+tab="[^"]*"/, "").trim()
     return info.startsWith("iui") ? `${info}\n${match[2]}` : info
   })
 }
 
-/** The ids of a page's sections, which links from other pages point at. */
-function sections(content: string): string[] {
+/** The headings of a page, without its code blocks. */
+function headings(content: string): string[] {
   return content
     .replace(/^```[\s\S]*?^```$/gm, "")
     .split("\n")
-    .flatMap((line) => {
-      const heading = /^#{2,6}\s+(.*?)\s*$/.exec(line)
-      if (!heading) return []
-      const text = heading[1] as string
-      const id = /\{#([^}]+)\}$/.exec(text)?.[1]
-      return [
-        id ??
-          text
-            .replace(/[`*_]/g, "")
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-|-$/g, ""),
-      ]
-    })
+    .flatMap((line) => /^#{2,6}\s+(.*?)\s*$/.exec(line)?.[1] ?? [])
 }
 
+/** The ids of a page's sections, which links from other pages point at. */
+function sections(content: string): string[] {
+  return headings(content).flatMap((text) => /\[#([^\]]+)\]$/.exec(text)?.[1] ?? [])
+}
+
+const SITE = "../../docs/content/docs/"
+const site = Object.keys(pages).filter((file) => file.startsWith(SITE))
+
+/** The file a link on the site leads to: `/zh/guide/start` is `zh/guide/start.mdx`. */
+function target(link: string): string {
+  const parts = link.split("/").filter(Boolean)
+  const language = parts[0] === "zh" ? (parts.shift() as string) : "en"
+  return `${SITE}${language}/${parts.join("/") || "index"}.mdx`
+}
+
+describe("the documentation site", () => {
+  test("there are pages to check", () => {
+    expect(site.length).toBeGreaterThan(20)
+  })
+
+  // An id written out stays the same when a heading is reworded or translated.
+  test.each(site)("%s gives every section an id", (file) => {
+    const all = headings(pages[file] as string)
+    expect(all.filter((text) => !/\[#[^\]]+\]$/.test(text))).toEqual([])
+    expect(new Set(sections(pages[file] as string)).size).toBe(all.length)
+  })
+
+  test.each(site)("%s links to pages and sections that exist", (file) => {
+    const content = (pages[file] as string).replace(/^```[\s\S]*?^```$/gm, "")
+    const links = [...content.matchAll(/(?:\]\(|href=")(\/[^)"\s]*)/g)].map((match) => match[1] as string)
+    const language = file.startsWith(`${SITE}zh/`) ? "zh" : "en"
+    for (const link of links) {
+      const [path = "", id] = link.split("#")
+      const to = target(path)
+      expect(pages[to], `${link} leads nowhere`).toBeDefined()
+      expect(to.startsWith(`${SITE}${language}/`), `${link} leaves the page's language`).toBe(true)
+      if (id) expect(sections(pages[to] as string), `${link} has no such section`).toContain(id)
+    }
+  })
+})
+
 describe("the documentation site says the same in both languages", () => {
-  const SITE = "../../docs/"
-  const english = Object.keys(pages).filter(
-    (file) => file.startsWith(SITE) && !file.startsWith(`${SITE}zh/`)
-  )
+  const english = site.filter((file) => file.startsWith(`${SITE}en/`))
 
   test("there are pages to compare", () => {
     expect(english.length).toBeGreaterThan(10)
   })
 
   test.each(english)("%s", (file) => {
-    const translated = pages[file.replace(SITE, `${SITE}zh/`)]
+    const translated = pages[file.replace(`${SITE}en/`, `${SITE}zh/`)]
     expect(translated, `${file} has no Chinese page`).toBeDefined()
     expect(blocks(translated as string)).toEqual(blocks(pages[file] as string))
     expect(sections(translated as string)).toEqual(sections(pages[file] as string))

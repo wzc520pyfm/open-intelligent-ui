@@ -10,5 +10,8 @@ packages/*/LICENSE
 packages/*/NOTICE
 *.tgz
 
-# VitePress
-apps/docs/.vitepress/cache
+# The documentation site (Next.js and Fumadocs)
+apps/docs/.next
+apps/docs/.source
+apps/docs/out
+apps/docs/next-env.d.ts

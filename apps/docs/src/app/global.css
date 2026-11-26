@@ -1,0 +1,798 @@
+/*
+ * The order of every cascade layer is settled here: the site's layers
+ * (Tailwind, Fumadocs and HeroUI), then the renderer's. Everything this file
+ * adds is inside a site layer, so it never outranks a generated surface, and
+ * postcss/outside-surfaces.cjs stops each of its selectors where a surface
+ * begins.
+ *
+ * The shell follows the documentation site of HeroUI (Apache-2.0): its token
+ * steps, a sidebar of pills, round controls floating at the top right, and a
+ * tinted frame around every demo. See NOTICE.
+ */
+@layer theme, base, components, utilities, ui-sdk, iui;
+
+@import "tailwindcss";
+@import "fumadocs-ui/css/black.css";
+@import "fumadocs-ui/css/preset.css";
+@import "@heroui/styles";
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --breakpoint-toc: 74rem;
+}
+
+@layer base {
+  :root {
+    --color-fd-background: var(--background);
+    --color-fd-foreground: var(--foreground);
+    --color-fd-primary: var(--foreground);
+    --color-fd-primary-foreground: var(--background);
+    --color-fd-muted: var(--default);
+    --color-fd-muted-foreground: var(--muted);
+    --color-fd-secondary: var(--docs-card);
+    --color-fd-secondary-foreground: var(--foreground);
+    --color-fd-card: var(--docs-card);
+    --color-fd-card-foreground: var(--foreground);
+    --color-fd-accent: var(--docs-item-active);
+    --color-fd-accent-foreground: var(--foreground);
+    --color-fd-popover: var(--docs-popover);
+    --color-fd-popover-foreground: var(--foreground);
+    --color-fd-border: var(--docs-divider);
+    --color-fd-ring: var(--focus);
+
+    --docs-sidebar-width: 264px;
+    --docs-toc-width: 212px;
+    --docs-main-width: 892px;
+    --docs-fg: color-mix(in oklab, var(--foreground) 90%, var(--background));
+    --docs-fg-muted: var(--muted);
+    --docs-fg-subtle: color-mix(in oklab, var(--muted) 82%, var(--background));
+    --docs-fg-faint: color-mix(in oklab, var(--muted) 62%, var(--background));
+    --docs-item-hover: color-mix(in oklab, var(--foreground) 3%, var(--background));
+    --docs-item-active: color-mix(in oklab, var(--foreground) 5.5%, var(--background));
+    --docs-code-inline: color-mix(in oklab, var(--foreground) 5%, transparent);
+    --docs-card: color-mix(in oklab, var(--foreground) 3%, var(--background));
+    --docs-control: var(--default);
+    --docs-control-hover: var(--default-hover);
+    --docs-divider: color-mix(in oklab, var(--foreground) 10%, transparent);
+    --docs-popover: var(--overlay);
+    --docs-demo: color-mix(in oklab, var(--foreground) 4%, var(--background));
+    --docs-line-number: color-mix(in oklab, var(--foreground) 26%, var(--background));
+    --docs-ease: cubic-bezier(0.23, 1, 0.32, 1);
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .dark {
+    --docs-item-hover: color-mix(in oklab, var(--foreground) 6%, var(--background));
+    --docs-item-active: color-mix(in oklab, var(--foreground) 11%, var(--background));
+    --docs-code-inline: color-mix(in oklab, var(--foreground) 9%, transparent);
+    --docs-card: color-mix(in oklab, var(--foreground) 6.5%, var(--background));
+    --docs-divider: color-mix(in oklab, var(--foreground) 12%, transparent);
+    --docs-popover: color-mix(in oklab, var(--foreground) 8%, var(--background));
+    --docs-demo: color-mix(in oklab, var(--foreground) 10%, var(--background));
+    --docs-line-number: color-mix(in oklab, var(--foreground) 24%, var(--background));
+  }
+
+  html {
+    scroll-padding-top: 5rem;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  /* Round controls: the search, GitHub, language and theme buttons, and previous / next. */
+  .docs-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 9999px;
+    background: var(--docs-control);
+    color: var(--docs-fg-muted);
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 150ms var(--docs-ease),
+      color 150ms var(--docs-ease);
+  }
+
+  .docs-pill:hover,
+  .docs-pill[data-hovered="true"],
+  .docs-pill[aria-expanded="true"],
+  .docs-pill[data-pressed="true"] {
+    background: var(--docs-control-hover);
+    color: var(--foreground);
+  }
+
+  .docs-pill:focus-visible,
+  .docs-pill[data-focus-visible="true"] {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .docs-pill[data-icon] {
+    width: 32px;
+    padding: 0;
+  }
+
+  .docs-pill[data-strong] {
+    color: var(--foreground);
+  }
+
+  .docs-pill[aria-disabled="true"] {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .docs-pill svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+
+  /* A soft pill on a tinted panel: "View code" and the buttons on a demo. */
+  .docs-soft-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 28px;
+    padding: 0 11px;
+    border: 0;
+    border-radius: 9999px;
+    background: var(--surface);
+    color: var(--docs-fg-muted);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 150ms var(--docs-ease),
+      color 150ms var(--docs-ease);
+  }
+
+  .docs-soft-pill:hover,
+  .docs-soft-pill[aria-pressed="true"] {
+    background: color-mix(in oklab, var(--surface) 94%, var(--surface-foreground));
+    color: var(--foreground);
+  }
+
+  .dark .docs-soft-pill {
+    background: var(--default);
+  }
+
+  .dark .docs-soft-pill:hover,
+  .dark .docs-soft-pill[aria-pressed="true"] {
+    background: var(--default-hover);
+  }
+
+  .docs-soft-pill:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .docs-soft-pill svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  /* Sidebar */
+  .docs-nav-label {
+    margin: 22px 0 6px;
+    padding: 0 10px;
+    color: var(--docs-fg-subtle);
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  .docs-nav-label:first-child {
+    margin-top: 0;
+  }
+
+  .docs-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 32px;
+    padding: 5px 10px;
+    border-radius: 10px;
+    color: var(--docs-fg);
+    font-size: 13.5px;
+    line-height: 20px;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    transition:
+      background-color 120ms var(--docs-ease),
+      color 120ms var(--docs-ease);
+  }
+
+  .docs-nav-item:hover {
+    background: var(--docs-item-hover);
+    color: var(--foreground);
+  }
+
+  .docs-nav-item[aria-current="page"] {
+    background: var(--docs-item-active);
+    color: var(--foreground);
+    font-weight: 500;
+  }
+
+  .docs-nav-item:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+  }
+
+  .docs-nav-item svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: var(--docs-fg-muted);
+  }
+
+  .docs-nav-item[aria-current="page"] svg {
+    color: var(--foreground);
+  }
+
+  .docs-nav-item .docs-nav-out {
+    width: 11px;
+    height: 11px;
+    margin-inline-start: auto;
+    opacity: 0.5;
+  }
+
+  .docs-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .docs-scroll:hover,
+  .docs-scroll:focus-within {
+    scrollbar-color: var(--docs-divider) transparent;
+  }
+
+  /* The strip the floating controls sit on: page colour that fades out below. */
+  .docs-topfade {
+    background: linear-gradient(
+      to bottom,
+      var(--background) 0,
+      color-mix(in oklab, var(--background) 86%, transparent) 62%,
+      transparent 100%
+    );
+  }
+
+  /* Table of contents */
+  .docs-toc-item {
+    display: block;
+    padding: 4px 0;
+    color: var(--docs-fg-subtle);
+    font-size: 13px;
+    line-height: 19px;
+    overflow-wrap: anywhere;
+    transition: color 120ms var(--docs-ease);
+  }
+
+  .docs-toc-item:hover {
+    color: var(--docs-fg);
+  }
+
+  .docs-toc-item[data-active="true"] {
+    color: var(--foreground);
+    font-weight: 500;
+  }
+
+  .docs-toc-item[data-depth="3"] {
+    padding-inline-start: 12px;
+  }
+
+  .docs-toc-item[data-depth="4"] {
+    padding-inline-start: 24px;
+  }
+
+  /* Link cards: the overview's features, previous and next. */
+  .docs-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    background: var(--docs-card);
+    color: var(--docs-fg);
+    text-decoration: none;
+    transition: background-color 150ms var(--docs-ease);
+  }
+
+  a.docs-card:hover {
+    background: var(--docs-item-active);
+  }
+
+  a.docs-card:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .docs-card-icon {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    margin-bottom: 6px;
+    border-radius: 10px;
+    background: var(--background);
+    color: var(--foreground);
+  }
+
+  .docs-card-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .docs-card-title {
+    color: var(--foreground);
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .docs-card-text {
+    color: var(--docs-fg-muted);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  /* A demo: a tinted frame, the interface on the page's colour, the markup below it. */
+  .docs-demo {
+    margin-block: 1.25rem;
+    padding: 6px;
+    border-radius: 22px;
+    background: var(--docs-demo);
+  }
+
+  .docs-demo-stage {
+    position: relative;
+    border-radius: 16px;
+    background: var(--background);
+    overflow: hidden;
+  }
+
+  .docs-demo-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 8px 0 14px;
+  }
+
+  .docs-demo-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--docs-fg-subtle);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .docs-demo-tag::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+  }
+
+  .docs-demo-tag[data-streaming="true"]::before {
+    background: var(--accent);
+    animation: docs-pulse 900ms ease-in-out infinite;
+  }
+
+  .docs-demo-bar .docs-soft-pill {
+    background: var(--docs-control);
+  }
+
+  .docs-demo-bar .docs-soft-pill:hover,
+  .docs-demo-bar .docs-soft-pill[aria-pressed="true"] {
+    background: var(--docs-control-hover);
+  }
+
+  .docs-demo-designs {
+    display: inline-flex;
+    padding: 2px;
+    border-radius: 9999px;
+    background: var(--docs-control);
+  }
+
+  .docs-demo-designs button {
+    height: 24px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--docs-fg-muted);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color 150ms var(--docs-ease),
+      color 150ms var(--docs-ease);
+  }
+
+  .docs-demo-designs button:hover {
+    color: var(--foreground);
+  }
+
+  .docs-demo-designs button[aria-pressed="true"] {
+    background: var(--surface);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+    color: var(--foreground);
+  }
+
+  .dark .docs-demo-designs button[aria-pressed="true"] {
+    background: color-mix(in oklab, var(--default) 80%, var(--foreground));
+  }
+
+  .docs-demo-designs button:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
+
+  .docs-demo-surface {
+    min-height: 96px;
+    padding: 14px;
+  }
+
+  .docs-demo-wait {
+    margin: 0;
+    padding: 28px 10px;
+    color: var(--docs-fg-faint);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .docs-demo-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 10px 14px 12px;
+    border-top: 1px solid var(--docs-divider);
+    list-style: none;
+    color: var(--docs-fg);
+    font-size: 12.5px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .docs-demo-kind {
+    margin-inline-end: 8px;
+    color: var(--docs-fg-subtle);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .docs-demo-code {
+    position: relative;
+  }
+
+  .docs-demo-code[data-open="false"] {
+    max-height: 124px;
+    overflow: hidden;
+  }
+
+  .docs-demo-code[data-open="false"]::after {
+    content: "";
+    position: absolute;
+    inset: 24px 0 0;
+    background: linear-gradient(to bottom, transparent, var(--docs-demo) 78%);
+    pointer-events: none;
+  }
+
+  .docs-demo-toggle {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    z-index: 2;
+    transform: translateX(-50%);
+  }
+
+  .docs-demo-code[data-open="true"] {
+    padding-bottom: 46px;
+  }
+
+  /* The checker, run on what is typed. */
+  .docs-check-source {
+    display: block;
+    width: 100%;
+    min-height: 240px;
+    padding: 12px 16px 16px;
+    border: 0;
+    background: transparent;
+    color: var(--foreground);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.7;
+    resize: vertical;
+    outline: none;
+    tab-size: 2;
+    white-space: pre;
+    overflow: auto;
+  }
+
+  .docs-check-result {
+    padding: 14px 14px 12px;
+  }
+
+  .docs-check-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: var(--foreground);
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+
+  .docs-check-summary::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--danger);
+  }
+
+  .docs-check-result[data-ok="true"] .docs-check-summary::before {
+    background: var(--success);
+  }
+
+  .docs-check-issues {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .docs-check-issues li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 10px;
+    align-items: baseline;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--background);
+    color: var(--docs-fg);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .docs-check-line {
+    grid-row: span 3;
+    align-self: start;
+    height: 22px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--danger) 14%, transparent);
+    color: var(--danger);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .docs-check-issues li[data-severity="warning"] .docs-check-line {
+    background: color-mix(in oklab, var(--warning) 18%, transparent);
+    color: color-mix(in oklab, var(--warning) 70%, var(--foreground));
+  }
+
+  .docs-check-line:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .docs-check-code {
+    color: var(--docs-fg-subtle);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+  }
+
+  .docs-check-hint {
+    color: var(--docs-fg-muted);
+  }
+
+  .docs-check-repair {
+    margin-top: 10px;
+    padding: 0 4px;
+    color: var(--docs-fg-muted);
+    font-size: 13px;
+  }
+
+  .docs-check-repair summary {
+    padding: 4px 0;
+    cursor: pointer;
+  }
+
+  .docs-check-repair pre {
+    margin: 8px 0 4px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--background);
+    color: var(--docs-fg);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .docs-check-repair p {
+    margin: 8px 0 4px;
+  }
+
+  @keyframes docs-pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+}
+
+@layer utilities {
+  /*
+   * Page typography: one text colour for body, table cells, bold, links and
+   * inline code, so inline marks read by weight and a light fill.
+   */
+  .docs-prose {
+    --tw-prose-bold: var(--docs-fg);
+
+    max-width: none;
+    font-size: 16px;
+    line-height: 1.75;
+
+    @media (width >= 48rem) {
+      font-size: 15px;
+    }
+  }
+
+  .docs-prose :where(p, li, td):not(:where(.not-prose, .not-prose *)) {
+    color: var(--docs-fg);
+  }
+
+  .docs-prose :where(blockquote):not(:where(.not-prose, .not-prose *)) {
+    color: var(--docs-fg-muted);
+  }
+
+  .docs-prose :where(strong):not(:where(.not-prose, .not-prose *)) {
+    font-weight: 600;
+  }
+
+  /* The page's title is above the text; a heading of that level inside it reads as a section. */
+  .docs-prose :where(h1):not(:where(.not-prose, .not-prose *)) {
+    margin-top: 2.75rem;
+    margin-bottom: 1rem;
+    color: var(--foreground);
+    font-size: 1.5em;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.35;
+  }
+
+  .docs-prose :where(h2):not(:where(.not-prose, .not-prose *)) {
+    margin-top: 2.75rem;
+    margin-bottom: 1rem;
+    color: var(--foreground);
+    font-size: 1.3em;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.4;
+  }
+
+  .docs-prose :where(h3):not(:where(.not-prose, .not-prose *)) {
+    margin-top: 2rem;
+    margin-bottom: 0.5rem;
+    color: var(--foreground);
+    font-size: 1.125em;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.45;
+  }
+
+  .docs-prose > :where(h2, h3):first-child {
+    margin-top: 0;
+  }
+
+  .docs-prose :where(table):not(:where(.not-prose, .not-prose *)) {
+    font-size: 0.95em;
+    line-height: 1.55;
+  }
+
+  .docs-prose :where(th):not(:where(.not-prose, .not-prose *)) {
+    color: var(--docs-fg-muted);
+    font-size: 0.9em;
+    font-weight: 500;
+  }
+
+  .docs-prose :where(:not(pre) > code):not(:where(.not-prose, .not-prose *)) {
+    padding: 0.125em 0.3em;
+    border: none;
+    border-radius: 0.35em;
+    background: var(--docs-code-inline);
+    color: inherit;
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    font-weight: 400;
+  }
+
+  .docs-prose :where(:is(h2, h3, h4) code):not(:where(.not-prose, .not-prose *)) {
+    font-size: 0.9em;
+  }
+
+  .docs-prose :where(a:not([data-card])):not(:where(.not-prose, .not-prose *)) {
+    color: inherit;
+    font-weight: 500;
+    text-decoration-line: underline;
+    text-decoration-color: color-mix(in oklab, currentColor 30%, transparent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+    transition: none;
+  }
+
+  .docs-prose :where(a:not([data-card])):not(:where(.not-prose, .not-prose *)):is(:hover, :focus-visible) {
+    text-decoration-color: currentColor;
+  }
+
+  /* Code blocks: one flat panel, the shade of a demo's frame. */
+  .docs-prose .shiki {
+    margin-block: 1rem;
+    border: none;
+    border-radius: 16px;
+    background: var(--docs-demo);
+    box-shadow: none;
+    font-size: 13.5px;
+  }
+
+  .docs-prose .docs-demo .shiki {
+    margin: 0;
+    border-radius: 0 0 16px 16px;
+    background: transparent;
+  }
+
+  /* The search dialog: the popover's shade, rounder, with a softer shadow. */
+  [role="dialog"]:has([aria-controls="fd-search-list"]) {
+    border-radius: 20px;
+    box-shadow: 0 24px 60px -12px rgb(0 0 0 / 0.28);
+  }
+
+  /* Code blocks behind tabs: the tabs and the code are one panel. */
+  .docs-prose .docs-code-tabs {
+    border: none;
+    border-radius: 16px;
+    background: var(--docs-demo);
+    overflow: hidden;
+  }
+
+  .docs-prose .docs-code-tabs .shiki {
+    margin: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+}

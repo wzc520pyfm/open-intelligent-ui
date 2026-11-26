@@ -98,7 +98,14 @@ Everything under `packages/` is released together, at one version.
    (it needs the repository secret `NPM_TOKEN`), or run `pnpm release` on
    `main` after `npm login`.
 
-Both paths take the npm dist-tag from the version: `0.2.0` is published as
+Pushing the tag publishes every package to npm **and** opens a GitHub
+Release for that tag (`gh release create --generate-notes`). Versions with
+a hyphen (`0.2.0-beta.1`) are marked as prereleases. A hand-run from the
+Actions tab still publishes to npm but does not create a Release (there is
+no tag). Re-running the workflow for an existing Release leaves that
+Release alone.
+
+Both npm paths take the dist-tag from the version: `0.2.0` is published as
 `latest`, `0.2.0-beta.1` as `beta`, `0.2.0-rc.1` as `rc`. A prerelease
 never becomes what `npm install` picks by default.
 

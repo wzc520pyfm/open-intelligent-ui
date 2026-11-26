@@ -22,7 +22,7 @@ export default function NotFound() {
           }}
         />
         <main className="flex max-w-md flex-col items-center gap-6 text-center">
-          <Logo className="size-10 text-accent" />
+          <Logo className="size-10" />
           <p className="text-sm font-medium text-(--docs-fg-subtle) tabular-nums">404</p>
           {LANGUAGES.map((language) => {
             const words = wordsFor(language.locale)

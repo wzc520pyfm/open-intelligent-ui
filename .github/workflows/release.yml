@@ -24,6 +24,8 @@ jobs:
         with:
           # Notes for the GitHub Release need the previous tag.
           fetch-depth: 0
+          # Don't leave a write token in the git credentials for install/test/pack.
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -43,7 +45,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
       - name: GitHub Release
-        if: github.ref_type == 'tag'
+        # Tag pushes only. workflow_dispatch on a tag would also have ref_type=tag.
+        if: github.event_name == 'push' && github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

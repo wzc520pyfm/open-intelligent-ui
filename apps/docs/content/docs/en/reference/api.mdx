@@ -1,0 +1,123 @@
+---
+title: "API"
+description: "The entry points of every package, and the options of each function."
+icon: "braces"
+---
+
+## Packages and entry points [#packages-and-entry-points]
+
+| Import from | What it holds |
+| --- | --- |
+| `@open-intelligent-ui/core` | `parse`, `Surface`, `defineLibrary`, `defineComponent`, `defineWidget`, `view`, `librarySpec`, `validateLibrary`, `parseDesign`, `designFromCss`, `colorSources`. No framework |
+| `@open-intelligent-ui/core/prompt` | `buildSystemPrompt`, `describeComponent`, the guides and the UI SDK catalog. Import it on the server |
+| `@open-intelligent-ui/core/check` | `checkMarkup`, `repairMessage`. No DOM |
+| `@open-intelligent-ui/core/designs` | `paper`, `noir`, `heritage`, `signal` as DESIGN.md text |
+| `@open-intelligent-ui/core/charts` | `echartsCharts`, `g2Charts`; types `ChartEngine`, `ChartSpec`, `ChartContext`, `ChartHandle` |
+| `@open-intelligent-ui/core/motion` | `motionAdapter`, `gsapAdapter`, `waapiAdapter`, `createMotionAdapter`, `cssKeyframes`, `cubicBezier`; types `MotionAdapter`, `MotionPreset`, `MotionTiming` |
+| `@open-intelligent-ui/react` | `IntelligentUI`, `preloadUiSdk`, and the `define*` functions again. `/recharts` has `rechartsCharts`; `/styles.css` is the stylesheet |
+| `@open-intelligent-ui/vue`, `/svelte`, `/solid` | The same for each framework, with `/styles.css` |
+| `@open-intelligent-ui/web` | `mount`, and `/define` to register `<intelligent-ui>`; `/styles.css`, and `/elements.css` for a page that already loads another renderer's stylesheet |
+| `open-intelligent-ui` | The unscoped name. Re-exports `@open-intelligent-ui/core` with `/prompt`, `/check`, `/designs`, `/charts` and `/motion` |
+
+## `<IntelligentUI>` [#intelligentui]
+
+The same props in every renderer. In Vue the callbacks are props that take a function (`:on-action="fn"`). On the `<intelligent-ui>` element, text options are attributes and properties, the rest are properties, and each callback is also an event.
+
+| Prop | Type | |
+| --- | --- | --- |
+| `source` | `string` | The markup. May be incomplete while `streaming` |
+| `streaming` | `boolean` | True while `source` is still arriving |
+| `design` | `string \| Design` | A DESIGN.md, or one read with `parseDesign`. Default: Paper |
+| `scheme` | `"light" \| "dark" \| "auto"` | Which colors to use. Default `auto` |
+| `library` | `Library` | What the product adds, made with `defineLibrary` |
+| `components` | `Record<string, Component>` | Components by name, without descriptions or checks. Prefer `library` |
+| `tools` | `Record<string, Tool>` | Functions the surface reads with `<query>` and writes with `call()` |
+| `callTool` | `(name, input) => unknown` | Called for tools not found in `tools` |
+| `onAction` | `(action) => boolean \| undefined` | `send`, `open`, `copy`, `toast`. Return `true` to replace the default |
+| `onTool` | `(event) => void` | Each tool call: `start`, then `done` or `error` |
+| `onWarning` | `(message) => void` | Problems found while drawing |
+| `onDiagnostics` | `(diagnostics) => void` | Parse problems for the current source, with codes and positions |
+| `onStateChange` | `(state) => void` | The surface's state after each change |
+| `initialState` | `Record<string, unknown>` | State to start with, over the declared values |
+| `functions` | `Record<string, Function>` | Extra pure functions for expressions |
+| `actions` | `Record<string, Function>` | Extra actions for handlers |
+| `locale`, `currency` | `string` | For number, date and currency formatting |
+| `storage`, `storageKey` | `StorageLike`, `string` | Where `<state persist>` values are kept |
+| `allowUrl` | `(url, kind) => boolean` | Return `false` to refuse a link or media address |
+
+The handle (`ref` in React and Solid, a template ref in Vue, `bind:this` in Svelte, the element itself on the web):
+
+| Method | |
+| --- | --- |
+| `getState()` | The surface's state, as plain data |
+| `setState(values)` | Writes state, as if the reader had changed it |
+| `reset(...names)` | Puts state back to its declared values |
+| `refetch(...ids)` | Reloads the named queries, or all of them |
+
+## `buildSystemPrompt` [#buildsystemprompt]
+
+```ts
+import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
+
+const system = buildSystemPrompt(options)
+```
+
+| Option | |
+| --- | --- |
+| `library` | A `Library`, or the JSON written by `librarySpec`. Its components, chart types, motion presets, design and instructions are described |
+| `design` | A DESIGN.md or a parsed design, when there is no library. Default: Paper |
+| `tools` | `[{ name, kind: "read" \| "write", description, input?, output? }]` |
+| `components` | Which UI SDK components get an example: `"core"` (the default), `"all"`, or a list such as `["tabs", "dialog"]`. The others are listed by name |
+| `motion` | `false` leaves the motion section out. Text replaces it |
+| `instructions` | Product-specific instructions, added at the end |
+
+The default prompt is about 34,000 characters. To shorten it, list fewer `components`, set `motion: false`, and offer `describeComponent(name, { props: true })` as a tool the model calls when it needs a component in full.
+
+## `checkMarkup` and `repairMessage` [#checkmarkup-and-repairmessage]
+
+```ts
+import { checkMarkup, repairMessage } from "@open-intelligent-ui/core/check"
+
+const result = checkMarkup(source, options)
+const message = repairMessage(result, { limit: 12 })
+```
+
+| Option | |
+| --- | --- |
+| `library` | A `Library` or its `librarySpec` JSON |
+| `tools` | The tools the host answers: names, or the descriptions given to `buildSystemPrompt` |
+| `components`, `state`, `functions`, `actions` | What the host passes to the renderer as `components`, `initialState`, `functions` and `actions`, or just the names |
+
+`result` is `{ ok, errors, warnings, issues }`. An issue is `{ code, severity, message, hint?, line, column, excerpt }`. [Correct output](/guide/correctness#the-checker) lists the codes.
+
+`repairMessage` returns an empty string when there is nothing to send: no errors, unless `warnings: true` is set and there are warnings. `limit` caps how many issues are listed (12 by default).
+
+## Library [#library]
+
+```ts
+import { defineComponent, defineLibrary, defineWidget, librarySpec, validateLibrary, view } from "@open-intelligent-ui/core"
+```
+
+| Function | |
+| --- | --- |
+| `defineLibrary({ name, design, components, charts, motion, instructions })` | What a product adds, for the renderer, the prompt and the checker |
+| `defineComponent({ name, description, props, events, children, example, component })` | A framework component with declared props. [Your components](/guide/components#registering-a-component) |
+| `defineWidget({ name, description, props, events, example, setup })` | A component drawn with `view()`, for every renderer. [Widgets](/guide/components#widgets-written-once-for-every-renderer) |
+| `validateLibrary(library)` | What is wrong with the library, as sentences. Empty when nothing is |
+| `librarySpec(library)` | The library as JSON, for a server |
+
+## Design [#design]
+
+```ts
+import { colorSources, designFromCss, parseDesign } from "@open-intelligent-ui/core"
+```
+
+| Function | |
+| --- | --- |
+| `parseDesign(source, { tokens, roles, prose })` | Reads a DESIGN.md. The options fill in what it leaves open. `design.issues` lists what couldn't be read |
+| `designFromCss(css, { name, prose })` | Reads a theme stylesheet's variables as a design |
+| `colorSources(design)` | Which token each color role was taken from |
+
+## Lower level [#lower-level]
+
+`parse(source)` returns the document tree with `diagnostics`. `Surface` is the state store and action runner a renderer drives. `@open-intelligent-ui/core/renderer` holds what the five renderers share (directives, primitives, presets, charts), for someone writing a renderer for another framework. These are stable enough to build on within a minor version, and less documented than the rest.

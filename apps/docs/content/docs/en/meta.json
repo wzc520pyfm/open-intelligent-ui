@@ -1,0 +1,23 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "---Start---",
+    "index",
+    "guide/intro",
+    "guide/start",
+    "---Write interfaces---",
+    "guide/markup",
+    "guide/data",
+    "---Make it yours---",
+    "guide/design",
+    "guide/components",
+    "guide/charts",
+    "guide/motion",
+    "---Ship it---",
+    "guide/correctness",
+    "guide/safety",
+    "---Reference---",
+    "reference/api",
+    "reference/language"
+  ]
+}

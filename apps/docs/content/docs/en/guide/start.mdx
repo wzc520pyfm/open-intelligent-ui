@@ -1,0 +1,215 @@
+---
+title: "Getting started"
+description: "Install a renderer, build the system prompt, draw the reply, and take the turn back."
+icon: "rocket"
+---
+
+Three things connect a model to a screen: a system prompt that teaches the markup, a component that draws what comes back, and the callbacks through which the interface reaches your product.
+
+## Install [#install]
+
+Install the renderer for your framework, the core, and the UI SDK package the renderer is built on.
+
+
+```bash tab="React"
+npm install @open-intelligent-ui/react @open-intelligent-ui/core @ui-sdk/react @ui-sdk/core
+```
+
+```bash tab="Vue"
+npm install @open-intelligent-ui/vue @open-intelligent-ui/core @ui-sdk/vue @ui-sdk/core
+```
+
+```bash tab="Svelte"
+npm install @open-intelligent-ui/svelte @open-intelligent-ui/core @ui-sdk/svelte @ui-sdk/core
+```
+
+```bash tab="Solid"
+npm install @open-intelligent-ui/solid @open-intelligent-ui/core @ui-sdk/solid @ui-sdk/core solid-js @solidjs/web
+```
+
+```bash tab="No framework"
+npm install @open-intelligent-ui/web @open-intelligent-ui/core @ui-sdk/web @ui-sdk/core
+```
+
+
+| Package | Needs |
+| --- | --- |
+| `@open-intelligent-ui/react` | React 19 or later. The entry is marked `"use client"` |
+| `@open-intelligent-ui/vue` | Vue 3.5 or later |
+| `@open-intelligent-ui/svelte` | Svelte 5.33 or later, and a bundler with the Svelte plugin |
+| `@open-intelligent-ui/solid` | Solid 2 |
+| `@open-intelligent-ui/web` | A bundler such as Vite. Gives the `<intelligent-ui>` element and `mount()` |
+
+All packages are ESM with type declarations. `open-intelligent-ui`, without a scope, re-exports `@open-intelligent-ui/core`.
+
+## Build the system prompt [#build-the-system-prompt]
+
+On the server, where you call the model:
+
+```ts
+import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
+
+const system = buildSystemPrompt({
+  instructions: "You are the support desk assistant for Acme.",
+  tools: [
+    {
+      name: "listTickets",
+      kind: "read",
+      description: "Tickets in the support queue.",
+      input: { status: "open | pending | solved | all" },
+      output: "[{ id, subject, status, priority, assignee }]",
+    },
+    { name: "updateTicket", kind: "write", description: "Change a ticket.", input: { id: "string", status: "?" } },
+  ],
+})
+```
+
+Send `system` as the system message of any chat API. The prompt holds the language, the primitives and presets, the UI SDK components, motion, craft, the design and your tools. It is about 34,000 characters by default; [the API reference](/reference/api#buildsystemprompt) lists the options that shorten it.
+
+## Draw the reply [#draw-the-reply]
+
+Pass the reply so far on every chunk. Draw one `<IntelligentUI>` per assistant turn; each has its own state.
+
+
+```tsx tab="React"
+import { IntelligentUI } from "@open-intelligent-ui/react"
+import "@open-intelligent-ui/react/styles.css"
+
+function Reply({ text, streaming }: { text: string; streaming: boolean }) {
+  return (
+    <IntelligentUI
+      source={text}
+      streaming={streaming}
+      tools={{ listTickets, updateTicket }}
+      onAction={(action) => {
+        if (action.type === "send") askModel(action.text, action.data, action.state)
+        return undefined
+      }}
+      onWarning={(message) => console.warn(message)}
+    />
+  )
+}
+```
+
+```vue tab="Vue"
+<script setup lang="ts">
+import { IntelligentUI } from "@open-intelligent-ui/vue"
+import "@open-intelligent-ui/vue/styles.css"
+
+defineProps<{ text: string; streaming: boolean }>()
+
+function onAction(action) {
+  if (action.type === "send") askModel(action.text, action.data, action.state)
+}
+</script>
+
+<template>
+  <!-- The callbacks are props that take a function: :on-action, not @action. -->
+  <IntelligentUI
+    :source="text"
+    :streaming="streaming"
+    :tools="{ listTickets, updateTicket }"
+    :on-action="onAction"
+    :on-warning="(message) => console.warn(message)"
+  />
+</template>
+```
+
+```svelte tab="Svelte"
+<script lang="ts">
+  import { IntelligentUI } from "@open-intelligent-ui/svelte"
+  import "@open-intelligent-ui/svelte/styles.css"
+
+  let { text, streaming }: { text: string; streaming: boolean } = $props()
+
+  function onAction(action) {
+    if (action.type === "send") askModel(action.text, action.data, action.state)
+  }
+</script>
+
+<IntelligentUI source={text} {streaming} tools={{ listTickets, updateTicket }} {onAction} />
+```
+
+```tsx tab="Solid"
+import { IntelligentUI } from "@open-intelligent-ui/solid"
+import "@open-intelligent-ui/solid/styles.css"
+
+function Reply(props: { text: string; streaming: boolean }) {
+  return (
+    <IntelligentUI
+      source={props.text}
+      streaming={props.streaming}
+      tools={{ listTickets, updateTicket }}
+      onAction={(action) => {
+        if (action.type === "send") askModel(action.text, action.data, action.state)
+        return undefined
+      }}
+    />
+  )
+}
+```
+
+```html tab="No framework"
+<intelligent-ui id="reply"></intelligent-ui>
+
+<script type="module">
+  import "@open-intelligent-ui/web/define"
+  import "@open-intelligent-ui/web/styles.css"
+
+  const reply = document.querySelector("#reply")
+  reply.tools = { listTickets, updateTicket }
+  reply.addEventListener("action", (event) => {
+    if (event.detail.type === "send") askModel(event.detail.text, event.detail.data, event.detail.state)
+  })
+  reply.streaming = true
+  reply.source = textSoFar
+</script>
+```
+
+
+A few things to know:
+
+- **Give it a width.** The surface is a size container and lays itself out for the space it gets, from a phone column to a full page.
+- **UI SDK components load on first use.** Call `preloadUiSdk()` early, or `preloadUiSdk("Tabs", "Dialog")`, if you want none of that wait.
+- **Server rendering.** Hydrating server-rendered output hasn't been tested. Draw the surface in the browser: `<ClientOnly>` in Nuxt, `clientOnly` in SolidStart, a client component in Next.js for the props that are functions.
+- **A code fence around the reply.** Some models wrap their reply in one despite being told not to. Strip it before drawing; the checker reports it as `fenced`.
+
+## Check the reply [#check-the-reply]
+
+Before a finished reply is kept, check it, and let the model fix what is wrong. This is the loop, on the server:
+
+```ts
+import { checkMarkup, repairMessage } from "@open-intelligent-ui/core/check"
+
+const tools = ["listTickets", "updateTicket"]
+let reply = await model(messages)
+let result = checkMarkup(reply, { tools })
+for (let round = 0; !result.ok && round < 2; round++) {
+  messages.push({ role: "assistant", content: reply }, { role: "user", content: repairMessage(result) })
+  reply = await model(messages)
+  result = checkMarkup(reply, { tools })
+}
+```
+
+[Correct output](/guide/correctness) explains what it catches and how to use it while streaming.
+
+## Take the turn back [#take-the-turn-back]
+
+When the reader makes a decision, the markup calls `send("Book the Kyoto option", { id })`. Your `onAction` receives the sentence, the data and the surface's state. Add it to the conversation as a user message and ask the model again:
+
+```ts
+function askModel(text: string, data: unknown, state: Record<string, unknown>) {
+  messages.push({
+    role: "user",
+    content: `${text}\n\n<context>${JSON.stringify({ data, state })}</context>`,
+  })
+  startTurn(messages)
+}
+```
+
+## Next [#next]
+
+- [The markup](/guide/markup): what a model writes, with every example drawn live.
+- [Data, tools and turns](/guide/data): how a surface reads and writes without a model call.
+- [Design](/guide/design), [your components](/guide/components), [charts](/guide/charts), [motion](/guide/motion): making it yours.
+- [The playground](https://open-intelligent-ui.pages.dev): eleven demos, five renderers, and a live mode for your own model key.

@@ -1,0 +1,23 @@
+{
+  "title": "文档",
+  "pages": [
+    "---开始---",
+    "index",
+    "guide/intro",
+    "guide/start",
+    "---写界面---",
+    "guide/markup",
+    "guide/data",
+    "---换成自己的---",
+    "guide/design",
+    "guide/components",
+    "guide/charts",
+    "guide/motion",
+    "---上线---",
+    "guide/correctness",
+    "guide/safety",
+    "---参考---",
+    "reference/api",
+    "reference/language"
+  ]
+}

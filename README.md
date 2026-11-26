@@ -202,7 +202,7 @@ for (let round = 0; !result.ok && round < 2; round++) {
 }
 ```
 
-`checkMarkup` reads the reply the way a renderer would, without drawing it. Each issue has a code, a line, the line's text and, where it can be said, what to write instead: a component or a name that doesn't exist, a prop a primitive doesn't have, a handler that would fail when pressed, markup written as JSX, a tool the product doesn't have. While a reply streams, the renderers hold back a warning about a name the stream hasn't declared yet, and give it at the end if the name is still missing. More: [Correct output](https://open-intelligent-ui.pages.dev/docs/guide/correctness.html).
+`checkMarkup` reads the reply the way a renderer would, without drawing it. Each issue has a code, a line, the line's text and, where it can be said, what to write instead: a component or a name that doesn't exist, a prop a primitive doesn't have, a handler that would fail when pressed, markup written as JSX, a tool the product doesn't have. While a reply streams, the renderers hold back a warning about a name the stream hasn't declared yet, and give it at the end if the name is still missing. More: [Correct output](https://open-intelligent-ui.pages.dev/docs/guide/correctness/).
 
 ## Customize
 
@@ -259,7 +259,7 @@ packages/solid    Solid renderer, on @ui-sdk/solid
 packages/web      Web Components renderer, on @ui-sdk/web: <intelligent-ui> and mount()
 packages/open-intelligent-ui   The unscoped npm name; re-exports packages/core
 apps/playground   Demo site (React), with a switch that draws a reply with any of the five renderers
-apps/docs         Documentation site (VitePress), in English and Chinese, built into the demo site under /docs
+apps/docs         Documentation site (Next.js, Fumadocs and HeroUI), in English and Chinese, built into the demo site under /docs
 apps/vue-demo, apps/svelte-demo, apps/solid-demo, apps/web-demo   The same demos on one renderer each
 design/           Four DESIGN.md files: Paper, Noir, Heritage, Signal. third-party/ holds HeroUI's, as published
 skills/           Agent skills: intelligent-ui and motion

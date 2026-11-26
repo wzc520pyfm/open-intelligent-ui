@@ -57,11 +57,18 @@ semicolons, double quotes, two spaces.
 - `packages/core/src/designs`: the shipped designs as strings, generated
   from `design/` by `pnpm generate`.
 - `apps/playground`: the demo app. Demos are `.iui` files in `src/demos`.
-- `apps/docs`: the documentation site (VitePress), in English and Chinese
-  (`zh/`). It is built into the demo site under `/docs` by the playground's
-  `build` script. A fence written as ```` ```iui live ```` is drawn on the
-  page. Every `iui` fence in it must be a whole interface: a test draws and
-  checks each one. Keep the two languages in step.
+- `apps/docs`: the documentation site, in English and Chinese. It is a
+  Next.js app exported as files (Fumadocs for the content, HeroUI for the
+  shell) and built into the demo site under `/docs` by the playground's
+  `build` script. Pages are MDX in `content/docs/en` and `content/docs/zh`;
+  `meta.json` in each orders the sidebar. A fence written as
+  ```` ```iui live ```` is drawn on the page. Every `iui` fence must be a
+  whole interface: a test draws and checks each one. Give every heading an id
+  (`## Title [#id]`), the same in both languages, and write links from the
+  site's root (`/guide/start`, `/zh/guide/start`); tests hold the two
+  languages to each other and follow every link. Its styles go in a cascade
+  layer in `src/app/global.css`, so they stay out of generated surfaces. It
+  keeps its own TypeScript 6, which Next.js needs.
 - `apps/playground/src/surface`: one small adapter per renderer, which is
   how the site draws a reply with a renderer that isn't React.
 - `apps/vue-demo`, `apps/solid-demo`, `apps/svelte-demo`, `apps/web-demo`:

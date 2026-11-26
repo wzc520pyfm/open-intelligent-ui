@@ -202,7 +202,7 @@ for (let round = 0; !result.ok && round < 2; round++) {
 }
 ```
 
-`checkMarkup` 按渲染器的方式读一遍回复，但不渲染。每个问题带有代码、行号、那一行的原文，以及能说清楚时应该怎么写：不存在的组件或名字、基础元素没有的属性、一按就会出错的事件处理、按 JSX 习惯写的标记、产品没有提供的工具。回复还在流式到达时，渲染器对“用到了但还没声明”的名字先不报警告，等流结束、名字仍然缺失时才报。详见[保证输出正确](https://open-intelligent-ui.pages.dev/docs/zh/guide/correctness.html)。
+`checkMarkup` 按渲染器的方式读一遍回复，但不渲染。每个问题带有代码、行号、那一行的原文，以及能说清楚时应该怎么写：不存在的组件或名字、基础元素没有的属性、一按就会出错的事件处理、按 JSX 习惯写的标记、产品没有提供的工具。回复还在流式到达时，渲染器对“用到了但还没声明”的名字先不报警告，等流结束、名字仍然缺失时才报。详见[保证输出正确](https://open-intelligent-ui.pages.dev/docs/zh/guide/correctness/)。
 
 ## 定制
 
@@ -259,7 +259,7 @@ packages/solid    Solid 渲染器，建在 @ui-sdk/solid 上
 packages/web      Web Components 渲染器，建在 @ui-sdk/web 上：<intelligent-ui> 和 mount()
 packages/open-intelligent-ui   不带 scope 的 npm 包名，只重导出 packages/core
 apps/playground   演示站（React），可以切换用五个渲染器中的任意一个来画回复
-apps/docs         文档站（VitePress），中英文，构建到演示站的 /docs 下
+apps/docs         文档站（Next.js、Fumadocs 和 HeroUI），中英文，构建到演示站的 /docs 下
 apps/vue-demo、apps/svelte-demo、apps/solid-demo、apps/web-demo   同一批示例，各用一个渲染器
 design/           四份 DESIGN.md：Paper、Noir、Heritage、Signal。third-party/ 里是 HeroUI 发布的原文件
 skills/           给编码智能体的两个 skill：intelligent-ui 和 motion

@@ -330,7 +330,7 @@ scripts                  生成 UI SDK 清单、生成 skill 参考、检查 DES
 | `packages/web/test/conformance.test.ts` | 同上，对 Web Components。不含 UI SDK 部件的示例 DOM 逐节点相同；含 UI SDK 部件的示例，部件之外的元素逐节点相同，每个部件按它的 slot、角色、名称、状态和文字比 |
 | 各渲染器包里的 `render.test.ts`、`claims.test.ts`、`ui-sdk.test.ts` | React 那三组测试在该渲染器上的对应版本，另加它特有的部分：Vue 的 `v-model` 式宿主组件、`.prop` 和 `^attr` 写法；Svelte 的 `bind:` 和它自己的属性通道；Web 的属性、处理器、`is`、`slot`、`part`、`for`、`container`，以及修补 DOM 时元素、焦点和输入不丢 |
 | `apps/playground/test/demos.test.tsx` | 每个演示能渲染、能交互、在任意截断点都能流式显示 |
-| `apps/playground/test/docs.test.tsx` | 文档、文档站（`apps/docs`）和 skill 里的每个 `iui` 示例都能渲染、没有警告，并且通过 `checkMarkup`；skill 参考页没有过期 |
+| `apps/playground/test/docs.test.tsx` | 文档、文档站（`apps/docs`）和 skill 里的每个 `iui` 示例都能渲染、没有警告，并且通过 `checkMarkup`；skill 参考页没有过期；文档站中英文两版的代码块和小节 id 一致，站内链接都指向存在的页面和小节 |
 | `packages/core/test/check.test.ts` | 检查器：写对的回复没有问题；每一类错误都报出，带改法；提示词里点名的每个错误都被抓到；属性表和视图一致 |
 | `apps/playground/test/designs.test.tsx` | `/designs` 导出的四套设计和 `design/` 下的文件一致，解析没有问题，都有浅色和深色 |
 

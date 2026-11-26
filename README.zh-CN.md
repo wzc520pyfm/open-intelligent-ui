@@ -2,11 +2,11 @@
 
 [English](README.md) · 中文
 
-智能体用零件写界面。组件目录不再决定有哪些屏幕。
+智能体自己写界面。控件的焦点、键盘、选中、弹层和无障碍用 [UI SDK](https://ui-sdk.dev/docs) 现成的行为，外观不锁在组件里；颜色、字体、圆角、间距跟你的 [DESIGN.md](https://github.com/google-labs-code/design.md) 走，令牌给界面用，说明给模型读。屏幕不必先做成组件放进目录。
 
 [文档](https://open-intelligent-ui.pages.dev/docs/zh/)（[English](https://open-intelligent-ui.pages.dev/docs/)），每个例子都实时渲染 · [演示站](https://open-intelligent-ui.pages.dev)
 
-模型写 Markdown 加标签的标记，渲染器边流边把它变成可以操作的界面。交互行为来自 [UI SDK](https://ui-sdk.dev/docs)，视觉来自一份 [DESIGN.md](https://github.com/google-labs-code/design.md)，动效来自设计系统里的动效令牌和一个 motion skill。状态、数据读写和把决定交还给模型，都由标记里的几种语法完成。
+模型写 Markdown 加标签的标记，渲染器边流边把它变成可以操作的界面。UI SDK 有 55 个控件的行为，模型按你的设计来排，不用重写键盘和读屏该做的事。DESIGN.md 的令牌变成 CSS 变量，说明文字进入系统提示词，换一份设计时，画面和模型的判断一起换。动效来自设计系统里的动效令牌和一个 motion skill。状态、数据读写和把决定交还给模型，都写在标记里。
 
 | | |
 | --- | --- |
@@ -17,9 +17,9 @@
 
 ## 为什么
 
-A2UI、OpenUI 和 OpenAI 的智能界面都让模型在一个预先定义的组件库里选择和组合。库里有什么，界面就只能是什么。
+A2UI、OpenUI 和 OpenAI 的智能界面都让模型在一个预先定义的组件库里选择和组合。库里有什么，界面就只能是什么：行为和外观捆在同一个组件上，要一个新样子，就得先注册一个新组件。
 
-UI SDK 提供的是另一种东西：组件的行为（焦点、键盘、选中、弹层、无障碍），不带样子。把它交给模型，模型拿到的是积木的关节，外形可以自己决定。缺的两块是“怎样才好看”和“怎样动才对”，分别由 DESIGN.md 和动效规则补上。
+这里把两件事拆开。UI SDK 只给行为，模型用布局、SVG 和 CSS 决定外形。DESIGN.md 规定外形怎么取：颜色、字体、圆角、间距、动效，渲染器和模型读的是同一份。动效规则再规定什么样的变化配什么样的动效。
 
 | 地基 | 提供什么 | 在这个仓库里 |
 | --- | --- | --- |

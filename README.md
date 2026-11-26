@@ -2,11 +2,11 @@
 
 [English](README.md) · [中文](README.zh-CN.md)
 
-Agents write interfaces from parts. A component catalog does not decide which screens exist.
+Agents write the interface themselves. Focus, keyboard, selection, popovers and accessibility come from [UI SDK](https://ui-sdk.dev/docs) behaviors, and the look is not locked inside a component. Color, type, radius and spacing follow your [DESIGN.md](https://github.com/google-labs-code/design.md): tokens for the interface, written guidance for the model. A screen does not have to be turned into a component and filed in a catalog first.
 
 [Documentation](https://open-intelligent-ui.pages.dev/docs/) ([中文](https://open-intelligent-ui.pages.dev/docs/zh/)), with every example drawn live · [Playground](https://open-intelligent-ui.pages.dev)
 
-The model writes Markdown mixed with tags. The renderer turns that stream into a live interface: behaviors from [UI SDK](https://ui-sdk.dev/docs), look from a [DESIGN.md](https://github.com/google-labs-code/design.md), motion from design-system tokens and a motion skill. State, data I/O, and handing decisions back to the model are all expressed in the markup.
+The model writes Markdown mixed with tags. The renderer turns that stream into a live interface. UI SDK supplies the behavior of 55 widgets, so the model lays them out in your design and does not reimplement keyboard or screen-reader behavior. DESIGN.md tokens become CSS variables, and its guidance goes into the system prompt, so a different design changes both the picture and the model's choices. Motion comes from the design system's motion tokens and a motion skill. State, data I/O, and handing a decision back to the model are written in the markup.
 
 | | |
 | --- | --- |
@@ -17,9 +17,9 @@ None of these four is a pre-built component. The markup is handwritten under `ap
 
 ## Why
 
-A2UI, OpenUI and OpenAI's Intelligent UI all let the model choose and compose from a predefined component catalog. What the catalog has is what the interface can be.
+A2UI, OpenUI and OpenAI's Intelligent UI all let the model choose and compose from a predefined component catalog. What the catalog has is what the interface can be: behavior and look are bound to the same component, so a new shape means registering a new component first.
 
-UI SDK is different: it ships component *behaviors* (focus, keyboard, selection, popovers, accessibility) with no look. Hand that to a model and it gets the joints of the building blocks; the shape is up to it. It still needs rules for how a surface should look and how it should move. DESIGN.md and the motion rules supply those.
+This project separates the two. UI SDK supplies behavior only, and the model decides the shape with layout, SVG and CSS. DESIGN.md says how that shape is chosen: color, type, radius, spacing and motion, read by both the renderer and the model. The motion rules then say which kind of change gets which motion.
 
 | Foundation | What it gives | In this repo |
 | --- | --- | --- |

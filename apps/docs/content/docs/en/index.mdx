@@ -41,14 +41,14 @@ This is what a model writes, and what a reader gets. Drag the slider, switch the
 
 - `<state>` and `<derive>` are what the interface remembers and what it computes from that.
 - `<Slider>` is a UI SDK behavior. `bind:value` connects it to state, so dragging updates the sentence, the ring and the button without a model call.
-- The ring is not a component. It is SVG the model drew, colored and timed with the design's tokens.
+- The ring is SVG the model drew, colored and timed with the design's tokens.
 - `send()` hands the reader's decision back to the model, with the numbers they chose.
 
 ## What you get [#what-you-get]
 
 <Cards>
-  <Card icon="pen-tool" title="Authored, not picked from a catalog" href="/guide/markup">
-    The model composes layout primitives, 55 UI SDK behaviors, charts, inline SVG and scoped CSS. What it can build is not limited to the components someone registered.
+  <Card icon="pen-tool" title="Written from parts" href="/guide/markup">
+    The model composes layout primitives, 55 UI SDK behaviors, charts, inline SVG and scoped CSS. Registered components are one of those materials.
   </Card>
   <Card icon="palette" title="Your design system" href="/guide/design">
     Pass a DESIGN.md, yours or one written for another library. Its tokens become CSS variables and its guidance goes into the prompt. Four designs come with the package.

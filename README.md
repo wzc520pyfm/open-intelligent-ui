@@ -2,9 +2,9 @@
 
 [English](README.md) · [中文](README.zh-CN.md)
 
-Let agents author interfaces, not pick them from a component library.
+Agents write interfaces from parts. A component catalog does not decide which screens exist.
 
-**[Documentation](https://open-intelligent-ui.pages.dev/docs/)** ([中文](https://open-intelligent-ui.pages.dev/docs/zh/)), with every example drawn live · **[Playground](https://open-intelligent-ui.pages.dev)**
+[Documentation](https://open-intelligent-ui.pages.dev/docs/) ([中文](https://open-intelligent-ui.pages.dev/docs/zh/)), with every example drawn live · [Playground](https://open-intelligent-ui.pages.dev)
 
 The model writes Markdown mixed with tags. The renderer turns that stream into a live interface: behaviors from [UI SDK](https://ui-sdk.dev/docs), look from a [DESIGN.md](https://github.com/google-labs-code/design.md), motion from design-system tokens and a motion skill. State, data I/O, and handing decisions back to the model are all expressed in the markup.
 
@@ -13,13 +13,13 @@ The model writes Markdown mixed with tags. The renderer turns that stream into a
 | <img src="docs/images/dashboard.png" alt="Sales dashboard: stats, charts and a sortable table" width="420"> | <img src="docs/images/workbench.png" alt="Support workbench: filters, table, detail pane and writes" width="420"> |
 | <img src="docs/images/board.png" alt="Sprint board defined in markup with primitives and CSS" width="420"> | <img src="docs/images/gears.png" alt="SVG gear diagram driven by sliders" width="420"> |
 
-None of these four is a pre-built component. They live as handwritten IUI markup under `apps/playground/src/demos/` — not model output. This repository has not been run against a real model yet; see [Status](#status).
+None of these four is a pre-built component. The markup is handwritten under `apps/playground/src/demos/`. This repository has not been run against a real model yet; see [Status](#status).
 
 ## Why
 
 A2UI, OpenUI and OpenAI's Intelligent UI all let the model choose and compose from a predefined component catalog. What the catalog has is what the interface can be.
 
-UI SDK is different: it ships component *behaviors* (focus, keyboard, selection, popovers, accessibility) with no look. Hand that to a model and it gets the joints of the building blocks; the shape is up to it. What it still needs is “how it should look” and “how it should move” — DESIGN.md and motion rules fill those gaps.
+UI SDK is different: it ships component *behaviors* (focus, keyboard, selection, popovers, accessibility) with no look. Hand that to a model and it gets the joints of the building blocks; the shape is up to it. It still needs rules for how a surface should look and how it should move. DESIGN.md and the motion rules supply those.
 
 | Foundation | What it gives | In this repo |
 | --- | --- | --- |
@@ -30,9 +30,9 @@ UI SDK is different: it ships component *behaviors* (focus, keyboard, selection,
 
 ### Why not HTML?
 
-A2UI and OpenUI both argue against letting the model emit a full HTML page (often with JS in an iframe). We agree — and we need our own wording, because IUI *does* allow whitelisted HTML and SVG as drawing material. What we reject is the *contract* “model writes an executable page; host sandboxes it.”
+A2UI and OpenUI both argue against letting the model emit a full HTML page (often with JS in an iframe). That argument holds here, with one addition: IUI does allow whitelisted HTML and SVG as drawing material. The contract we reject is this one: the model writes an executable page, and the host sandboxes it.
 
-That contract fails on safety without isolation, design-system continuity, real widget behavior (focus, keyboard, a11y), client-side state and tools, streaming half-trees, and cross-framework renderers. Catalog GenUI fixes those by locking the model to registered components; open-ended HTML/JS frees the shape and loses the rest. This project sits in the gap A2UI named: freer than catalog composition, without running arbitrary code. Full argument: [`docs/research.md`](docs/research.md#为什么不是-html).
+That contract fails on safety without isolation, design-system continuity, real widget behavior (focus, keyboard, a11y), client-side state and tools, streaming half-trees, and cross-framework renderers. Catalog GenUI fixes those by locking the model to registered components; open-ended HTML/JS frees the shape and loses the rest. This project is freer than composing from a catalog, and it does not run arbitrary code. A2UI named that position and left it empty. Full argument: [`docs/research.md`](docs/research.md#为什么不是-html).
 
 Research and trade-offs, including UI SDK compatibility results, are in [`docs/research.md`](docs/research.md).
 
@@ -71,7 +71,7 @@ Research and trade-offs, including UI SDK compatibility results, are in [`docs/r
 
 - `<state>` and `<derive>` are what the interface remembers and what it computes from that.
 - `<Slider>` is a UI SDK behavior; `bind:value` wires it to state. Dragging updates the sentence, the ring and the button label with no model call.
-- The ring is not a component — SVG the model drew, colored and timed from design tokens.
+- The ring is SVG the model drew, colored and timed from design tokens.
 - `send()` hands the reader's decision and data back to the model for the next turn.
 - With tools wired up, `<query>` reads and `call()` writes, so the surface becomes a read/write workbench without the model in the loop.
 
@@ -86,7 +86,7 @@ pnpm install
 pnpm dev
 ```
 
-Open <http://localhost:5173> (or the [deployed playground](https://open-intelligent-ui.pages.dev); Vercel mirror: [open-intelligent-ui-sdk.vercel.app](https://open-intelligent-ui-sdk.vercel.app)). Eleven demos on the left; switch renderer, streaming speed, design, light/dark and width. Inspect shows markup, state and the system prompt. For a real model, pick **Live** and choose OpenAI, Anthropic, DeepSeek or a custom OpenAI-compatible endpoint — the key stays in this tab.
+Open <http://localhost:5173> (or the [deployed playground](https://open-intelligent-ui.pages.dev); Vercel mirror: [open-intelligent-ui-sdk.vercel.app](https://open-intelligent-ui-sdk.vercel.app)). Eleven demos on the left; switch renderer, streaming speed, design, light/dark and width. Inspect shows markup, state and the system prompt. For a real model, pick Live and choose OpenAI, Anthropic, DeepSeek or a custom OpenAI-compatible endpoint. The key stays in this tab.
 
 ```bash
 pnpm test

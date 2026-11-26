@@ -8,7 +8,7 @@ Open Intelligent UI lets a model answer with an interface. The model writes Mark
 
 ## Where it sits [#where-it-sits]
 
-Generative UI has two established shapes.
+Catalog composition and a sandboxed page are the two shapes already in use.
 
 | Approach | The model writes | What you get | What it costs |
 | --- | --- | --- | --- |
@@ -16,14 +16,14 @@ Generative UI has two established shapes.
 | A page (HTML and JavaScript in a sandbox) | Anything | Any shape | No design system, no real widget behavior, isolation to manage, hard to stream |
 | Open Intelligent UI | Markup that composes primitives, behaviors, drawings and your components | Any shape, in your design system, with real behavior | A language the model has to be taught, and a renderer to trust |
 
-It gets there by giving the model parts instead of finished components:
+The model is given parts, and it assembles the screen:
 
 | Foundation | What it gives the model |
 | --- | --- |
 | [UI SDK](https://ui-sdk.dev/docs) | The behavior of 55 components (focus, keyboard, selection, popups, accessibility) with no look of their own |
 | [DESIGN.md](https://github.com/google-labs-code/design.md) | Colors, type, radius, spacing and motion tokens, with prose that says how to use them |
 | Layout primitives and presets | `<card>`, `<row>`, `<grid>`, `<text>` and the rest; `<Chart>`, `<Stat>`, `<DataTable>` for content UI SDK doesn't have |
-| HTML, SVG and scoped CSS | Drawing material for what no component covers. An allowlist, not a page |
+| HTML, SVG and scoped CSS | Drawing material for what no component covers: an allowlist of tags |
 | A small expression language | State, derived values, lists, formatting. Interpreted, never run as JavaScript |
 
 ## What comes built in [#what-comes-built-in]

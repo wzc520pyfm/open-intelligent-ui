@@ -4,7 +4,7 @@ description: "What can go wrong in a model's reply, what is caught, and the loop
 icon: "shield-check"
 ---
 
-A model writes the interface, and a model makes mistakes. A product has to decide what happens then. This page covers what can go wrong, what is caught, and the loop that lets the model fix its own reply before a reader sees it.
+A model writes the interface, and a model makes mistakes. A product has to decide what happens then: what can go wrong, what is caught, and how the model fixes its own reply before a reader sees it.
 
 ## Three kinds of wrong [#three-kinds-of-wrong]
 
@@ -14,7 +14,7 @@ A model writes the interface, and a model makes mistakes. A product has to decid
 | It reads, but refers to what doesn't exist | A component from another library, a name nobody declared, a prop a component doesn't have, a tool the host lacks | The checker, before drawing; the renderer, while drawing |
 | It draws, and says the wrong thing | A total that adds the wrong column, a button whose label doesn't match what it sends | Nothing automatic. Evals, review, and keeping consequential writes behind tools you control |
 
-The first two are mechanical, and they are what this page is about. The third is the same problem as a wrong sentence in a text reply.
+The first two are mechanical. The third is the same problem as a wrong sentence in a text reply.
 
 ## The layers [#the-layers]
 

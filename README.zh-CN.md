@@ -97,9 +97,20 @@ pnpm check:packages   # 构建所有包，检查将要发到 npm 的 tarball
 
 ## 接入
 
+脚手架（已接好提示词、流式渲染、`checkMarkup` / 修复循环）：
+
+```bash
+npm create open-intelligent-ui@latest my-app
+cd my-app && npm install && npm run dev
+```
+
+或手动安装：
+
 ```bash
 npm install @open-intelligent-ui/react @open-intelligent-ui/core @ui-sdk/react @ui-sdk/core
 ```
+
+给写代码的智能体：复制 [`skills/integrate/SKILL.md`](skills/integrate/SKILL.md)，并读 [`llms.txt`](llms.txt)。**写界面的对话模型**只应看到 `buildSystemPrompt(...)`，不要把接入 skill 塞进它的系统提示。
 
 不带 scope 的 `open-intelligent-ui` 是同一个项目，它重导出 `@open-intelligent-ui/core`。
 
@@ -262,7 +273,9 @@ apps/playground   演示站（React），可以切换用五个渲染器中的任
 apps/docs         文档站（Next.js、Fumadocs 和 HeroUI），中英文，构建到演示站的 /docs 下
 apps/vue-demo、apps/svelte-demo、apps/solid-demo、apps/web-demo   同一批示例，各用一个渲染器
 design/           四份 DESIGN.md：Paper、Noir、Heritage、Signal。third-party/ 里是 HeroUI 发布的原文件
-skills/           给编码智能体的两个 skill：intelligent-ui 和 motion
+packages/create-open-intelligent-ui   `npm create open-intelligent-ui` 脚手架
+skills/           给编码智能体的 skill：integrate、intelligent-ui、motion
+llms.txt          给编码智能体的短索引
 docs/             调研、语言规范、架构
 scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设计
 ```
@@ -276,7 +289,9 @@ scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设�
 | [`docs/spec.md`](docs/spec.md) | IUI 标记规范 |
 | [`docs/architecture.md`](docs/architecture.md) | 各部分的分工、数据流、安全模型、测试覆盖 |
 | [`docs/extending.md`](docs/extending.md) | 替换设计、图表和动效；注册组件和小组件；提示词怎么跟上 |
-| [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | 给智能体：怎么写界面、怎么接入 |
+| [`llms.txt`](llms.txt) | 给编码智能体的短索引（角色、包、最小回路） |
+| [`skills/integrate/SKILL.md`](skills/integrate/SKILL.md) | 给智能体：怎么把产品接上（提示词、渲染、校验/修复） |
+| [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | 给智能体：怎么写 IUI 标记 |
 | [`skills/motion/SKILL.md`](skills/motion/SKILL.md) | 给智能体：怎么设计和检查动效 |
 
 ## 现状与限制

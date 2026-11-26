@@ -20,6 +20,7 @@ fit before changing code.
 | `pnpm design:lint` | Check `design/*.DESIGN.md` with the DESIGN.md CLI. |
 | `pnpm build:packages` | Build `packages/*` to `dist/` (ESM, type declarations, `styles.css`). |
 | `pnpm check:packages` | Pack every package as `pnpm publish` would and check the tarballs. |
+| `node packages/create-open-intelligent-ui/bin/create.mjs <dir>` | Scaffold a Vite + React app wired to the renderer (same as `npm create open-intelligent-ui`). |
 
 There is no linter or formatter configured. Match the surrounding code: no
 semicolons, double quotes, two spaces.
@@ -78,11 +79,15 @@ semicolons, double quotes, two spaces.
   the same demos on one renderer each.
 - `apps/playground/src/library`: the product library the "Your components"
   demo uses, and the chart and motion engines the site can switch between.
+- `packages/create-open-intelligent-ui`: `npm create open-intelligent-ui`
+  scaffold (bin + templates; not a library `dist/`).
 - `design/`: the shipped designs (Paper, Noir, Heritage, Signal).
   `design/third-party` holds DESIGN.md files other libraries publish, kept as
   published; don't edit them.
-- `skills/`: skills for coding agents. `docs/`: research, spec, architecture,
-  and `extending.md` for everything a product can replace or register.
+- `skills/`: skills for coding agents — `integrate` (wire a product),
+  `intelligent-ui` (write markup), `motion`. Root `llms.txt` is the short
+  agent index. `docs/`: research, spec, architecture, and `extending.md`
+  for everything a product can replace or register.
 
 ## Releasing
 

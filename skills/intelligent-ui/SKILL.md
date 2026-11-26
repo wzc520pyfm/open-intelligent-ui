@@ -1,6 +1,6 @@
 ---
 name: intelligent-ui
-description: Writes interfaces in IUI markup and wires the Open Intelligent UI renderer into a product. Use when an agent's answer should be an interface a person can operate (a calculator, comparison, dashboard, form or workbench) instead of text, when writing or fixing `.iui` markup, when adding `<IntelligentUI>` to a React, Vue, Svelte or Solid app or `<intelligent-ui>` to a page without a framework, when building the system prompt that teaches a model the markup, or when choosing or writing the DESIGN.md that themes it.
+description: Writes or fixes IUI markup for Open Intelligent UI (calculators, comparisons, dashboards, forms, workbenches). Use when authoring `.iui`, editing playground demos, or teaching craft rules for markup. To wire a product (install renderer, system prompt, check/repair, tools), use the integrate skill instead.
 ---
 
 # Intelligent UI
@@ -14,13 +14,16 @@ There is no fixed component library to pick from. The model gets behaviors
 design system (tokens and written guidance) and a state syntax, and composes
 what the question needs, including components nobody defined in advance.
 
+**Wiring a host app?** Use [`../integrate/SKILL.md`](../integrate/SKILL.md)
+(and `npm create open-intelligent-ui`). This skill is for writing markup.
+
 Pick the job in front of you:
 
 | The job | Read |
 | --- | --- |
 | Write or fix an interface | [The steps below](#write-an-interface), then [references/language.md](references/language.md) |
 | Look up a UI SDK component and its parts | [references/components.md](references/components.md) |
-| Put the renderer in a React, Vue, Svelte or Solid app or a plain page, build the prompt, connect tools | [references/integration.md](references/integration.md) |
+| Put the renderer in a product (prompt, stream, check, tools) | [`../integrate/SKILL.md`](../integrate/SKILL.md), then [references/integration.md](references/integration.md) |
 | Make it move well | The `motion` skill next to this one |
 
 ## Write an interface

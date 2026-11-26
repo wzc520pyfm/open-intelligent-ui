@@ -1,0 +1,41 @@
+{
+  "name": "create-open-intelligent-ui",
+  "version": "0.5.0",
+  "description": "Scaffold a Vite + React app wired to Open Intelligent UI (prompt, stream, check/repair, renderer).",
+  "keywords": [
+    "create",
+    "scaffold",
+    "generative-ui",
+    "intelligent-ui",
+    "agent",
+    "vite",
+    "react"
+  ],
+  "homepage": "https://github.com/wzc520pyfm/open-intelligent-ui#readme",
+  "bugs": "https://github.com/wzc520pyfm/open-intelligent-ui/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wzc520pyfm/open-intelligent-ui.git",
+    "directory": "packages/create-open-intelligent-ui"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "create-open-intelligent-ui": "./bin/create.mjs"
+  },
+  "files": [
+    "bin",
+    "templates",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "prepack": "node ../../scripts/copy-license.mjs",
+    "typecheck": "node -e \"process.exit(0)\""
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

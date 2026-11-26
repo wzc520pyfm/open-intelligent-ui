@@ -56,8 +56,20 @@ for (const name of packages) {
   for (const file of ["README.md", "LICENSE", "NOTICE"]) {
     if (!existsSync(join(unpacked, file))) fail(`${file} is missing from the tarball`)
   }
-  if (existsSync(join(unpacked, "src"))) fail("src/ is in the tarball")
   if (JSON.stringify(manifest).includes("workspace:")) fail("a workspace: version was not rewritten")
+
+  // Scaffold CLIs ship templates and a bin, not a library dist/.
+  if (manifest.bin) {
+    for (const entry of Object.values(manifest.bin)) {
+      if (!existsSync(join(unpacked, entry))) fail(`bin ${entry} is not in the tarball`)
+    }
+    if (!existsSync(join(unpacked, "templates"))) fail("templates/ is missing from the tarball")
+    const files = execFileSync("tar", ["-tzf", tarball], { encoding: "utf8" }).trim().split("\n")
+    console.log(`${manifest.name}@${manifest.version}: ${files.length} files (scaffold)`)
+    continue
+  }
+
+  if (existsSync(join(unpacked, "src"))) fail("src/ is in the tarball")
 
   const targets = exportTargets(manifest.exports)
   if (targets.length === 0) fail("no exports")

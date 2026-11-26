@@ -6,6 +6,17 @@ icon: "rocket"
 
 把模型接到屏幕上需要三样东西：一份教模型写标记的系统提示词，一个把回复画出来的组件，以及界面用来访问你产品的几个回调。
 
+## 脚手架 [#scaffold]
+
+最快的路径是一个已经接好提示词、流式渲染、检查与修复循环的 Vite + React 应用：
+
+```bash
+npm create open-intelligent-ui@latest my-app
+cd my-app && npm install && npm run dev
+```
+
+写代码的智能体应加载 [`skills/integrate/SKILL.md`](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/skills/integrate/SKILL.md) 和仓库里的 [`llms.txt`](https://github.com/wzc520pyfm/open-intelligent-ui/blob/main/llms.txt)。**写标记的对话模型**只需要 `buildSystemPrompt(...)`。
+
 ## 安装 [#install]
 
 安装你所用框架的渲染器、core，以及渲染器所依赖的 UI SDK 包。

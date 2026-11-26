@@ -2,7 +2,7 @@
 
 [English](README.md) · [中文](README.zh-CN.md)
 
-Let agents create the interface. [UI SDK](https://ui-sdk.dev/docs) supplies the interaction standards (focus, keyboard, selection, popovers, and accessibility). The design system follows your [DESIGN.md](https://github.com/google-labs-code/design.md) (color, type, radius, spacing, and the rest). Your agent composes them into a surface and renders it — no catalog of prebuilt components required.
+Intelligent Generative UI without a component catalog — the model builds pages on [UI SDK](https://ui-sdk.dev/docs) and [DESIGN.md](https://github.com/google-labs-code/design.md).
 
 [Documentation](https://open-intelligent-ui.pages.dev/docs/) ([中文](https://open-intelligent-ui.pages.dev/docs/zh/)), with every example drawn live · [Playground](https://open-intelligent-ui.pages.dev/)
 

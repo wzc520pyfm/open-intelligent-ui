@@ -2,7 +2,7 @@
 
 [English](README.md) · 中文
 
-让智能体创作界面。[UI SDK](https://ui-sdk.dev/docs) 提供交互行为标准（包含焦点、键盘、选中、弹层和无障碍），设计系统遵照你提供的 [DESIGN.md](https://github.com/google-labs-code/design.md)（例如颜色、字体、圆角、间距等），你的 Agent 把它们组合成界面并渲染，整个过程无需预置任何组件。
+智能的生成式 UI 方案：无需预置组件，由模型基于 [UI SDK](https://ui-sdk.dev/docs) 与 [DESIGN.md](https://github.com/google-labs-code/design.md) 构建页面。
 
 [文档](https://open-intelligent-ui.pages.dev/docs/zh/)（[English](https://open-intelligent-ui.pages.dev/docs/)），每个例子都实时渲染 · [演示站](https://open-intelligent-ui.pages.dev/)
 

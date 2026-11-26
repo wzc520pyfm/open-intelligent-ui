@@ -1,7 +1,7 @@
 {
   "name": "open-intelligent-ui",
   "version": "0.5.0",
-  "description": "Open Intelligent UI: interfaces a model writes as markup. This package re-exports @open-intelligent-ui/core; the renderers are @open-intelligent-ui/react and friends.",
+  "description": "Intelligent Generative UI without a component catalog — the model builds pages on UI SDK and DESIGN.md. Re-exports @open-intelligent-ui/core; renderers are @open-intelligent-ui/react and friends.",
   "keywords": [
     "generative-ui",
     "intelligent-ui",

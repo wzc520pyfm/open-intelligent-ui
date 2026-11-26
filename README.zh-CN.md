@@ -6,7 +6,7 @@
 
 [文档](https://open-intelligent-ui.pages.dev/docs/zh/)（[English](https://open-intelligent-ui.pages.dev/docs/)），每个例子都实时渲染 · [演示站](https://open-intelligent-ui.pages.dev/)
 
-模型输出类似 MDX 的标记语法，渲染器边流边把它变成可以操作的界面。UI SDK 有 55 个控件的行为，模型按你的设计来组合。DESIGN.md 的令牌由模型解析为 CSS 变量，并随 prompt 进入系统提示词；你可以任意更换 DESIGN.md 来获得多套主题。动效来自设计系统里的动效令牌和一个 motion skill。界面、状态、事件和数据读写完全由模型创作。
+模型输出类似 MDX 的标记语法，渲染器边流边把它变成可以操作的界面。UI SDK 有 55 个控件的行为，模型按你的设计来组合。DESIGN.md 的令牌由 `parseDesign` / `designToCss` 写成 CSS 变量，其说明进入系统提示词；你可以任意更换 DESIGN.md 来获得多套主题。动效来自设计系统里的动效令牌和一个 motion skill。界面、状态、事件和数据读写完全由模型创作。
 
 | | |
 | --- | --- |

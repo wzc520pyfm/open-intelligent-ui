@@ -6,7 +6,7 @@ Let agents create the interface. [UI SDK](https://ui-sdk.dev/docs) supplies the 
 
 [Documentation](https://open-intelligent-ui.pages.dev/docs/) ([中文](https://open-intelligent-ui.pages.dev/docs/zh/)), with every example drawn live · [Playground](https://open-intelligent-ui.pages.dev/)
 
-The model writes MDX-like markup; the renderer turns that stream into a live interface. UI SDK gives the behavior of 55 widgets, and the model composes them in your design. DESIGN.md tokens are resolved into CSS variables and carried into the system prompt with the rest of the guidance — swap the DESIGN.md to get another theme. Motion comes from the design system's motion tokens and a motion skill. The interface, state, events, and data I/O are authored entirely by the model.
+The model writes MDX-like markup; the renderer turns that stream into a live interface. UI SDK gives the behavior of 55 widgets, and the model composes them in your design. `parseDesign` / `designToCss` turn DESIGN.md tokens into CSS variables, and the written guidance goes into the system prompt — swap the DESIGN.md to get another theme. Motion comes from the design system's motion tokens and a motion skill. The interface, state, events, and data I/O are authored entirely by the model.
 
 | | |
 | --- | --- |

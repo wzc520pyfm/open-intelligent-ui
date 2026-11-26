@@ -1,4 +1,4 @@
-# <img src="docs/images/logo-mark.png" alt="" width="40" height="40" /> Open Intelligent UI
+# <img src="docs/images/logo-mark.png" alt="" width="64" height="64" align="absmiddle" /> Open Intelligent UI
 
 [English](README.md) · [中文](README.zh-CN.md)
 

@@ -11,9 +11,10 @@ fit before changing code.
 | `pnpm install` | Install. Node 22 or later. |
 | `pnpm dev` | Playground at http://localhost:5173. Its renderer switch draws a reply with any of the five renderers. |
 | `pnpm dev:vue`, `dev:solid`, `dev:svelte`, `dev:web` | The same demos on one renderer alone, at http://localhost:5174, 5184, 5186 and 5188. |
+| `pnpm dev:docs` | The documentation site at http://localhost:5180/docs. |
 | `pnpm test` | All tests (Vitest). `npx vitest run <path>` for one file. |
 | `pnpm typecheck` | TypeScript, every package. |
-| `pnpm build` | Production build of the playground. |
+| `pnpm build` | Production build of the playground, with the documentation site under `/docs`. |
 | `pnpm generate` | Rebuild the UI SDK registry of every renderer, the catalog, the CSS and the icon tables from the installed packages. |
 | `pnpm generate:skills` | Rebuild `skills/**/references/` from the prompt guides. |
 | `pnpm design:lint` | Check `design/*.DESIGN.md` with the DESIGN.md CLI. |
@@ -68,7 +69,9 @@ semicolons, double quotes, two spaces.
   site's root (`/guide/start`, `/zh/guide/start`); tests hold the two
   languages to each other and follow every link. Its styles go in a cascade
   layer in `src/app/global.css`, so they stay out of generated surfaces. It
-  keeps its own TypeScript 6, which Next.js needs.
+  keeps its own TypeScript 6, which Next.js needs. The guides for the
+  installed Next.js are in `apps/docs/node_modules/next/dist/docs`; read the
+  one you need before changing how the app is built or routed.
 - `apps/playground/src/surface`: one small adapter per renderer, which is
   how the site draws a reply with a renderer that isn't React.
 - `apps/vue-demo`, `apps/solid-demo`, `apps/svelte-demo`, `apps/web-demo`:

@@ -16,6 +16,8 @@ export default withMDX({
   // `pnpm typecheck` checks this app, so a build doesn't do it a second time.
   typescript: { ignoreBuildErrors: true },
   env: { NEXT_PUBLIC_VERSION: core.version },
+  // The repository's AGENTS.md covers this app; `next dev` doesn't write one of its own.
+  agentRules: false,
   // Each language has its own document, so the page for a wrong address is a document of its own.
   experimental: { globalNotFound: true },
 })

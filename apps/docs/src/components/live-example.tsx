@@ -49,6 +49,8 @@ export function LiveExample(props: {
   const [open, setOpen] = useState(false)
   const timer = useRef<number | undefined>(undefined)
   const nextId = useRef(1)
+  /** The run on screen. Reset moves it on, so a tool from the previous renderer is ignored. */
+  const run = useRef(0)
 
   const note = useCallback((kind: string, text: string) => {
     setNotes((list) => [{ id: nextId.current++, kind, text }, ...list].slice(0, 4))
@@ -61,10 +63,11 @@ export function LiveExample(props: {
 
   const reset = useCallback(() => {
     stop()
+    run.current += 1
     setTools(createTicketTools(250))
     setNotes([])
     setShown(props.source)
-    setRound((value) => value + 1)
+    setRound(run.current)
   }, [props.source, stop])
 
   /** Feeds the markup in a few characters at a time, the way a model's reply arrives. */
@@ -95,9 +98,10 @@ export function LiveExample(props: {
 
   const onTool = useCallback(
     (event: ToolEvent) => {
+      if (round !== run.current) return
       if (event.status === "done" && event.kind === "write") note(words.called, event.tool)
     },
-    [note, words.called]
+    [round, note, words.called]
   )
 
   const onWarning = useCallback((message: string) => note(words.warned, message), [note, words.warned])

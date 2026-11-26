@@ -84,24 +84,8 @@ export function Picker<T extends string>(props: {
   )
 }
 
-/** Hamster mark (square). Pass `variant="full"` for the wordmark lockup. */
-export function Logo(props: { className?: string; variant?: "mark" | "full" }) {
-  const full = props.variant === "full"
-  if (full) {
-    return (
-      <img
-        src="/logo-full.png"
-        srcSet="/logo-full.png 931w"
-        sizes="min(100vw - 2rem, 28rem)"
-        width={420}
-        height={101}
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        className={["h-auto w-[min(100%,28rem)]", props.className].filter(Boolean).join(" ")}
-      />
-    )
-  }
+/** Hamster mark (square). */
+export function Logo(props: { className?: string }) {
   return (
     <img
       src="/logo-mark.png"

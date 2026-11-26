@@ -2,11 +2,11 @@
 
 [English](README.md) · [中文](README.zh-CN.md)
 
-Agents write the interface themselves. Focus, keyboard, selection, popovers and accessibility come from [UI SDK](https://ui-sdk.dev/docs) behaviors, and the look is not locked inside a component. Color, type, radius and spacing follow your [DESIGN.md](https://github.com/google-labs-code/design.md): tokens for the interface, written guidance for the model. A screen does not have to be turned into a component and filed in a catalog first.
+Let agents create the interface. [UI SDK](https://ui-sdk.dev/docs) supplies the interaction standards (focus, keyboard, selection, popovers, and accessibility). The design system follows your [DESIGN.md](https://github.com/google-labs-code/design.md) (color, type, radius, spacing, and the rest). Your agent composes them into a surface and renders it — no catalog of prebuilt components required.
 
-[Documentation](https://open-intelligent-ui.pages.dev/docs/) ([中文](https://open-intelligent-ui.pages.dev/docs/zh/)), with every example drawn live · [Playground](https://open-intelligent-ui.pages.dev)
+[Documentation](https://open-intelligent-ui.pages.dev/docs/) ([中文](https://open-intelligent-ui.pages.dev/docs/zh/)), with every example drawn live · [Playground](https://open-intelligent-ui.pages.dev/)
 
-The model writes Markdown mixed with tags. The renderer turns that stream into a live interface. UI SDK supplies the behavior of 55 widgets, so the model lays them out in your design and does not reimplement keyboard or screen-reader behavior. DESIGN.md tokens become CSS variables, and its guidance goes into the system prompt, so a different design changes both the picture and the model's choices. Motion comes from the design system's motion tokens and a motion skill. State, data I/O, and handing a decision back to the model are written in the markup.
+The model writes MDX-like markup; the renderer turns that stream into a live interface. UI SDK gives the behavior of 55 widgets, and the model composes them in your design. DESIGN.md tokens are resolved into CSS variables and carried into the system prompt with the rest of the guidance — swap the DESIGN.md to get another theme. Motion comes from the design system's motion tokens and a motion skill. The interface, state, events, and data I/O are authored entirely by the model.
 
 | | |
 | --- | --- |

@@ -2,11 +2,11 @@
 
 [English](README.md) · 中文
 
-智能体自己写界面。控件的焦点、键盘、选中、弹层和无障碍用 [UI SDK](https://ui-sdk.dev/docs) 现成的行为，外观不锁在组件里；颜色、字体、圆角、间距跟你的 [DESIGN.md](https://github.com/google-labs-code/design.md) 走，令牌给界面用，说明给模型读。屏幕不必先做成组件放进目录。
+让智能体创作界面。[UI SDK](https://ui-sdk.dev/docs) 提供交互行为标准（包含焦点、键盘、选中、弹层和无障碍），设计系统遵照你提供的 [DESIGN.md](https://github.com/google-labs-code/design.md)（例如颜色、字体、圆角、间距等），你的 Agent 把它们组合成界面并渲染，整个过程无需预置任何组件。
 
-[文档](https://open-intelligent-ui.pages.dev/docs/zh/)（[English](https://open-intelligent-ui.pages.dev/docs/)），每个例子都实时渲染 · [演示站](https://open-intelligent-ui.pages.dev)
+[文档](https://open-intelligent-ui.pages.dev/docs/zh/)（[English](https://open-intelligent-ui.pages.dev/docs/)），每个例子都实时渲染 · [演示站](https://open-intelligent-ui.pages.dev/)
 
-模型写 Markdown 加标签的标记，渲染器边流边把它变成可以操作的界面。UI SDK 有 55 个控件的行为，模型按你的设计来排，不用重写键盘和读屏该做的事。DESIGN.md 的令牌变成 CSS 变量，说明文字进入系统提示词，换一份设计时，画面和模型的判断一起换。动效来自设计系统里的动效令牌和一个 motion skill。状态、数据读写和把决定交还给模型，都写在标记里。
+模型输出类似 MDX 的标记语法，渲染器边流边把它变成可以操作的界面。UI SDK 有 55 个控件的行为，模型按你的设计来组合。DESIGN.md 的令牌由模型解析为 CSS 变量，并随 prompt 进入系统提示词；你可以任意更换 DESIGN.md 来获得多套主题。动效来自设计系统里的动效令牌和一个 motion skill。界面、状态、事件和数据读写完全由模型创作。
 
 | | |
 | --- | --- |

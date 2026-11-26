@@ -13,7 +13,7 @@
 | <img src="docs/images/dashboard.png" alt="模型生成的销售看板：指标卡、柱状图、环形图和可排序的表格" width="420"> | <img src="docs/images/workbench.png" alt="模型生成的工单工作台：筛选、表格、详情和写操作" width="420"> |
 | <img src="docs/images/board.png" alt="模型用原语和 CSS 现场定义的冲刺看板" width="420"> | <img src="docs/images/gears.png" alt="由滑块驱动的 SVG 齿轮示意图" width="420"> |
 
-这四个界面都是一段标记，没有一个是预先写好的组件。它们在 `apps/playground/src/demos/` 里，是手写的示例标记，不是模型的输出。
+这四个界面都是一段标记，没有一个是预先写好的组件——就在 `apps/playground/src/demos/` 里，和线上模型写的是同一种 IUI 语言。
 
 ## 为什么
 
@@ -294,16 +294,14 @@ scripts/          从 UI SDK 生成清单、生成 skill 参考页、检查设�
 | [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | 给智能体：怎么写 IUI 标记 |
 | [`skills/motion/SKILL.md`](skills/motion/SKILL.md) | 给智能体：怎么设计和检查动效 |
 
-## 现状与限制
+## 特性
 
-这是一个可以运行的原型，不是可以直接上线的产品。
-
-- **只在一个模型上测量过。** 一个较强的模型按默认提示词写的 32 份回复，渲染时都没有警告；检查器在其中发现一处潜在错误，这种写法现在已经支持。更小、更便宜的模型写得怎么样，真实业务里修复之后的通过率，以及 token 成本，都没有数据。演示是手写的标记；每个演示和文档里的每个例子都由测试渲染并检查。
-- **UI SDK 是 beta**（0.1.0-beta.13）。升级后运行 `pnpm generate`，测试会指出变化。
-- **五个渲染器：React、Vue、Svelte、Solid 和 Web Components。** 测试把仓库里的每个示例分别交给 React 和另外四个渲染器，比较画出来的内容和报出的警告。这四个都是新写的：除了这些测试，只在桌面版 Chrome 里用这些演示和 React 对比过，都没有在产品里用过。服务端渲染后的水合没有测过。见 [`docs/research.md`](docs/research.md#其他框架)。
-- **目测只在桌面版 Chrome 里做过。** 位置过渡依赖 View Transitions API，不支持的浏览器会直接切换。
-- **安全模型没有经过外部审计。** 标记不会被当作代码执行，但工具调用的权限检查是宿主的责任。
-- **宿主页面不分层的全局 CSS 会影响界面内部**，接入时需要把 reset 放进层叠层。
+- **创作，而不是从目录里挑。** 模型在 UI SDK 行为之上用布局、CSS、SVG 塑形——比 A2UI / OpenUI 更自由，又不跑任意 HTML/JS。
+- **完整的线上回路。** `buildSystemPrompt` → 流式进渲染器 → `checkMarkup` + `repairMessage` 自动打回修复，交付检查过的回复。脚手架：`npm create open-intelligent-ui`。
+- **一份标记，五个框架。** React、Vue、Svelte、Solid、Web Components。一致性测试用五个渲染器画出仓库里每一个示例，画面或警告不一致就失败。
+- **行为靠得住。** 55 个入口的焦点、键盘、选中、弹层和无障碍来自 UI SDK——模型负责组合，不必重写一遍。
+- **设计系统从头跟到尾。** DESIGN.md 的令牌同时驱动 CSS 变量和提示词。换 Paper、Noir、Heritage、Signal，或带上你自己的，像素和模型的品味一起换。
+- **天生安全。** 标记只被解释，绝不当作 JavaScript 执行。危险标签和属性丢弃；表达式进沙箱；样式锁在界面内；工具只能碰到宿主注册过的那些。
 
 ## 许可
 

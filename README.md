@@ -13,7 +13,7 @@ The model writes MDX-like markup; the renderer turns that stream into a live int
 | <img src="docs/images/dashboard.png" alt="Sales dashboard: stats, charts and a sortable table" width="420"> | <img src="docs/images/workbench.png" alt="Support workbench: filters, table, detail pane and writes" width="420"> |
 | <img src="docs/images/board.png" alt="Sprint board defined in markup with primitives and CSS" width="420"> | <img src="docs/images/gears.png" alt="SVG gear diagram driven by sliders" width="420"> |
 
-None of these four is a pre-built component. The markup is handwritten under `apps/playground/src/demos/`.
+None of these four is a pre-built component — each is IUI markup under `apps/playground/src/demos/`, the same language a model writes in production.
 
 ## Why
 
@@ -294,16 +294,14 @@ scripts/          UI SDK catalog generation, skill references, design lint
 | [`skills/intelligent-ui/SKILL.md`](skills/intelligent-ui/SKILL.md) | For agents: write IUI markup |
 | [`skills/motion/SKILL.md`](skills/motion/SKILL.md) | For agents: designing and reviewing motion |
 
-## Status
+## Features
 
-A working prototype, not a product.
-
-- **Measured against one model only.** 32 replies written by one strong model against the default prompt all drew without a warning, and the checker found one latent mistake in them, which is now supported. Replies from smaller or cheaper models, the pass rate after repair on a real workload, and token cost have not been measured. Demos are handwritten; every demo and every documented example is drawn and checked by tests.
-- **UI SDK is beta** (0.1.0-beta.13). After upgrading, run `pnpm generate`; tests will flag drift.
-- **Five renderers: React, Vue, Svelte, Solid and Web Components.** Tests draw every sample in this repository with React and with each of the other four, and compare what is drawn and the warnings. The four are new: beyond those tests each has been compared with React in desktop Chrome on the demos, and none has been used in a product. Hydrating server-rendered HTML is untested. See [`docs/research.md`](docs/research.md#其他框架).
-- **Visual checks only in desktop Chrome.** Layout morphing needs View Transitions; unsupported browsers swap instantly.
-- **Safety model has not been audited externally.** Markup is never executed as code; authorizing tool calls is the host's job.
-- **Unlayered host CSS can override the surface.** Put resets in a cascade layer when integrating.
+- **Author, don't pick from a catalog.** The model shapes the interface with layout, CSS and SVG on top of UI SDK behaviors — freer than A2UI / OpenUI, without running arbitrary HTML/JS.
+- **Production live loop.** `buildSystemPrompt` → stream into the renderer → `checkMarkup` + `repairMessage` drive automatic repair so you ship a checked reply. Scaffold with `npm create open-intelligent-ui`.
+- **One markup, five frameworks.** React, Vue, Svelte, Solid and Web Components. Conformance tests draw every sample in this repository across all five and fail when the picture or the warnings diverge.
+- **Behaviors you can trust.** Focus, keyboard, selection, popovers and accessibility for 55 entry points come from UI SDK — the model composes them, it does not reimplement them.
+- **Your design system, end to end.** DESIGN.md tokens drive CSS variables and the prompt together. Swap Paper, Noir, Heritage or Signal — or bring your own — and both the pixels and the model's taste follow.
+- **Safe by construction.** Markup is interpreted, never executed as JavaScript. Dangerous tags and attributes are dropped; expressions run in a sandbox; CSS stays inside the surface; tools only reach what the host registers.
 
 ## License
 

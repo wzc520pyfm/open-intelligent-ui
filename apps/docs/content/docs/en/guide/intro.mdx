@@ -8,7 +8,7 @@ Open Intelligent UI lets a model answer with an interface. The model writes Mark
 
 ## Where it sits [#where-it-sits]
 
-Catalog composition and a sandboxed page are the two shapes already in use.
+Two approaches are already in use: composing from a component catalog, and putting a whole page in a sandbox.
 
 | Approach | The model writes | What you get | What it costs |
 | --- | --- | --- | --- |
@@ -16,7 +16,7 @@ Catalog composition and a sandboxed page are the two shapes already in use.
 | A page (HTML and JavaScript in a sandbox) | Anything | Any shape | No design system, no real widget behavior, isolation to manage, hard to stream |
 | Open Intelligent UI | Markup that composes primitives, behaviors, drawings and your components | Any shape, in your design system, with real behavior | A language the model has to be taught, and a renderer to trust |
 
-The model is given parts, and it assembles the screen:
+Behavior and look are given to the model separately:
 
 | Foundation | What it gives the model |
 | --- | --- |

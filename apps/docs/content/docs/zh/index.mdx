@@ -41,14 +41,14 @@ icon: "layout-grid"
 
 - `<state>` 和 `<derive>` 分别是界面记住的东西，和由此算出来的东西。
 - `<Slider>` 是 UI SDK 的行为。`bind:value` 把它绑到状态上，所以拖动时句子、圆环和按钮一起更新，不需要调用模型。
-- 圆环不是组件，是模型自己画的 SVG，颜色和过渡时间用的是设计里的 token。
+- 圆环是模型自己画的 SVG，颜色和过渡时间用的是设计里的 token。
 - `send()` 把用户的决定连同他选的数字交回给模型。
 
 ## 你能得到什么 [#what-you-get]
 
 <Cards>
-  <Card icon="pen-tool" title="是写出来的，不是从目录里挑的" href="/zh/guide/markup">
-    模型用布局基础元素、55 个 UI SDK 行为、图表、内联 SVG 和带作用域的 CSS 来组合界面。它能做出什么，不受“有人注册过哪些组件”的限制。
+  <Card icon="pen-tool" title="用零件写出来" href="/zh/guide/markup">
+    模型用布局基础元素、55 个 UI SDK 行为、图表、内联 SVG 和带作用域的 CSS 来组合界面。注册过的组件只是这些材料里的一种。
   </Card>
   <Card icon="palette" title="用你的设计系统" href="/zh/guide/design">
     传入一份 DESIGN.md，可以是你自己的，也可以是为别的组件库写的。其中的 token 变成 CSS 变量，文字说明进入提示词。包里自带四套设计。

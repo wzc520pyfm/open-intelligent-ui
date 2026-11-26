@@ -167,8 +167,6 @@ function Reply(props: { text: string; streaming: boolean }) {
 ```
 
 
-A few things to know:
-
 - **Give it a width.** The surface is a size container and lays itself out for the space it gets, from a phone column to a full page.
 - **UI SDK components load on first use.** Call `preloadUiSdk()` early, or `preloadUiSdk("Tabs", "Dialog")`, if you want none of that wait.
 - **Server rendering.** Hydrating server-rendered output hasn't been tested. Draw the surface in the browser: `<ClientOnly>` in Nuxt, `clientOnly` in SolidStart, a client component in Next.js for the props that are functions.

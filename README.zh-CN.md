@@ -2,9 +2,9 @@
 
 [English](README.md) · 中文
 
-让智能体不是从组件库里挑选界面，而是创作界面。
+智能体用零件写界面。组件目录不再决定有哪些屏幕。
 
-**[文档](https://open-intelligent-ui.pages.dev/docs/zh/)**（[English](https://open-intelligent-ui.pages.dev/docs/)），每个例子都实时渲染 · **[演示站](https://open-intelligent-ui.pages.dev)**
+[文档](https://open-intelligent-ui.pages.dev/docs/zh/)（[English](https://open-intelligent-ui.pages.dev/docs/)），每个例子都实时渲染 · [演示站](https://open-intelligent-ui.pages.dev)
 
 模型写 Markdown 加标签的标记，渲染器边流边把它变成可以操作的界面。交互行为来自 [UI SDK](https://ui-sdk.dev/docs)，视觉来自一份 [DESIGN.md](https://github.com/google-labs-code/design.md)，动效来自设计系统里的动效令牌和一个 motion skill。状态、数据读写和把决定交还给模型，都由标记里的几种语法完成。
 
@@ -30,9 +30,9 @@ UI SDK 提供的是另一种东西：组件的行为（焦点、键盘、选中�
 
 ### 为什么不是 HTML？
 
-A2UI 和 OpenUI 都反对模型直接吐出一整页 HTML（往往还带着 JS，塞进 iframe）。我们同意——但必须单独说清：IUI **允许**白名单里的 HTML 和 SVG 当画材。我们反对的是那份契约本身：「模型写可执行的网页，宿主用沙箱兜着」。
+A2UI 和 OpenUI 都反对模型直接吐出一整页 HTML（往往还带着 JS，塞进 iframe）。这个判断在这里成立，要补上一句：IUI 允许白名单里的 HTML 和 SVG 当画材。我们反对的契约是：模型写可执行的网页，宿主用沙箱兜着。
 
-这份契约在几件事上同时垮掉：不靠隔离的安全、设计系统能不能跟进去、真正的控件行为（焦点、键盘、无障碍）、端侧状态和工具、半截树的流式渲染、以及跨框架落地。目录式 GenUI 用「只能用注册过的组件」修好了这些，却锁死了外形；开端 HTML/JS 放开外形，其余又丢回去。本方案占的是 A2UI 点过却没填的空档：比从目录组合更自由，又不执行任意代码。完整论证见 [`docs/research.md`](docs/research.md#为什么不是-html)。
+这份契约在几件事上同时垮掉：不靠隔离的安全、设计系统能不能跟进去、真正的控件行为（焦点、键盘、无障碍）、端侧状态和工具、半截树的流式渲染、以及跨框架落地。目录式 GenUI 用「只能用注册过的组件」修好了这些，却锁死了外形；开端 HTML/JS 放开外形，其余又丢回去。本方案比从目录组合更自由，又不执行任意代码。A2UI 标出过这个位置，没有给出做法。完整论证见 [`docs/research.md`](docs/research.md#为什么不是-html)。
 
 调研过程和取舍依据在 [`docs/research.md`](docs/research.md)，包括 UI SDK 兼容性的实测结果。
 

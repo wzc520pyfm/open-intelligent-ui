@@ -167,8 +167,6 @@ function Reply(props: { text: string; streaming: boolean }) {
 ```
 
 
-有几件事需要知道：
-
 - **给它一个宽度。** 这块界面是一个尺寸容器，会按拿到的空间自己排版，从手机的一栏到整页都可以。
 - **UI SDK 组件在第一次用到时才加载。** 如果不想有这段等待，尽早调用 `preloadUiSdk()`，或者 `preloadUiSdk("Tabs", "Dialog")`。
 - **服务端渲染。** 对服务端渲染结果做水合还没有测试过。请在浏览器里渲染：Nuxt 用 `<ClientOnly>`，SolidStart 用 `clientOnly`，Next.js 里因为有函数类型的 props，要放在客户端组件中。

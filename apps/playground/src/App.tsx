@@ -668,7 +668,7 @@ export function App() {
               </span>
               <Picker
                 label={copy.design}
-                className={mode === "live" ? "min-w-0 max-w-[6.5rem] sm:max-w-none" : undefined}
+                className={mode === "live" ? "min-w-0 max-w-[9.5rem] sm:max-w-none" : undefined}
                 value={themeId}
                 onChange={setThemeId}
                 options={THEMES.map((item) => ({ id: item.id, label: item.name }))}

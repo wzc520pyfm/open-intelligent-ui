@@ -102,6 +102,12 @@ export interface Copy {
   promptHint: (design: string, tokens: number) => string
   connectNote: string
   demoNote: string
+  /** Shown under a finished demo surface to steer people into LIVE. */
+  liveGuideTitlePrefix: string
+  liveGuideTitleAccent: string
+  liveGuideTitleSuffix: string
+  liveGuideBody: string
+  liveGuideAction: string
   providerOpenAI: string
   providerAnthropic: string
   providerDeepSeek: string
@@ -192,6 +198,11 @@ const en: Copy = {
   connectNote: "Connect a model above to get a reply.",
   demoNote:
     "In a live session this message goes back to the agent, together with the interface's state, and the agent answers with the next interface.",
+  liveGuideTitlePrefix: "Try it in ",
+  liveGuideTitleAccent: "Live Playground",
+  liveGuideTitleSuffix: "",
+  liveGuideBody: "Explore more interactive examples, customize the theme, and experience the full capabilities.",
+  liveGuideAction: "Open Playground",
   providerOpenAI: "OpenAI",
   providerAnthropic: "Anthropic",
   providerDeepSeek: "DeepSeek",
@@ -325,6 +336,11 @@ const zh: Copy = {
     `由语言指南、UI SDK、${design} DESIGN.md 和动效规则拼成的系统提示词。大约 ${tokens}k token。`,
   connectNote: "先在上方连接一个模型，才能得到回复。",
   demoNote: "在实时会话里，这条消息会连同界面状态一起交还给智能体，由它回答下一个界面。",
+  liveGuideTitlePrefix: "在 ",
+  liveGuideTitleAccent: "Live Playground",
+  liveGuideTitleSuffix: " 里试试",
+  liveGuideBody: "探索更多可交互示例，自定义主题，完整体验 Open Intelligent UI 的能力。",
+  liveGuideAction: "打开 Playground",
   providerOpenAI: "OpenAI",
   providerAnthropic: "Anthropic",
   providerDeepSeek: "DeepSeek",

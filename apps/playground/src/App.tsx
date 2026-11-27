@@ -26,6 +26,7 @@ import { THEMES } from "./themes"
 import { createTicketTools, TICKET_TOOLS } from "./tools"
 import { GitHubMark, Logo, Picker, Segmented } from "./ui/controls"
 import { Inspector, type LogEntry, type Panel } from "./ui/Inspector"
+import { LivePlaygroundPromo } from "./ui/LivePlaygroundPromo"
 import { LiveSettingsButton } from "./ui/LiveSettings"
 import { LIVE, Sidebar } from "./ui/Sidebar"
 
@@ -829,6 +830,19 @@ export function App() {
                         failed={copy.rendererFailed}
                         retry={copy.retry}
                       />
+                      {mode === "demos" &&
+                      streamingId === null &&
+                      turn.id === latestSurface?.id &&
+                      turn.text.trim() ? (
+                        <LivePlaygroundPromo
+                          titlePrefix={copy.liveGuideTitlePrefix}
+                          titleAccent={copy.liveGuideTitleAccent}
+                          titleSuffix={copy.liveGuideTitleSuffix}
+                          body={copy.liveGuideBody}
+                          action={copy.liveGuideAction}
+                          onOpen={() => select(LIVE)}
+                        />
+                      ) : null}
                     </div>
                   )
                 )}

@@ -147,3 +147,238 @@ body {
     transition: none;
   }
 }
+
+/* Contextual Live Playground promo under a finished demo surface. */
+@keyframes pg-live-promo-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pg-live-promo {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 96px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in oklab, var(--separator) 42%, transparent);
+  background:
+    radial-gradient(ellipse 38% 48% at 0% 0%, color-mix(in oklab, #a78bfa 7%, transparent), transparent 75%),
+    radial-gradient(ellipse 40% 50% at 100% 100%, color-mix(in oklab, var(--accent) 6%, transparent), transparent 74%),
+    color-mix(in oklab, var(--surface) 98%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 3%, transparent);
+  cursor: pointer;
+  outline: none;
+  animation: pg-live-promo-in 220ms cubic-bezier(0.2, 0, 0, 1) both;
+  transition:
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out,
+    background 200ms ease-out;
+}
+
+/* Corner-only luminous edge — keeps the mid-sides quiet. */
+.pg-live-promo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, #b794f6 40%, transparent) 0%,
+    transparent 18%,
+    transparent 82%,
+    color-mix(in oklab, var(--accent) 36%, transparent) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
+}
+
+.pg-live-promo:hover,
+.pg-live-promo:focus-visible {
+  border-color: color-mix(in oklab, var(--separator) 40%, var(--accent) 35%);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 6%, transparent);
+}
+
+.pg-live-promo:hover::after,
+.pg-live-promo:focus-visible::after {
+  opacity: 0.9;
+}
+
+.pg-live-promo-preview {
+  flex: 0 0 auto;
+  width: 228px;
+  height: 96px;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--separator) 80%, var(--accent) 20%);
+  background: color-mix(in oklab, var(--background-secondary) 80%, black 20%);
+}
+
+.pg-live-promo-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+.pg-live-promo-fallback {
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--accent) 22%, transparent), transparent 60%),
+    color-mix(in oklab, var(--background-secondary) 70%, black 30%);
+}
+
+.pg-live-promo-content {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.pg-live-promo-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pg-live-promo-spark {
+  flex: 0 0 auto;
+  display: block;
+  filter: drop-shadow(0 0 4px color-mix(in oklab, #f5c84a 55%, transparent));
+}
+
+.pg-live-promo-accent {
+  color: var(--accent);
+}
+
+.pg-live-promo-body {
+  margin: 6px 0 0;
+  max-width: 36rem;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.pg-live-promo-action {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 168px;
+  padding-left: 8px;
+}
+
+.pg-live-promo-cta {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    filter 180ms ease-out,
+    transform 180ms ease-out;
+}
+
+.pg-live-promo-cta:hover {
+  filter: brightness(1.08);
+}
+
+.pg-live-promo-cta:active {
+  transform: translateY(1px);
+}
+
+.pg-live-promo-arrow {
+  display: inline-block;
+  transition: transform 180ms ease-out;
+}
+
+.pg-live-promo-cta:hover .pg-live-promo-arrow {
+  transform: translateX(3px);
+}
+
+@media (max-width: 720px) {
+  .pg-live-promo {
+    gap: 12px;
+    padding: 14px;
+    min-height: 0;
+  }
+
+  .pg-live-promo-preview {
+    width: 156px;
+    height: 68px;
+  }
+}
+
+@media (max-width: 520px) {
+  .pg-live-promo {
+    flex-wrap: wrap;
+  }
+
+  .pg-live-promo-preview {
+    display: none;
+  }
+
+  .pg-live-promo-title {
+    white-space: normal;
+  }
+
+  .pg-live-promo-action {
+    width: 100%;
+    min-width: 0;
+    padding-left: 0;
+  }
+
+  .pg-live-promo-cta {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-live-promo {
+    animation: none;
+  }
+
+  .pg-live-promo,
+  .pg-live-promo-cta,
+  .pg-live-promo-arrow {
+    transition: none;
+  }
+}

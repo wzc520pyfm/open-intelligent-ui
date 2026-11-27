@@ -65,10 +65,10 @@ export function Picker<T extends string>(props: {
         if (key !== null && !Array.isArray(key)) props.onChange(String(key) as T)
       }}
     >
-      <Select.Trigger className="min-h-8 gap-1.5 py-1 text-sm">
-        {props.bare ? null : <span className="hidden text-muted sm:inline">{props.label}</span>}
-        <Select.Value />
-        <Select.Indicator />
+      <Select.Trigger className="min-h-8 min-w-0 max-w-full gap-1.5 py-1 text-sm">
+        {props.bare ? null : <span className="hidden shrink-0 text-muted sm:inline">{props.label}</span>}
+        <Select.Value className="min-w-0 truncate" />
+        <Select.Indicator className="shrink-0" />
       </Select.Trigger>
       <Select.Popover>
         <ListBox>

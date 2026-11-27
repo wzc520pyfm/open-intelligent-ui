@@ -40,13 +40,12 @@ export function LiveSettingsButton(props: {
       <Button
         size="sm"
         variant={connected ? "secondary" : "primary"}
-        className="max-w-full min-w-0"
+        className="max-w-[11rem] min-w-0 sm:max-w-[14rem]"
         data-pg="model"
         aria-label={label}
       >
         <Settings2 className="size-3.5 shrink-0" aria-hidden="true" />
-        {/* Narrow LIVE: icon only so the toolbar does not scroll. */}
-        <span className="hidden truncate sm:inline">{label}</span>
+        <span className="min-w-0 truncate">{label}</span>
       </Button>
       <Popover.Content className="w-80" placement="bottom end">
         <Popover.Dialog className="flex flex-col gap-3">

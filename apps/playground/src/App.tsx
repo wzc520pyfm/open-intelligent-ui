@@ -633,16 +633,34 @@ export function App() {
         ) : null}
 
         <main className="@container flex min-w-0 flex-1 flex-col">
-          <div className="flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto border-b border-separator bg-background px-3 py-2 sm:flex-wrap sm:overflow-visible sm:px-4">
+          <div
+            className={
+              mode === "live"
+                ? "flex shrink-0 flex-nowrap items-center gap-2 overflow-x-hidden border-b border-separator bg-background px-3 py-2 sm:flex-wrap sm:overflow-visible sm:px-4"
+                : "flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto border-b border-separator bg-background px-3 py-2 sm:flex-wrap sm:overflow-visible sm:px-4"
+            }
+          >
             <Chip size="sm" variant="soft" color={streaming ? "accent" : "success"} className="order-1 shrink-0 self-center" data-pg="status" data-live={streaming}>
               {streaming ? <Spinner size="sm" color="current" className="size-3" /> : <Check className="size-3" aria-hidden="true" />}
               {status}
             </Chip>
             {/* Mobile/wide one-row: pickers sit right next to actions. sm–58rem: actions top, pickers below. */}
-            <div className="order-2 ml-auto flex shrink-0 flex-nowrap items-center justify-end gap-2 sm:order-3 sm:ml-0 sm:w-full sm:flex-none sm:flex-wrap sm:justify-start @[58rem]:order-2 @[58rem]:ml-0 @[58rem]:w-auto @[58rem]:min-w-0 @[58rem]:flex-1 @[58rem]:justify-end">
-              <span title={copy.rendererHint}>
+            <div
+              className={
+                mode === "live"
+                  ? "order-2 ml-auto flex min-w-0 flex-nowrap items-center justify-end gap-2 sm:order-3 sm:ml-0 sm:w-full sm:flex-none sm:flex-wrap sm:justify-start @[58rem]:order-2 @[58rem]:ml-0 @[58rem]:w-auto @[58rem]:min-w-0 @[58rem]:flex-1 @[58rem]:justify-end"
+                  : "order-2 ml-auto flex shrink-0 flex-nowrap items-center justify-end gap-2 sm:order-3 sm:ml-0 sm:w-full sm:flex-none sm:flex-wrap sm:justify-start @[58rem]:order-2 @[58rem]:ml-0 @[58rem]:w-auto @[58rem]:min-w-0 @[58rem]:flex-1 @[58rem]:justify-end"
+              }
+            >
+              {/* LIVE: below ~430px drop the renderer so Design + model keep room. */}
+              <span
+                title={copy.rendererHint}
+                className={mode === "live" ? "max-[431px]:hidden" : undefined}
+                data-pg="renderer"
+              >
                 <Picker
                   label={copy.renderer}
+                  className={mode === "live" ? "min-w-0 max-w-[7.5rem] sm:max-w-none" : undefined}
                   value={renderer}
                   onChange={chooseRenderer}
                   options={RENDERERS}
@@ -650,6 +668,7 @@ export function App() {
               </span>
               <Picker
                 label={copy.design}
+                className={mode === "live" ? "min-w-0 max-w-[9.5rem] sm:max-w-none" : undefined}
                 value={themeId}
                 onChange={setThemeId}
                 options={THEMES.map((item) => ({ id: item.id, label: item.name }))}
@@ -683,7 +702,13 @@ export function App() {
                 />
               ) : null}
             </div>
-            <div className="order-3 flex shrink-0 items-center gap-2 sm:order-2 sm:ml-auto sm:min-w-0 sm:max-w-full @[58rem]:order-3 @[58rem]:ml-0">
+            <div
+              className={
+                mode === "live"
+                  ? "order-3 flex min-w-0 items-center gap-2 sm:order-2 sm:ml-auto sm:max-w-full @[58rem]:order-3 @[58rem]:ml-0"
+                  : "order-3 flex shrink-0 items-center gap-2 sm:order-2 sm:ml-auto sm:min-w-0 sm:max-w-full @[58rem]:order-3 @[58rem]:ml-0"
+              }
+            >
               <Segmented
                 label={copy.width}
                 className="hidden shrink-0 sm:inline-flex"
@@ -720,12 +745,16 @@ export function App() {
             </div>
           </div>
 
-          <div className="pg-stage flex min-h-0 flex-1 flex-col">
+          <div className="pg-stage flex min-h-0 min-w-0 flex-1 flex-col" data-live={mode === "live" ? "" : undefined}>
             <ScrollShadow
               ref={thread}
               orientation="vertical"
               size={48}
-              className="min-h-0 flex-1 px-3 py-6 sm:px-6"
+              className={
+                mode === "live"
+                  ? "min-h-0 min-w-0 flex-1 overflow-x-hidden px-3 py-6 sm:px-6"
+                  : "min-h-0 flex-1 px-3 py-6 sm:px-6"
+              }
             >
               <div className="pg-column" data-width={width}>
                 {turns.length === 0 ? (
@@ -735,10 +764,20 @@ export function App() {
                       <span className="text-lg font-semibold tracking-tight">Open Intelligent UI</span>
                     </div>
                     <h2 className="text-2xl font-semibold tracking-tight text-balance">{copy.emptyTitle}</h2>
-                    <p className="text-sm leading-relaxed text-muted">{copy.emptyBody(theme.name)}</p>
-                    <div className="mt-3 flex flex-wrap justify-center gap-2">
+                    <p className="text-sm leading-relaxed text-muted text-balance">{copy.emptyBody(theme.name)}</p>
+                    <div className="mt-3 flex w-full max-w-full flex-wrap justify-center gap-2">
                       {copy.suggest.map((text) => (
-                        <Button key={text} size="sm" variant="outline" className="bg-background" onPress={() => say(text)}>
+                        <Button
+                          key={text}
+                          size="sm"
+                          variant="outline"
+                          className={
+                            mode === "live"
+                              ? "max-w-full whitespace-normal bg-background text-left h-auto! py-1.5"
+                              : "bg-background"
+                          }
+                          onPress={() => say(text)}
+                        >
                           {text}
                         </Button>
                       ))}

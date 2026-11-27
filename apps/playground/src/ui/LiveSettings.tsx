@@ -3,6 +3,7 @@ import { Settings2 } from "lucide-react"
 import type { Copy } from "../i18n"
 import { type LiveSettings, type ProviderId, PROVIDERS, providerById } from "../live"
 import { Picker } from "./controls"
+import { ProviderMark } from "./provider-marks"
 
 export function providerLabel(copy: Copy, id: ProviderId): string {
   if (id === "openai") return copy.providerOpenAI
@@ -22,7 +23,10 @@ export function LiveSettingsButton(props: {
   const { copy, live } = props
   const custom = live.provider === "custom"
   const connected = Boolean(live.model && live.apiKey)
-  const label = connected ? `${providerLabel(copy, live.provider)} · ${live.model}` : copy.connectModel
+  const vendor = providerLabel(copy, live.provider)
+  // Button shows logo + model; aria keeps the vendor name for assistive tech.
+  const label = connected ? `${vendor} · ${live.model}` : copy.connectModel
+  const visible = connected ? live.model : copy.connectModel
 
   const choose = (id: ProviderId) => {
     const preset = providerById(id)
@@ -40,12 +44,16 @@ export function LiveSettingsButton(props: {
       <Button
         size="sm"
         variant={connected ? "secondary" : "primary"}
-        className="max-w-full min-w-0"
+        className="max-w-[15rem] min-w-0 sm:max-w-[18rem]"
         data-pg="model"
         aria-label={label}
       >
-        <Settings2 className="size-3.5 shrink-0" aria-hidden="true" />
-        <span className="truncate">{label}</span>
+        {connected ? (
+          <ProviderMark id={live.provider} />
+        ) : (
+          <Settings2 className="size-3.5 shrink-0" aria-hidden="true" />
+        )}
+        <span className="min-w-0 truncate">{visible}</span>
       </Button>
       <Popover.Content className="w-80" placement="bottom end">
         <Popover.Dialog className="flex flex-col gap-3">

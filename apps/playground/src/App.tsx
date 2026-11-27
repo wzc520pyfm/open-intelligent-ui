@@ -12,6 +12,7 @@ import {
   PanelRight,
   RotateCcw,
   Smartphone,
+  Sparkles,
   Square,
   Sun,
 } from "lucide-react"
@@ -829,6 +830,28 @@ export function App() {
                         failed={copy.rendererFailed}
                         retry={copy.retry}
                       />
+                      {mode === "demos" &&
+                      streamingId === null &&
+                      turn.id === latestSurface?.id &&
+                      turn.text.trim() ? (
+                        <div
+                          data-pg="live-guide"
+                          className="flex flex-col gap-3 rounded-2xl border border-separator bg-background px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground">{copy.liveGuideTitle}</p>
+                            <p className="mt-0.5 text-xs leading-relaxed text-muted">{copy.liveGuideBody}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="shrink-0 self-start sm:self-center"
+                            onPress={() => select(LIVE)}
+                          >
+                            <Sparkles className="size-3.5" aria-hidden="true" />
+                            {copy.liveGuideAction}
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
                   )
                 )}

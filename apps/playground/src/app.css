@@ -32,6 +32,38 @@ body {
   background-size: 22px 22px;
 }
 
+/* LIVE only: keep the thread from forcing a page-wide horizontal scrollbar. */
+.pg-stage[data-live] {
+  overflow-x: clip;
+  min-width: 0;
+}
+
+.pg-stage[data-live] .pg-column {
+  min-width: 0;
+  max-width: min(100%, 780px);
+}
+
+.pg-stage[data-live] .pg-column[data-width="phone"] {
+  max-width: min(100%, 390px);
+}
+
+.pg-stage[data-live] .pg-column[data-width="wide"] {
+  max-width: min(100%, 1120px);
+}
+
+.pg-stage[data-live] [data-pg="user"],
+.pg-stage[data-live] [data-pg="note"] {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pg-stage[data-live] .pg-surface {
+  max-width: 100%;
+  min-width: 0;
+  /* Wide markup stays inside the card instead of widening the page. */
+  overflow-x: auto;
+}
+
 .pg-column {
   display: flex;
   flex-direction: column;

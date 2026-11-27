@@ -1,4 +1,3 @@
-import { ExternalLink } from "lucide-react"
 import { useId, useState, type KeyboardEvent, type MouseEvent } from "react"
 
 /** Configurable target for the promo CTA. Prefer `onOpen` in-app; `href` for an external tab. */
@@ -58,53 +57,45 @@ function PromoSparks(props: { className?: string }) {
   )
 }
 
-/** Soft hand-drawn purple arrow pointing at the CTA. */
+/** Soft hand-drawn purple arrow pointing at the CTA — one continuous curve. */
 function PromoCurveArrow(props: { className?: string }) {
   const id = useId().replace(/:/g, "")
   const stroke = `pg-promo-curve-${id}`
   const fill = `pg-promo-curve-fill-${id}`
   return (
     <svg
-      viewBox="0 0 120 72"
-      width="120"
-      height="72"
+      viewBox="0 0 132 78"
+      width="132"
+      height="78"
       className={props.className}
       fill="none"
       aria-hidden="true"
     >
+      {/* Continuous curve + filled tip so the stroke never looks broken. */}
       <path
-        d="M8 54c18-2 34-18 42-34 6-12 18-22 36-24"
+        d="M14 58C30 55 42 38 52 24C62 10 80 5 104 10C110 11.2 115 14.5 119 19"
         stroke={`url(#${stroke})`}
-        strokeWidth="1.6"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
-        d="M74 8c6 1 12 4 14 8"
-        stroke={`url(#${stroke})`}
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <path
-        d="M86 4l6 10-11 1"
-        stroke={`url(#${stroke})`}
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M18 58l1.2 3.8 3.8 1.2-3.8 1.2L18 68l-1.2-3.8-3.8-1.2 3.8-1.2L18 58Z"
+        d="M111.5 12.5 124 21.5 113.5 27Z"
         fill={`url(#${fill})`}
-        opacity="0.9"
+      />
+      <path
+        d="M16 62.5l1.15 3.55 3.55 1.15-3.55 1.15L16 71.9l-1.15-3.55-3.55-1.15 3.55-1.15L16 62.5Z"
+        fill={`url(#${fill})`}
+        opacity="0.95"
       />
       <defs>
-        <linearGradient id={stroke} x1="8" y1="54" x2="96" y2="4" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#B57CFF" stopOpacity="0.35" />
-          <stop offset="0.55" stopColor="#9B6CFF" stopOpacity="0.85" />
-          <stop offset="1" stopColor="#7C5CFF" />
+        <linearGradient id={stroke} x1="14" y1="58" x2="122" y2="12" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#C9A0FF" stopOpacity="0.45" />
+          <stop offset="0.45" stopColor="#A87CFF" stopOpacity="0.9" />
+          <stop offset="1" stopColor="#8B6CFF" />
         </linearGradient>
-        <linearGradient id={fill} x1="14" y1="58" x2="24" y2="68" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#C9A0FF" />
+        <linearGradient id={fill} x1="12" y1="62" x2="22" y2="72" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#D4B4FF" />
           <stop offset="1" stopColor="#8B6CFF" />
         </linearGradient>
       </defs>
@@ -189,7 +180,6 @@ export function LivePlaygroundPromo(props: LivePlaygroundPromoProps) {
             open()
           }}
         >
-          <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
           <span>{props.action}</span>
           <span className="pg-live-promo-arrow" aria-hidden="true">
             →

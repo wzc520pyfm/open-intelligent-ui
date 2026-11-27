@@ -58,45 +58,42 @@ function PromoSparks(props: { className?: string }) {
 }
 
 /**
- * Sketch-style purple arrow: one continuous stroke + open tip + spark near the tail.
+ * Reference swoosh: steep rising stroke into a small open tip, spark near tip.
  */
 function PromoCurveArrow(props: { className?: string }) {
   const id = useId().replace(/:/g, "")
   const stroke = `pg-promo-curve-${id}`
   return (
     <svg
-      viewBox="0 0 112 68"
-      width="112"
-      height="68"
+      viewBox="0 0 72 64"
+      width="72"
+      height="64"
       className={props.className}
       fill="none"
       aria-hidden="true"
     >
-      {/* Low, gentle arc into the CTA — open tip, same stroke. */}
       <path
-        d="M10 44C26 42 40 28 55 20C70 12 86 14 98 24"
+        d="M8 50C20 46 30 28 40 16C46 8 54 6 62 14"
         stroke={`url(#${stroke})`}
-        strokeWidth="1.7"
+        strokeWidth="1.65"
+        strokeLinecap="round"
+      />
+      <path
+        d="M55 7.5 62 14 54 20"
+        stroke={`url(#${stroke})`}
+        strokeWidth="1.65"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
-        d="M90 16.5 98 24 89.5 30"
-        stroke={`url(#${stroke})`}
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M18 36.5 18.9 39.2 21.6 40.1 18.9 41 18 43.7 17.1 41 14.4 40.1 17.1 39.2Z"
-        fill="#D8C0FF"
-        opacity="0.9"
+        d="M48 5 48.85 7.5 51.35 8.35 48.85 9.2 48 11.7 47.15 9.2 44.65 8.35 47.15 7.5Z"
+        fill="#D2C6FF"
       />
       <defs>
-        <linearGradient id={stroke} x1="12" y1="50" x2="101" y2="18" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#D4B8FF" stopOpacity="0.5" />
-          <stop offset="0.45" stopColor="#B88AFF" />
-          <stop offset="1" stopColor="#9B6AFF" />
+        <linearGradient id={stroke} x1="8" y1="50" x2="62" y2="8" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#7A68D4" stopOpacity="0.65" />
+          <stop offset="0.55" stopColor="#8F7CE6" />
+          <stop offset="1" stopColor="#A494F4" />
         </linearGradient>
       </defs>
     </svg>

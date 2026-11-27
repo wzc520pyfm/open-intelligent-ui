@@ -291,19 +291,20 @@ body {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  min-width: 168px;
-  padding-left: 8px;
+  min-width: 220px;
+  /* Gutter for the doodle — keep it clear of body copy. */
+  padding-left: 72px;
 }
 
 .pg-live-promo-curve {
   position: absolute;
-  right: 128px;
-  bottom: 8px;
-  width: 104px;
-  height: 62px;
+  left: 2px;
+  top: -2px;
+  width: 72px;
+  height: 60px;
   pointer-events: none;
-  opacity: 0.88;
-  filter: drop-shadow(0 0 3px color-mix(in oklab, #a87cff 18%, transparent));
+  opacity: 0.95;
+  filter: drop-shadow(0 0 3px color-mix(in oklab, #7b6ad8 18%, transparent));
 }
 
 .pg-live-promo-cta {
@@ -356,10 +357,16 @@ body {
     height: 68px;
   }
 
+  .pg-live-promo-action {
+    min-width: 200px;
+    padding-left: 64px;
+  }
+
   .pg-live-promo-curve {
-    right: 108px;
-    width: 88px;
-    height: 54px;
+    left: 2px;
+    top: 0;
+    width: 64px;
+    height: 44px;
   }
 }
 

@@ -57,46 +57,47 @@ function PromoSparks(props: { className?: string }) {
   )
 }
 
-/** Soft hand-drawn purple arrow pointing at the CTA — one continuous curve. */
+/**
+ * Reference-style purple swoosh: one smooth stroke into an open chevron head,
+ * plus a small spark near the crest.
+ */
 function PromoCurveArrow(props: { className?: string }) {
   const id = useId().replace(/:/g, "")
   const stroke = `pg-promo-curve-${id}`
-  const fill = `pg-promo-curve-fill-${id}`
   return (
     <svg
-      viewBox="0 0 132 78"
-      width="132"
-      height="78"
+      viewBox="0 0 140 86"
+      width="140"
+      height="86"
       className={props.className}
       fill="none"
       aria-hidden="true"
     >
-      {/* Continuous curve + filled tip so the stroke never looks broken. */}
       <path
-        d="M14 58C30 55 42 38 52 24C62 10 80 5 104 10C110 11.2 115 14.5 119 19"
+        d="M18 64C36 60 48 36 62 22C76 8 96 6 118 22"
         stroke={`url(#${stroke})`}
-        strokeWidth="1.8"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Open arrowhead attached at the tip — not a separate abstract mark. */}
+      <path
+        d="M108 14.5 118 22 107 29"
+        stroke={`url(#${stroke})`}
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
-        d="M111.5 12.5 124 21.5 113.5 27Z"
-        fill={`url(#${fill})`}
-      />
-      <path
-        d="M16 62.5l1.15 3.55 3.55 1.15-3.55 1.15L16 71.9l-1.15-3.55-3.55-1.15 3.55-1.15L16 62.5Z"
-        fill={`url(#${fill})`}
+        d="M52 18.5 53.2 22.2 56.9 23.4 53.2 24.6 52 28.3 50.8 24.6 47.1 23.4 50.8 22.2Z"
+        fill="#C4A6FF"
         opacity="0.95"
       />
       <defs>
-        <linearGradient id={stroke} x1="14" y1="58" x2="122" y2="12" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#C9A0FF" stopOpacity="0.45" />
-          <stop offset="0.45" stopColor="#A87CFF" stopOpacity="0.9" />
-          <stop offset="1" stopColor="#8B6CFF" />
-        </linearGradient>
-        <linearGradient id={fill} x1="12" y1="62" x2="22" y2="72" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#D4B4FF" />
-          <stop offset="1" stopColor="#8B6CFF" />
+        <linearGradient id={stroke} x1="18" y1="64" x2="118" y2="16" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#D7B8FF" stopOpacity="0.55" />
+          <stop offset="0.5" stopColor="#B48AFF" />
+          <stop offset="1" stopColor="#9B6CFF" />
         </linearGradient>
       </defs>
     </svg>

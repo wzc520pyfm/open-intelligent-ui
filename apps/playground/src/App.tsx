@@ -12,7 +12,6 @@ import {
   PanelRight,
   RotateCcw,
   Smartphone,
-  Sparkles,
   Square,
   Sun,
 } from "lucide-react"
@@ -27,6 +26,7 @@ import { THEMES } from "./themes"
 import { createTicketTools, TICKET_TOOLS } from "./tools"
 import { GitHubMark, Logo, Picker, Segmented } from "./ui/controls"
 import { Inspector, type LogEntry, type Panel } from "./ui/Inspector"
+import { LivePlaygroundPromo } from "./ui/LivePlaygroundPromo"
 import { LiveSettingsButton } from "./ui/LiveSettings"
 import { LIVE, Sidebar } from "./ui/Sidebar"
 
@@ -834,23 +834,14 @@ export function App() {
                       streamingId === null &&
                       turn.id === latestSurface?.id &&
                       turn.text.trim() ? (
-                        <div
-                          data-pg="live-guide"
-                          className="flex flex-col gap-3 rounded-2xl border border-separator bg-background px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-foreground">{copy.liveGuideTitle}</p>
-                            <p className="mt-0.5 text-xs leading-relaxed text-muted">{copy.liveGuideBody}</p>
-                          </div>
-                          <Button
-                            size="sm"
-                            className="shrink-0 self-start sm:self-center"
-                            onPress={() => select(LIVE)}
-                          >
-                            <Sparkles className="size-3.5" aria-hidden="true" />
-                            {copy.liveGuideAction}
-                          </Button>
-                        </div>
+                        <LivePlaygroundPromo
+                          titlePrefix={copy.liveGuideTitlePrefix}
+                          titleAccent={copy.liveGuideTitleAccent}
+                          titleSuffix={copy.liveGuideTitleSuffix}
+                          body={copy.liveGuideBody}
+                          action={copy.liveGuideAction}
+                          onOpen={() => select(LIVE)}
+                        />
                       ) : null}
                     </div>
                   )

@@ -103,7 +103,9 @@ export interface Copy {
   connectNote: string
   demoNote: string
   /** Shown under a finished demo surface to steer people into LIVE. */
-  liveGuideTitle: string
+  liveGuideTitlePrefix: string
+  liveGuideTitleAccent: string
+  liveGuideTitleSuffix: string
   liveGuideBody: string
   liveGuideAction: string
   providerOpenAI: string
@@ -196,9 +198,12 @@ const en: Copy = {
   connectNote: "Connect a model above to get a reply.",
   demoNote:
     "In a live session this message goes back to the agent, together with the interface's state, and the agent answers with the next interface.",
-  liveGuideTitle: "Try this with your own model",
-  liveGuideBody: "Open LIVE, connect a key, and ask for an interface — it streams in as the model writes.",
-  liveGuideAction: "Open LIVE",
+  liveGuideTitlePrefix: "Take it further with ",
+  liveGuideTitleAccent: "Live Playground",
+  liveGuideTitleSuffix: "",
+  liveGuideBody:
+    "Explore interactive examples, customize your UI, and discover what's possible with Open Intelligent UI.",
+  liveGuideAction: "Open Playground",
   providerOpenAI: "OpenAI",
   providerAnthropic: "Anthropic",
   providerDeepSeek: "DeepSeek",
@@ -332,9 +337,11 @@ const zh: Copy = {
     `由语言指南、UI SDK、${design} DESIGN.md 和动效规则拼成的系统提示词。大约 ${tokens}k token。`,
   connectNote: "先在上方连接一个模型，才能得到回复。",
   demoNote: "在实时会话里，这条消息会连同界面状态一起交还给智能体，由它回答下一个界面。",
-  liveGuideTitle: "用自己的模型试一把",
-  liveGuideBody: "打开 LIVE，接上密钥，自己问一句——界面会随着模型写字一起长出来。",
-  liveGuideAction: "打开 LIVE",
+  liveGuideTitlePrefix: "在 ",
+  liveGuideTitleAccent: "Live Playground",
+  liveGuideTitleSuffix: " 里走得更远",
+  liveGuideBody: "探索更多可交互示例，切换设计与主题，亲手体验 Open Intelligent UI 能做到什么。",
+  liveGuideAction: "打开 Playground",
   providerOpenAI: "OpenAI",
   providerAnthropic: "Anthropic",
   providerDeepSeek: "DeepSeek",

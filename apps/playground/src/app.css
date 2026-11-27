@@ -291,20 +291,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  min-width: 220px;
-  /* Gutter for the doodle — keep it clear of body copy. */
-  padding-left: 72px;
-}
-
-.pg-live-promo-curve {
-  position: absolute;
-  left: 2px;
-  top: -2px;
-  width: 72px;
-  height: 60px;
-  pointer-events: none;
-  opacity: 0.95;
-  filter: drop-shadow(0 0 3px color-mix(in oklab, #7b6ad8 18%, transparent));
+  min-width: 168px;
+  padding-left: 8px;
 }
 
 .pg-live-promo-cta {
@@ -356,18 +344,6 @@ body {
     width: 156px;
     height: 68px;
   }
-
-  .pg-live-promo-action {
-    min-width: 200px;
-    padding-left: 64px;
-  }
-
-  .pg-live-promo-curve {
-    left: 2px;
-    top: 0;
-    width: 64px;
-    height: 44px;
-  }
 }
 
 @media (max-width: 520px) {
@@ -387,10 +363,6 @@ body {
     width: 100%;
     min-width: 0;
     padding-left: 0;
-  }
-
-  .pg-live-promo-curve {
-    display: none;
   }
 
   .pg-live-promo-cta {

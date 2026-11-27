@@ -58,51 +58,8 @@ function PromoSparks(props: { className?: string }) {
 }
 
 /**
- * Reference swoosh: steep rising stroke into a small open tip, spark near tip.
- */
-function PromoCurveArrow(props: { className?: string }) {
-  const id = useId().replace(/:/g, "")
-  const stroke = `pg-promo-curve-${id}`
-  return (
-    <svg
-      viewBox="0 0 72 64"
-      width="72"
-      height="64"
-      className={props.className}
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M8 50C20 46 30 28 40 16C46 8 54 6 62 14"
-        stroke={`url(#${stroke})`}
-        strokeWidth="1.65"
-        strokeLinecap="round"
-      />
-      <path
-        d="M55 7.5 62 14 54 20"
-        stroke={`url(#${stroke})`}
-        strokeWidth="1.65"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M48 5 48.85 7.5 51.35 8.35 48.85 9.2 48 11.7 47.15 9.2 44.65 8.35 47.15 7.5Z"
-        fill="#D2C6FF"
-      />
-      <defs>
-        <linearGradient id={stroke} x1="8" y1="50" x2="62" y2="8" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#7A68D4" stopOpacity="0.65" />
-          <stop offset="0.55" stopColor="#8F7CE6" />
-          <stop offset="1" stopColor="#A494F4" />
-        </linearGradient>
-      </defs>
-    </svg>
-  )
-}
-
-/**
  * Contextual promo under a finished demo surface — product-oriented, not a banner ad.
- * Layout: Preview | Content | Action (+ decorative curve).
+ * Layout: Preview | Content | Action.
  */
 export function LivePlaygroundPromo(props: LivePlaygroundPromoProps) {
   const previewSrc = props.previewSrc ?? LIVE_PLAYGROUND_PROMO.previewSrc
@@ -167,7 +124,6 @@ export function LivePlaygroundPromo(props: LivePlaygroundPromoProps) {
       </div>
 
       <div className="pg-live-promo-action">
-        <PromoCurveArrow className="pg-live-promo-curve" />
         <button
           type="button"
           data-pg="live-promo-cta"

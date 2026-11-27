@@ -161,7 +161,6 @@ body {
 }
 
 .pg-live-promo {
-  --pg-promo-border: color-mix(in oklab, var(--accent) 42%, transparent);
   position: relative;
   isolation: isolate;
   display: flex;
@@ -170,18 +169,12 @@ body {
   min-height: 96px;
   padding: 16px 18px;
   border-radius: 16px;
-  border: 1px solid var(--pg-promo-border);
+  border: 1px solid color-mix(in oklab, var(--separator) 42%, transparent);
   background:
-    /* Top-left purple halo */
-    radial-gradient(ellipse 70% 85% at 0% 0%, color-mix(in oklab, #9b6cff 26%, transparent), transparent 62%),
-    /* Bottom-right blue halo */
-    radial-gradient(ellipse 75% 90% at 100% 100%, color-mix(in oklab, var(--accent) 28%, transparent), transparent 60%),
-    color-mix(in oklab, var(--surface) 90%, #1a2240 10%);
-  box-shadow:
-    inset 0 1px 0 color-mix(in oklab, white 8%, transparent),
-    0 0 0 1px color-mix(in oklab, var(--accent) 18%, transparent),
-    0 0 22px color-mix(in oklab, var(--accent) 16%, transparent),
-    0 0 36px color-mix(in oklab, #8b6cff 10%, transparent);
+    radial-gradient(ellipse 38% 48% at 0% 0%, color-mix(in oklab, #a78bfa 7%, transparent), transparent 75%),
+    radial-gradient(ellipse 40% 50% at 100% 100%, color-mix(in oklab, var(--accent) 6%, transparent), transparent 74%),
+    color-mix(in oklab, var(--surface) 98%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 3%, transparent);
   cursor: pointer;
   outline: none;
   animation: pg-live-promo-in 220ms cubic-bezier(0.2, 0, 0, 1) both;
@@ -191,27 +184,38 @@ body {
     background 200ms ease-out;
 }
 
-.pg-live-promo::before {
+/* Corner-only luminous edge — keeps the mid-sides quiet. */
+.pg-live-promo::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
+  padding: 1px;
   pointer-events: none;
-  z-index: -1;
-  box-shadow:
-    inset 0 0 0 1px color-mix(in oklab, var(--accent) 22%, transparent),
-    inset 18px 14px 40px -18px color-mix(in oklab, #b48aff 22%, transparent),
-    inset -20px -16px 44px -18px color-mix(in oklab, var(--accent) 24%, transparent);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, #b794f6 40%, transparent) 0%,
+    transparent 18%,
+    transparent 82%,
+    color-mix(in oklab, var(--accent) 36%, transparent) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
 }
 
 .pg-live-promo:hover,
 .pg-live-promo:focus-visible {
-  --pg-promo-border: color-mix(in oklab, var(--accent) 62%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in oklab, white 10%, transparent),
-    0 0 0 1px color-mix(in oklab, var(--accent) 28%, transparent),
-    0 0 28px color-mix(in oklab, var(--accent) 22%, transparent),
-    0 0 42px color-mix(in oklab, #8b6cff 14%, transparent);
+  border-color: color-mix(in oklab, var(--separator) 40%, var(--accent) 35%);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 6%, transparent);
+}
+
+.pg-live-promo:hover::after,
+.pg-live-promo:focus-visible::after {
+  opacity: 0.9;
 }
 
 .pg-live-promo-preview {
@@ -293,13 +297,13 @@ body {
 
 .pg-live-promo-curve {
   position: absolute;
-  right: 102px;
-  bottom: -2px;
-  width: 132px;
-  height: 80px;
+  right: 128px;
+  bottom: 8px;
+  width: 104px;
+  height: 62px;
   pointer-events: none;
-  opacity: 1;
-  filter: drop-shadow(0 0 6px color-mix(in oklab, #a87cff 35%, transparent));
+  opacity: 0.88;
+  filter: drop-shadow(0 0 3px color-mix(in oklab, #a87cff 18%, transparent));
 }
 
 .pg-live-promo-cta {
@@ -353,9 +357,9 @@ body {
   }
 
   .pg-live-promo-curve {
-    right: 96px;
-    width: 96px;
-    height: 58px;
+    right: 108px;
+    width: 88px;
+    height: 54px;
   }
 }
 

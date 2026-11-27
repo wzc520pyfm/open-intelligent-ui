@@ -1,5 +1,5 @@
 import { ExternalLink } from "lucide-react"
-import { useState, type KeyboardEvent, type MouseEvent } from "react"
+import { useId, useState, type KeyboardEvent, type MouseEvent } from "react"
 
 /** Configurable target for the promo CTA. Prefer `onOpen` in-app; `href` for an external tab. */
 export const LIVE_PLAYGROUND_PROMO = {
@@ -20,9 +20,101 @@ export interface LivePlaygroundPromoProps {
   href?: string
 }
 
+/** Pair of shiny sparkles matching the reference promo. */
+function PromoSparks(props: { className?: string }) {
+  const id = useId().replace(/:/g, "")
+  const fill = `pg-promo-spark-${id}`
+  return (
+    <svg
+      viewBox="0 0 22 18"
+      width="18"
+      height="15"
+      className={props.className}
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M7.2 1.2 8.4 5.1l3.9 1.2-3.9 1.2-1.2 3.9-1.2-3.9L2.1 6.3l3.9-1.2L7.2 1.2Z"
+        fill={`url(#${fill})`}
+      />
+      <path
+        d="M16.4 0.6 17.2 3.2l2.6.8-2.6.8-.8 2.6-.8-2.6-2.6-.8 2.6-.8.8-2.6Z"
+        fill={`url(#${fill})`}
+        opacity="0.92"
+      />
+      <path
+        d="M18.8 9.2 19.3 10.9l1.7.5-1.7.5-.5 1.7-.5-1.7-1.7-.5 1.7-.5.5-1.7Z"
+        fill={`url(#${fill})`}
+        opacity="0.75"
+      />
+      <defs>
+        <linearGradient id={fill} x1="2" y1="1" x2="18" y2="14" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#FFE08A" />
+          <stop offset="0.55" stopColor="#F5C84A" />
+          <stop offset="1" stopColor="#E8A317" />
+        </linearGradient>
+      </defs>
+    </svg>
+  )
+}
+
+/** Soft hand-drawn purple arrow pointing at the CTA. */
+function PromoCurveArrow(props: { className?: string }) {
+  const id = useId().replace(/:/g, "")
+  const stroke = `pg-promo-curve-${id}`
+  const fill = `pg-promo-curve-fill-${id}`
+  return (
+    <svg
+      viewBox="0 0 120 72"
+      width="120"
+      height="72"
+      className={props.className}
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M8 54c18-2 34-18 42-34 6-12 18-22 36-24"
+        stroke={`url(#${stroke})`}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M74 8c6 1 12 4 14 8"
+        stroke={`url(#${stroke})`}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M86 4l6 10-11 1"
+        stroke={`url(#${stroke})`}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M18 58l1.2 3.8 3.8 1.2-3.8 1.2L18 68l-1.2-3.8-3.8-1.2 3.8-1.2L18 58Z"
+        fill={`url(#${fill})`}
+        opacity="0.9"
+      />
+      <defs>
+        <linearGradient id={stroke} x1="8" y1="54" x2="96" y2="4" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#B57CFF" stopOpacity="0.35" />
+          <stop offset="0.55" stopColor="#9B6CFF" stopOpacity="0.85" />
+          <stop offset="1" stopColor="#7C5CFF" />
+        </linearGradient>
+        <linearGradient id={fill} x1="14" y1="58" x2="24" y2="68" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#C9A0FF" />
+          <stop offset="1" stopColor="#8B6CFF" />
+        </linearGradient>
+      </defs>
+    </svg>
+  )
+}
+
 /**
  * Contextual promo under a finished demo surface — product-oriented, not a banner ad.
- * Layout: Preview | Content | Action.
+ * Layout: Preview | Content | Action (+ decorative curve).
  */
 export function LivePlaygroundPromo(props: LivePlaygroundPromoProps) {
   const previewSrc = props.previewSrc ?? LIVE_PLAYGROUND_PROMO.previewSrc
@@ -76,9 +168,7 @@ export function LivePlaygroundPromo(props: LivePlaygroundPromoProps) {
 
       <div className="pg-live-promo-content">
         <p className="pg-live-promo-title">
-          <span aria-hidden="true" className="pg-live-promo-spark">
-            ✦
-          </span>
+          <PromoSparks className="pg-live-promo-spark" />
           <span className="min-w-0 truncate">
             {props.titlePrefix}
             <span className="pg-live-promo-accent">{props.titleAccent}</span>
@@ -88,21 +178,24 @@ export function LivePlaygroundPromo(props: LivePlaygroundPromoProps) {
         <p className="pg-live-promo-body">{props.body}</p>
       </div>
 
-      <button
-        type="button"
-        data-pg="live-promo-cta"
-        className="pg-live-promo-cta"
-        onClick={(event) => {
-          event.stopPropagation()
-          open()
-        }}
-      >
-        <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
-        <span>{props.action}</span>
-        <span className="pg-live-promo-arrow" aria-hidden="true">
-          →
-        </span>
-      </button>
+      <div className="pg-live-promo-action">
+        <PromoCurveArrow className="pg-live-promo-curve" />
+        <button
+          type="button"
+          data-pg="live-promo-cta"
+          className="pg-live-promo-cta"
+          onClick={(event) => {
+            event.stopPropagation()
+            open()
+          }}
+        >
+          <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
+          <span>{props.action}</span>
+          <span className="pg-live-promo-arrow" aria-hidden="true">
+            →
+          </span>
+        </button>
+      </div>
     </div>
   )
 }

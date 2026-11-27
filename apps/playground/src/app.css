@@ -240,9 +240,8 @@ body {
 
 .pg-live-promo-spark {
   flex: 0 0 auto;
-  color: color-mix(in oklab, #f5d76e 80%, white 20%);
-  font-size: 14px;
-  line-height: 1;
+  display: block;
+  filter: drop-shadow(0 0 4px color-mix(in oklab, #f5c84a 55%, transparent));
 }
 
 .pg-live-promo-accent {
@@ -261,8 +260,29 @@ body {
   overflow: hidden;
 }
 
-.pg-live-promo-cta {
+.pg-live-promo-action {
+  position: relative;
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 168px;
+  padding-left: 8px;
+}
+
+.pg-live-promo-curve {
+  position: absolute;
+  right: 118px;
+  bottom: -6px;
+  width: 108px;
+  height: 64px;
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+.pg-live-promo-cta {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -309,6 +329,12 @@ body {
     width: 132px;
     height: 56px;
   }
+
+  .pg-live-promo-curve {
+    right: 100px;
+    width: 84px;
+    height: 52px;
+  }
 }
 
 @media (max-width: 520px) {
@@ -322,6 +348,16 @@ body {
 
   .pg-live-promo-title {
     white-space: normal;
+  }
+
+  .pg-live-promo-action {
+    width: 100%;
+    min-width: 0;
+    padding-left: 0;
+  }
+
+  .pg-live-promo-curve {
+    display: none;
   }
 
   .pg-live-promo-cta {

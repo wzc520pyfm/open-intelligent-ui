@@ -15,7 +15,7 @@ import {
   Square,
   Sun,
 } from "lucide-react"
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { DEMOS, type Demo } from "./demos"
 import { LOCALES, readLocale, t, writeLocale, type Locale } from "./i18n"
 import { CHARTS, type ChartsId, MOTIONS, type MotionId, useEngines } from "./library/engines"
@@ -177,11 +177,6 @@ export function App() {
   const [live, setLive] = useState<LiveSettings>(readLiveSettings)
   const [draft, setDraft] = useState("")
   const draftRef = useRef<HTMLTextAreaElement>(null)
-  const toolbarRef = useRef<HTMLDivElement>(null)
-  const rendererSlotRef = useRef<HTMLSpanElement>(null)
-  const rendererWidthRef = useRef(0)
-  /** LIVE only: hide the renderer picker when the toolbar would otherwise overflow. */
-  const [hideLiveRenderer, setHideLiveRenderer] = useState(false)
   const [useTools, setUseTools] = useState(true)
 
   const theme = THEMES.find((item) => item.id === themeId) ?? (THEMES[0] as (typeof THEMES)[number])
@@ -530,32 +525,6 @@ export function App() {
   const streaming = streamingId !== null
   const status = streaming ? (thinking ? copy.thinking : copy.writing) : copy.done
 
-  // LIVE toolbar: keep the renderer when it fits; hide it only when the row would overflow.
-  useLayoutEffect(() => {
-    if (mode !== "live") {
-      setHideLiveRenderer(false)
-      return
-    }
-    const row = toolbarRef.current
-    const slot = rendererSlotRef.current
-    if (!row || !slot) return
-
-    const update = () => {
-      if (!hideLiveRenderer) {
-        rendererWidthRef.current = slot.getBoundingClientRect().width
-        if (row.scrollWidth > row.clientWidth + 1) setHideLiveRenderer(true)
-        return
-      }
-      const free = row.clientWidth - row.scrollWidth
-      if (free >= rendererWidthRef.current + 8) setHideLiveRenderer(false)
-    }
-
-    const ro = new ResizeObserver(update)
-    ro.observe(row)
-    update()
-    return () => ro.disconnect()
-  }, [mode, hideLiveRenderer, status, renderer, themeId, live.model, live.provider, locale, streaming])
-
   const sidebar = (
     <Sidebar
       copy={copy}
@@ -665,7 +634,6 @@ export function App() {
 
         <main className="@container flex min-w-0 flex-1 flex-col">
           <div
-            ref={toolbarRef}
             className={
               mode === "live"
                 ? "flex shrink-0 flex-nowrap items-center gap-2 overflow-x-hidden border-b border-separator bg-background px-3 py-2 sm:flex-wrap sm:overflow-visible sm:px-4"
@@ -684,11 +652,10 @@ export function App() {
                   : "order-2 ml-auto flex shrink-0 flex-nowrap items-center justify-end gap-2 sm:order-3 sm:ml-0 sm:w-full sm:flex-none sm:flex-wrap sm:justify-start @[58rem]:order-2 @[58rem]:ml-0 @[58rem]:w-auto @[58rem]:min-w-0 @[58rem]:flex-1 @[58rem]:justify-end"
               }
             >
-              {/* LIVE: hide only when the toolbar would overflow; show again when there is room. */}
+              {/* LIVE: below ~430px drop the renderer so Design + model keep room. */}
               <span
-                ref={rendererSlotRef}
                 title={copy.rendererHint}
-                className={mode === "live" && hideLiveRenderer ? "hidden" : undefined}
+                className={mode === "live" ? "max-[431px]:hidden" : undefined}
                 data-pg="renderer"
               >
                 <Picker

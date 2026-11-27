@@ -40,7 +40,7 @@ export function LiveSettingsButton(props: {
       <Button
         size="sm"
         variant={connected ? "secondary" : "primary"}
-        className="max-w-[11rem] min-w-0 sm:max-w-[14rem]"
+        className="max-w-[15rem] min-w-0 sm:max-w-[18rem]"
         data-pg="model"
         aria-label={label}
       >

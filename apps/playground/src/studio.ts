@@ -550,22 +550,129 @@ export function modelMessages(
   })
 }
 
-/** A small page in the new design, so a file is visible before anyone asks for an interface. */
-export const SPECIMEN = `<box gap={4}>
-  <text size="2xl" weight="semibold">Northwind</text>
-  <text color="muted">A page in this design. Ask for an interface and it is drawn with these tokens.</text>
-  <row gap={3} wrap>
-    <card padding={4}>
-      <box gap={1}>
-        <text size="sm" color="muted">Collected</text>
-        <text size="xl" weight="semibold" tabular>$18,400</text>
-      </box>
-    </card>
-    <card padding={4}>
-      <row gap={2} wrap>
-        <Button variant="solid">Continue</Button>
-        <Button variant="ghost">Details</Button>
-      </row>
-    </card>
+/**
+ * A board and a form in the new design, so type, color, cards and controls
+ * are visible before anyone asks for an interface.
+ */
+export const SPECIMEN = `<state lanes={[{ id: "backlog", name: "Backlog" }, { id: "doing", name: "Doing" }, { id: "done", name: "Done" }]} draft="" who="" note="" lane="backlog" urgent={false} />
+<state cards={[
+  { id: 1, title: "Match the type in the reference", lane: "backlog", who: "Mina Park", urgent: false },
+  { id: 2, title: "Write the empty state", lane: "backlog", who: "Priya Nair", urgent: true },
+  { id: 3, title: "Token pass on buttons", lane: "doing", who: "Jonas Weber", urgent: false },
+  { id: 4, title: "Check the form in dark mode", lane: "doing", who: "Mina Park", urgent: true },
+  { id: 5, title: "Ship the specimen", lane: "done", who: "Priya Nair", urgent: false }
+]} />
+<derive done={cards.filter(c => c.lane == "done").length} open={cards.filter(c => c.lane != "done").length} urgentCount={cards.filter(c => c.urgent && c.lane != "done").length} />
+
+<define name="Ticket" props="card">
+  <card padding={3} gap={2}>
+    <row gap={2}>
+      <text size="sm" weight="medium">{card.title}</text>
+      {#if card.urgent}<badge color="danger">Urgent</badge>{/if}
+    </row>
+    {#if card.note}<text size="xs" color="muted">{card.note}</text>{/if}
+    <row gap={2} align="center">
+      <Avatar class="who"><AvatarFallback>{initials(card.who)}</AvatarFallback></Avatar>
+      <text size="xs" color="muted">{card.who}</text>
+      <spacer />
+      <Button size="sm" variant="ghost" aria-label="Move back" disabled={card.lane == "backlog"} on:click={card.lane = card.lane == "done" ? "doing" : "backlog"}><icon name="arrow-left" size="sm" /></Button>
+      <Button size="sm" variant="ghost" aria-label="Move forward" disabled={card.lane == "done"} on:click={card.lane = card.lane == "backlog" ? "doing" : "done"}><icon name="arrow-right" size="sm" /></Button>
+    </row>
+  </card>
+</define>
+
+<style>
+  .lane { background: var(--iui-color-muted); border-radius: var(--iui-radius-lg); min-height: 160px; }
+  .who { width: 22px; height: 22px; font-size: 10px; }
+  .lane-count { min-width: 1.25rem; text-align: center; }
+  .studio { display: grid; gap: 12px; align-items: start; }
+  .lanes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+  .fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  @container iui (width >= 960px) {
+    .studio { grid-template-columns: minmax(0, 1fr) minmax(240px, 300px); }
+    .fields { grid-template-columns: minmax(0, 1fr); }
+  }
+  @container iui (width < 520px) {
+    .lanes { grid-template-columns: minmax(0, 1fr); }
+    .fields { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+
+<row gap={3} wrap align="end">
+  <box gap={1}>
+    <title level={2}>Northwind</title>
+    <text size="sm" color="muted">A sprint board in this design. Move a card, or add one with the form.</text>
+  </box>
+  <spacer />
+  <row gap={4}>
+    <box gap={0}>
+      <text size="xs" color="muted">Open</text>
+      <text size="xl" weight="semibold" tabular>{open}</text>
+    </box>
+    <box gap={0}>
+      <text size="xs" color="muted">Urgent</text>
+      <text size="xl" weight="semibold" tabular color="danger">{urgentCount}</text>
+    </box>
+    <box gap={0}>
+      <text size="xs" color="muted">Done</text>
+      <text size="xl" weight="semibold" tabular>{done}</text>
+    </box>
   </row>
-</box>`
+</row>
+
+<Progress value={done} max={cards.length} aria-label="Cards done">
+  <ProgressTrack><ProgressIndicator /></ProgressTrack>
+</Progress>
+
+<div class="studio">
+<div class="lanes">
+  {#each lanes as column (column.id)}
+    <box class="lane" padding={2} gap={2}>
+      <row paddingX={1} align="center">
+        <text size="sm" weight="semibold">{column.name}</text>
+        <spacer />
+        <badge class="lane-count">{cards.filter(c => c.lane == column.id).length}</badge>
+      </row>
+      {#each cards.filter(c => c.lane == column.id) as card (card.id)}
+        <Ticket {card} />
+      {/each}
+    </box>
+  {/each}
+</div>
+
+<card padding={4} gap={3}>
+  <text weight="semibold">Add a card</text>
+  <div class="fields">
+    <Field>
+      <FieldLabel>Title</FieldLabel>
+      <Input bind:value={draft} placeholder="What needs doing?" />
+    </Field>
+    <Field>
+      <FieldLabel>Owner</FieldLabel>
+      <Input bind:value={who} placeholder="Name" />
+    </Field>
+  </div>
+  <Field>
+    <FieldLabel>Note</FieldLabel>
+    <Textarea bind:value={note} placeholder="Context for whoever picks it up" rows={2} />
+  </Field>
+  <row gap={3} wrap align="center">
+    <Select bind:value={lane}>
+      <SelectLabel>Lane</SelectLabel>
+      <SelectTrigger><SelectValue /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="backlog">Backlog</SelectItem>
+        <SelectItem value="doing">Doing</SelectItem>
+        <SelectItem value="done">Done</SelectItem>
+      </SelectContent>
+    </Select>
+    <row gap={2} align="center">
+      <Switch bind:checked={urgent} aria-label="Urgent"><SwitchThumb /></Switch>
+      <text size="sm">Urgent</text>
+    </row>
+    <spacer />
+    <Button variant="ghost" on:click={draft = ""; who = ""; note = ""; lane = "backlog"; urgent = false}>Clear</Button>
+    <Button variant="solid" disabled={draft == ""} on:click={cards.push({ id: uid(), title: draft, lane: lane, who: who == "" ? "You" : who, urgent: urgent, note: note }); draft = ""; note = ""}>Add card</Button>
+  </row>
+</card>
+</div>`

@@ -81,6 +81,15 @@ function attach() {
   fireEvent.change(input, { target: { files: [file] } })
 }
 
+test("the screenshot control sits before the message, away from send", () => {
+  render(<Harness />)
+  const attach = screen.getByRole("button", { name: "Attach a screenshot" })
+  const message = screen.getByRole("textbox", { name: "Message" })
+  const send = screen.getByRole("button", { name: "Send" })
+  expect(attach.compareDocumentPosition(message) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  expect(attach.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+})
+
 describe("a screenshot that is still converting", () => {
   beforeEach(() => {
     gate.pending.length = 0

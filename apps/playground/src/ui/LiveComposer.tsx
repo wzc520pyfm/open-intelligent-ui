@@ -1,5 +1,5 @@
 import { Button, InputGroup } from "@heroui/react"
-import { ArrowUp, ImagePlus, Square, X } from "lucide-react"
+import { ArrowUp, Plus, Square, X } from "lucide-react"
 import { useEffect, useRef, useState, type DragEvent, type RefObject } from "react"
 import type { Copy } from "../i18n"
 import { shotFromBlob, type Shot } from "../shot"
@@ -124,7 +124,33 @@ export function LiveComposer(props: {
             ) : null}
           </div>
         ) : null}
-        <InputGroup className="pg-composer w-full items-end! rounded-3xl border border-separator py-2 pr-2 pl-4 shadow-sm">
+        <InputGroup
+          className={`pg-composer w-full items-end! rounded-3xl border border-separator py-2 pr-2 shadow-sm ${live ? "pl-1.5" : "pl-4"}`}
+        >
+          {live ? (
+            <InputGroup.Prefix>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  event.target.value = ""
+                  if (file) void attach(file)
+                }}
+              />
+              <button
+                type="button"
+                className="pg-attach"
+                aria-label={copy.attachShot}
+                disabled={props.streaming}
+                onClick={() => fileRef.current?.click()}
+              >
+                <Plus className="size-4" strokeWidth={1.75} aria-hidden="true" />
+              </button>
+            </InputGroup.Prefix>
+          ) : null}
           <InputGroup.TextArea
             ref={props.draftRef}
             rows={1}
@@ -149,32 +175,6 @@ export function LiveComposer(props: {
             aria-label={copy.message}
           />
           <InputGroup.Suffix className="items-end! self-end gap-1 p-0!">
-            {live ? (
-              <>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
-                    event.target.value = ""
-                    if (file) void attach(file)
-                  }}
-                />
-                <Button
-                  isIconOnly
-                  size="sm"
-                  variant="ghost"
-                  className="size-8 min-w-8 rounded-full"
-                  aria-label={copy.attachShot}
-                  isDisabled={props.streaming}
-                  onPress={() => fileRef.current?.click()}
-                >
-                  <ImagePlus className="size-3.5" aria-hidden="true" />
-                </Button>
-              </>
-            ) : null}
             {props.streaming && live ? (
               <Button
                 isIconOnly

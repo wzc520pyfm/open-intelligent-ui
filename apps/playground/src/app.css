@@ -127,6 +127,45 @@ body {
   background-color: var(--surface);
 }
 
+/* The attach control sits in the field, before the placeholder. HeroUI's prefix is a bordered addon. */
+.pg-composer .input-group__prefix,
+.pg-composer:has([data-slot="input-group-textarea"]) .input-group__prefix {
+  align-self: flex-end;
+  align-items: center;
+  height: auto;
+  padding: 0;
+  border-width: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.pg-attach {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: color-mix(in oklab, var(--foreground) 58%, transparent);
+  cursor: pointer;
+}
+
+.pg-attach:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--foreground) 14%, var(--surface));
+  color: var(--foreground);
+}
+
+.pg-attach:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.pg-attach:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .pg-inspect {
   width: 0;
   opacity: 0;

@@ -1140,7 +1140,7 @@ export function App() {
             <ScrollShadow
               ref={thread}
               orientation="vertical"
-              size={48}
+              size={mode === "live" ? 72 : 48}
               className={
                 mode === "live"
                   ? "min-h-0 min-w-0 flex-1 overflow-x-hidden px-3 py-6 sm:px-6"

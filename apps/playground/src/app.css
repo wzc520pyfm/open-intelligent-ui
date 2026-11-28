@@ -43,6 +43,29 @@ body {
   max-width: min(100%, 780px);
 }
 
+/* The lane controls float on the scroll fade, which ends at the input. */
+.pg-stage[data-live] form .pg-column {
+  position: relative;
+}
+
+.pg-stage[data-live] .pg-lane-row {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  left: 0;
+  z-index: 2;
+  /* The empty stretch of the row lets the thread scroll; the controls stay clickable. */
+  pointer-events: none;
+}
+
+.pg-stage[data-live] .pg-lane-row :is(button, a, input) {
+  pointer-events: auto;
+}
+
+.pg-stage[data-live] .scroll-shadow {
+  padding-bottom: 4.5rem;
+}
+
 .pg-stage[data-live] .pg-column[data-width="phone"] {
   max-width: min(100%, 390px);
 }

@@ -91,7 +91,7 @@ export function LiveComposer(props: {
     >
       <div className="pg-column" data-width={props.width}>
         {live ? (
-          <div className="flex items-center gap-2">
+          <div className="pg-lane-row flex items-center gap-2">
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               <Segmented
               label={copy.laneLabel}

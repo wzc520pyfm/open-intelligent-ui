@@ -105,6 +105,22 @@ describe("a shared link", () => {
     expect(payload?.markup).toBeUndefined()
   })
 
+  test("keeps a shipped theme when the interface does not fit", async () => {
+    const bytes = new Uint8Array(60_000)
+    crypto.getRandomValues(bytes)
+    let markup = ""
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      markup += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+    }
+    const encoded = await encodeShare({ theme: "paper", markup })
+    expect(encoded?.markupOmitted).toBe(true)
+    const payload = await decodeShare(encoded?.param ?? "")
+    expect(payload?.theme).toBe("paper")
+    expect(payload?.design).toBeUndefined()
+    expect(payload?.markup).toBeUndefined()
+    expect(await encodeShare({})).toBeNull()
+  })
+
   test("rejects a parameter that is not a share", async () => {
     expect(await decodeShare("not a share")).toBeNull()
     expect(await decodeShare("")).toBeNull()
@@ -204,6 +220,11 @@ describe("a design the model has to fix", () => {
 describe("a screenshot file", () => {
   test("refuses what is not an image", async () => {
     expect(await shotFromBlob(new Blob(["hi"], { type: "text/plain" }))).toEqual({ ok: false, reason: "type" })
+  })
+
+  test("refuses bytes that are not a picture", async () => {
+    const result = await shotFromBlob(new Blob(["not a picture"], { type: "image/png" }))
+    expect(result).toEqual({ ok: false, reason: "read" })
   })
 
   test("reads a small PNG when it cannot be resized", async () => {

@@ -230,8 +230,8 @@ export function App() {
     : (THEMES.find((item) => item.id === themeId) ?? (THEMES[0] as (typeof THEMES)[number]))
   const liveTheme = useRef(query.live ? theme.id : (stored.designId ?? theme.id))
   const designBaseline = useRef<string | undefined>(undefined)
-  /** The design turn already saved, so editing it updates that file instead of forking one per keystroke. */
-  const appliedTurn = useRef<number | undefined>(undefined)
+  /** The saved design a turn produced. Edits update that file, not whatever the picker shows. */
+  const ownedDesign = useRef(new Map<number, string>())
   const designsRef = useRef(designs)
   designsRef.current = designs
   const themeIdRef = useRef(themeId)
@@ -575,13 +575,19 @@ export function App() {
     if (mode !== "live") return
     const latest = [...turns].reverse().find((turn) => turn.role === "design")
     const text = latest?.text ?? ""
+    const remember = () => {
+      if (!latest || !text || ownedDesign.current.has(latest.id)) return
+      const match = designsRef.current.find((item) => item.source === text)
+      if (match) ownedDesign.current.set(latest.id, match.id)
+    }
     if (designBaseline.current === undefined) {
       designBaseline.current = text
-      appliedTurn.current = latest?.id
+      remember()
       return
     }
-    if (streamingId !== null || text === designBaseline.current) {
-      if (appliedTurn.current === undefined) appliedTurn.current = latest?.id
+    if (streamingId !== null) return
+    if (text === designBaseline.current) {
+      remember()
       return
     }
     designBaseline.current = text
@@ -589,12 +595,10 @@ export function App() {
     const assessment = assessDesign(text)
     if (!assessment.usable) return
     const prompt = [...turns].reverse().find((turn) => turn.role === "user" && turn.lane === "design")?.text
-    const sameTurn = appliedTurn.current === latest.id
-    appliedTurn.current = latest.id
-    const currentId = themeIdRef.current
-    if (sameTurn && designsRef.current.some((item) => item.id === currentId)) {
+    const ownedId = ownedDesign.current.get(latest.id)
+    if (ownedId && designsRef.current.some((item) => item.id === ownedId)) {
       setDesigns((prev) => {
-        const current = prev.find((item) => item.id === currentId)
+        const current = prev.find((item) => item.id === ownedId)
         if (!current) return prev
         return upsertDesign(prev, {
           id: current.id,
@@ -606,6 +610,7 @@ export function App() {
       return
     }
     const id = designId(assessment.source)
+    ownedDesign.current.set(latest.id, id)
     setDesigns((prev) => upsertDesign(prev, { id, name: assessment.name, source: assessment.source, prompt }))
     setThemeId(id)
     liveTheme.current = id
@@ -625,15 +630,13 @@ export function App() {
         setTurns((list) => [...list, { id: nextId++, role: "note", text: copyRef.current.shareUnread }])
         return
       }
-      if (payload.design) {
+      if (!seen && payload.design) {
         const assessment = assessDesign(payload.design)
         if (assessment.usable) {
           const id = designId(assessment.source)
           setDesigns((prev) => upsertDesign(prev, { id, name: assessment.name, source: assessment.source }))
-          if (!seen) {
-            setThemeId(id)
-            liveTheme.current = id
-          }
+          setThemeId(id)
+          liveTheme.current = id
         }
       } else if (!seen && payload.theme && THEMES.some((item) => item.id === payload.theme)) {
         setThemeId(payload.theme)
@@ -729,7 +732,7 @@ export function App() {
       setLog([])
       setSurfaceState({})
       designBaseline.current = undefined
-      appliedTurn.current = undefined
+      ownedDesign.current = new Map()
       return
     }
     const next = DEMOS.find((item) => item.id === id)
@@ -792,7 +795,10 @@ export function App() {
     if (!encoded) return copyRef.current.shareTooBig
     const href = shareHref(window.location.href, encoded.param)
     const copied = await copyText(href)
-    if (copied) window.history.replaceState(null, "", href)
+    if (copied) {
+      window.history.replaceState(null, "", href)
+      markShareApplied(encoded.param)
+    }
     if (!copied) return href
     return encoded.markupOmitted ? copyRef.current.shareDesignOnly : copyRef.current.shareCopied
   }, [designs, theme.id])
@@ -835,28 +841,29 @@ export function App() {
           },
         ]
       })
+      const shipped = imported.theme && THEMES.some((item) => item.id === imported.theme) ? imported.theme : undefined
       if (!usable.length && !imported.markup) return copyRef.current.importFailed
       const first = usable[0]
       if (usable.length) {
         setDesigns((prev) => usable.reduce((list, design) => upsertDesign(list, design), prev))
-        if (first) {
-          setThemeId(first.id)
-          liveTheme.current = first.id
-          designBaseline.current = first.source
-        }
-      } else if (imported.theme && THEMES.some((item) => item.id === imported.theme)) {
-        setThemeId(imported.theme)
-        liveTheme.current = imported.theme
+      }
+      if (shipped) {
+        setThemeId(shipped)
+        liveTheme.current = shipped
         designBaseline.current = ""
+      } else if (first) {
+        setThemeId(first.id)
+        liveTheme.current = first.id
+        designBaseline.current = first.source
       }
       const next: Turn[] = [{ id: nextId++, role: "note", text: copyRef.current.imported }]
-      if (first) next.push({ id: nextId++, role: "design", text: first.source, lane: "design" })
+      if (!shipped && first) next.push({ id: nextId++, role: "design", text: first.source, lane: "design" })
       if (imported.markup) {
         next.push({ id: nextId++, role: "assistant", text: imported.markup, lane: "interface" })
       }
       stop()
       setMode("live")
-      setLane(usable.length ? "design" : "interface")
+      setLane(!shipped && usable.length ? "design" : imported.markup ? "interface" : "design")
       setTurns(next)
       setLog([])
       setSurfaceState({})
@@ -876,7 +883,7 @@ export function App() {
     setDraft("")
     setShot(null)
     designBaseline.current = ""
-    appliedTurn.current = undefined
+    ownedDesign.current = new Map()
     window.history.replaceState(null, "", shareHref(window.location.href, null))
   }
 

@@ -347,7 +347,7 @@ function wireFrom(payload: SharePayload): Wire | null {
   if (payload.design) wire.d = payload.design
   if (payload.theme && /^[a-z0-9-]{1,40}$/.test(payload.theme)) wire.t = payload.theme
   if (payload.markup) wire.m = payload.markup
-  if (!wire.d && !wire.m) return null
+  if (!wire.d && !wire.m && !wire.t) return null
   return wire
 }
 
@@ -457,7 +457,7 @@ export async function decodeShare(param: string): Promise<SharePayload | null> {
     const design = clip(wire.d, TEXT_LIMIT)
     const markup = clip(wire.m, TEXT_LIMIT)
     const theme = typeof wire.t === "string" && /^[a-z0-9-]{1,40}$/.test(wire.t) ? wire.t : undefined
-    if (!design && !markup) return null
+    if (!design && !markup && !theme) return null
     if (design && !design.includes("colors:")) return null
     return {
       ...(design ? { design } : null),

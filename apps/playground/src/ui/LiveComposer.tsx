@@ -32,6 +32,7 @@ export function LiveComposer(props: {
   const importRef = useRef<HTMLInputElement>(null)
   const [shotError, setShotError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
+  const shotAttempt = useRef(0)
   const live = props.mode === "live"
   const canSend = Boolean(props.draft.trim() || (live && props.shot))
 
@@ -42,7 +43,9 @@ export function LiveComposer(props: {
   }, [note])
 
   const attach = async (blob: Blob) => {
+    const attempt = ++shotAttempt.current
     const result = await shotFromBlob(blob)
+    if (attempt !== shotAttempt.current) return
     if (!result.ok) {
       setShotError(result.reason === "type" ? copy.shotType : result.reason === "size" ? copy.shotSize : copy.shotRead)
       return

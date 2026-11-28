@@ -54,6 +54,18 @@ export function LiveComposer(props: {
     props.onShot(result.shot)
   }
 
+  // A conversion still running must not put the picture back after the reader
+  // has removed it, started a new chat, or sent the message.
+  const cancelShot = () => {
+    shotAttempt.current += 1
+  }
+
+  const send = () => {
+    if (!canSend) return
+    cancelShot()
+    props.onSubmit()
+  }
+
   const onDrop = (event: DragEvent) => {
     if (!live) return
     const file = [...event.dataTransfer.files].find((item) => item.type.startsWith("image/"))
@@ -67,7 +79,7 @@ export function LiveComposer(props: {
       className="shrink-0 px-3 pb-3 sm:px-6"
       onSubmit={(event) => {
         event.preventDefault()
-        if (canSend) props.onSubmit()
+        send()
       }}
       onDragOver={(event) => {
         if (!live) return
@@ -101,7 +113,10 @@ export function LiveComposer(props: {
                   variant="ghost"
                   className="size-6 min-w-6"
                   aria-label={copy.removeShot}
-                  onPress={() => props.onShot(null)}
+                  onPress={() => {
+                    cancelShot()
+                    props.onShot(null)
+                  }}
                 >
                   <X className="size-3" aria-hidden="true" />
                 </Button>
@@ -127,7 +142,7 @@ export function LiveComposer(props: {
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                 event.preventDefault()
-                if (canSend) props.onSubmit()
+                send()
               }
             }}
             placeholder={live ? (props.lane === "design" ? copy.askDesign : copy.askInterface) : copy.replyAgent}
@@ -218,7 +233,15 @@ export function LiveComposer(props: {
               <Button size="sm" variant="ghost" data-pg="import" onPress={() => importRef.current?.click()}>
                 {copy.importStudio}
               </Button>
-              <Button size="sm" variant="ghost" data-pg="new-chat" onPress={props.onNew}>
+              <Button
+                size="sm"
+                variant="ghost"
+                data-pg="new-chat"
+                onPress={() => {
+                  cancelShot()
+                  props.onNew()
+                }}
+              >
                 {copy.newChat}
               </Button>
             </div>

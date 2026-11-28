@@ -570,8 +570,23 @@ export const SPECIMEN = `<state channel="all" query="" partners={true} goal={160
   { name: "Ridge Pack 40", channel: "partners", units: 2240, revenue: 291200, change: 0.31, status: "growing" },
   { name: "Merino Base", channel: "web", units: 5120, revenue: 256000, change: 0.02, status: "steady" }
 ]} />
+<style>
+  .mix {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+</style>
+
 <derive
-  take={m => channel == "all" ? (partners ? m.web + m.retail + m.partners : m.web + m.retail) : m[channel]}
+  take={m => channel == "all" || !partners && channel == "partners" ? (partners ? m.web + m.retail + m.partners : m.web + m.retail) : m[channel]}
   series={months.map(m => ({ month: m.month, value: take(m) }))}
   revenue={sumBy(series.slice(3), "value")}
   prior={sumBy(series.slice(0, 3), "value")}
@@ -598,7 +613,7 @@ export const SPECIMEN = `<state channel="all" query="" partners={true} goal={160
         <SelectItem value="all">All channels</SelectItem>
         <SelectItem value="web">Web</SelectItem>
         <SelectItem value="retail">Retail</SelectItem>
-        <SelectItem value="partners">Partners</SelectItem>
+        {#if partners}<SelectItem value="partners">Partners</SelectItem>{/if}
       </SelectContent>
     </Select>
     <Field>
@@ -656,12 +671,14 @@ export const SPECIMEN = `<state channel="all" query="" partners={true} goal={160
     <Chart type="donut" data={mix} x="label" y="value" format="compact" height={160} legend={false} on:select={channel = channel == $value.channel ? "all" : $value.channel} aria-label="Q4 revenue by channel" />
     <box gap={2}>
       {#each mix as part, i (part.channel)}
-        <row gap={2} align="center" on:click={channel = channel == part.channel ? "all" : part.channel} style="cursor: pointer" opacity={channel != "all" && channel != part.channel ? 0.45 : 1}>
-          <box width={8} height={8} radius="full" background="chart-{i + 1}" />
-          <text size="sm">{part.label}</text>
-          <spacer />
-          <text size="sm" tabular color="muted">{percent(part.value / sumBy(mix, "value"))}</text>
-        </row>
+        <button class="mix" aria-pressed={channel == part.channel} on:click={channel = channel == part.channel ? "all" : part.channel}>
+          <row gap={2} align="center" opacity={channel != "all" && channel != part.channel ? 0.45 : 1}>
+            <box width={8} height={8} radius="full" background="chart-{i + 1}" />
+            <text size="sm">{part.label}</text>
+            <spacer />
+            <text size="sm" tabular color="muted">{percent(part.value / sumBy(mix, "value"))}</text>
+          </row>
+        </button>
       {/each}
     </box>
   </card>

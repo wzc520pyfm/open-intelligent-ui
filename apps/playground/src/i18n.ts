@@ -58,6 +58,8 @@ export interface Copy {
   askYourself: string
   live: string
   connectModel: string
+  /** The Live entry in the sidebar. */
+  liveTitle: string
   liveCaption: string
   writing: string
   thinking: string
@@ -76,7 +78,44 @@ export interface Copy {
   ticketTools: string
   emptyTitle: string
   emptyBody: (design: string) => string
+  /** The empty Live session: a design, then an interface, kept in the browser. */
+  emptyLive: string
   suggest: string[]
+  laneLabel: string
+  laneDesign: string
+  laneInterface: string
+  askDesign: string
+  designSuggestLabel: string
+  interfaceSuggestLabel: string
+  designSuggest: string[]
+  screenshot: string
+  attachShot: string
+  removeShot: string
+  shotHint: string
+  shotType: string
+  shotSize: string
+  shotRead: string
+  shotDesignAsk: string
+  shotInterfaceAsk: string
+  share: string
+  shareCopied: string
+  shareDesignOnly: string
+  shareTooBig: string
+  shareUnread: string
+  exportStudio: string
+  importStudio: string
+  imported: string
+  importFailed: string
+  newChat: string
+  /** The round button that opens share, export, import and a new chat. */
+  studioMenu: string
+  designApplied: (name: string) => string
+  designRejected: string
+  designFixing: (round: number, of: number) => string
+  designPartial: string
+  designLeft: string
+  designHint: string
+  openedShare: string
   askInterface: string
   replyAgent: string
   message: string
@@ -141,7 +180,8 @@ const en: Copy = {
   askYourself: "Or ask one yourself",
   live: "Live",
   connectModel: "Connect a model",
-  liveCaption: "OpenAI, Anthropic, DeepSeek, or any compatible endpoint. Your key stays in this tab.",
+  liveTitle: "An interface, then a design",
+  liveCaption: "From a prompt or a screenshot. Saved in this browser. Share a link or a file.",
   writing: "Writing…",
   thinking: "Thinking…",
   done: "Done",
@@ -160,11 +200,54 @@ const en: Copy = {
   emptyTitle: "Ask for anything you would rather see than read.",
   emptyBody: (design) =>
     `The model gets the language, the UI SDK behaviors, the ${design} design and the motion rules as its system prompt, and answers in markup that renders as it streams.`,
+  emptyLive:
+    "Ask for an interface and this page draws it as the model writes. When you want another look, describe one or paste a screenshot and it becomes a DESIGN.md. The key stays in this tab. The design and the conversation stay in this browser.",
   suggest: [
     "Compare a 15-year and a 30-year mortgage on a $400k home",
     "Help me plan a dinner party for 8",
     "Give me a place to work the support queue",
   ],
+  laneLabel: "What this message does",
+  laneDesign: "Design",
+  laneInterface: "Interface",
+  askDesign: "Describe a design, or paste a screenshot",
+  designSuggestLabel: "Write a design",
+  interfaceSuggestLabel: "Ask for an interface",
+  designSuggest: [
+    "A calm editorial design: warm paper, serif headlines, one terracotta accent",
+    "A dense operations console: near-black, mono labels, one lime signal",
+    "Soft and round, like a consumer finance app, with a single indigo accent",
+  ],
+  screenshot: "Screenshot",
+  attachShot: "Add a screenshot",
+  removeShot: "Remove screenshot",
+  shotHint:
+    "Sent with the next message to the model you connected. It is not saved in the link or on this device. The model has to be able to see images.",
+  shotType: "Use a PNG, JPEG, WebP, or GIF.",
+  shotSize: "That image is too large. Try a smaller screenshot.",
+  shotRead: "That image could not be read.",
+  shotDesignAsk: "Write a DESIGN.md that matches this screenshot.",
+  shotInterfaceAsk: "Make an interface that matches this screenshot.",
+  share: "Share",
+  shareCopied: "Link copied. It opens this design in Live.",
+  shareDesignOnly:
+    "Link copied. The interface was too large for a URL, so the link has the design. Export a file to share both.",
+  shareTooBig: "This is too large for a link. Export a file instead.",
+  shareUnread: "This share link could not be read.",
+  exportStudio: "Export",
+  importStudio: "Import",
+  imported: "Imported. The design is saved in this browser.",
+  importFailed: "That file isn't a design or a Live export.",
+  newChat: "New",
+  studioMenu: "Actions",
+  designApplied: (name) => `${name} is the design on this page.`,
+  designRejected: "This reply isn't a usable DESIGN.md, so the design on the page stayed as it was.",
+  designFixing: (round, of) =>
+    `This design file has problems. Asking the model to fix it (${round} of ${of})…`,
+  designPartial: "What could be read is now the design. Some of the file still needs a fix.",
+  designLeft: "The design file still isn't usable, so the page kept the previous one.",
+  designHint: "The DESIGN.md the model wrote. Edit it and the design follows; it stays in this browser.",
+  openedShare: "Opened from a shared link. Saved in this browser.",
   askInterface: "Ask for an interface",
   replyAgent: "Reply to the agent",
   message: "Message",
@@ -201,7 +284,7 @@ const en: Copy = {
   liveGuideTitlePrefix: "Try it in ",
   liveGuideTitleAccent: "Live Playground",
   liveGuideTitleSuffix: "",
-  liveGuideBody: "Explore more interactive examples, customize the theme, and experience the full capabilities.",
+  liveGuideBody: "Ask for an interface. Write a DESIGN.md from a prompt or a screenshot when you want another look. Saved in this browser.",
   liveGuideAction: "Open Playground",
   providerOpenAI: "OpenAI",
   providerAnthropic: "Anthropic",
@@ -291,7 +374,8 @@ const zh: Copy = {
   askYourself: "或者自己问一句",
   live: "实时",
   connectModel: "连接模型",
-  liveCaption: "OpenAI、Anthropic、DeepSeek，或任意兼容端点。密钥只留在本标签页。",
+  liveTitle: "先生成界面，再写设计",
+  liveCaption: "用一段话或一张截图。存在这台浏览器里，可以分享链接或文件。",
   writing: "正在写入…",
   thinking: "正在思考…",
   done: "完成",
@@ -310,7 +394,47 @@ const zh: Copy = {
   emptyTitle: "问任何你更想看到、而不是读到的东西。",
   emptyBody: (design) =>
     `模型会拿到语言说明、UI SDK 行为、${design} 设计与动效规则作为系统提示词，并以边流边渲染的标记作答。`,
+  emptyLive:
+    "先要一个界面，这个页面会边写边画。想换一套样子时，再描述一种风格或贴上一张截图，模型会写成 DESIGN.md。密钥只留在本标签页。设计和对话留在这台浏览器里。",
   suggest: ["比较一套 40 万美元房子的 15 年和 30 年房贷", "帮我安排一顿 8 人的晚餐", "给我一个处理支持工单的工作台"],
+  laneLabel: "这条消息做什么",
+  laneDesign: "设计",
+  laneInterface: "界面",
+  askDesign: "描述一种设计，或贴上一张截图",
+  designSuggestLabel: "写一套设计",
+  interfaceSuggestLabel: "要一个界面",
+  designSuggest: [
+    "安静的编辑风：暖纸色、衬线标题、一个赤陶色强调",
+    "密集的运维控制台：近黑底、等宽标签、一抹青柠色",
+    "圆润柔软，像消费金融应用，只用一种靛蓝作强调",
+  ],
+  screenshot: "截图",
+  attachShot: "添加截图",
+  removeShot: "移除截图",
+  shotHint: "会随下一条消息发给你连接的模型。不会写进分享链接，也不会存在这台设备上。模型需要能看图。",
+  shotType: "请用 PNG、JPEG、WebP 或 GIF。",
+  shotSize: "这张图太大了。换一张小一点的截图。",
+  shotRead: "这张图没能读出来。",
+  shotDesignAsk: "按这张截图写一份 DESIGN.md。",
+  shotInterfaceAsk: "做一个和这张截图一样的界面。",
+  share: "分享",
+  shareCopied: "链接已复制。打开它会在实时里看到这套设计。",
+  shareDesignOnly: "链接已复制。界面太大，放不进网址，所以链接里只有设计。要一起分享，请导出文件。",
+  shareTooBig: "内容太大，放不进链接。请改为导出文件。",
+  shareUnread: "这个分享链接读不出来。",
+  exportStudio: "导出",
+  importStudio: "导入",
+  imported: "已导入。设计存在这台浏览器里。",
+  importFailed: "这个文件不是设计，也不是实时的导出。",
+  newChat: "新对话",
+  studioMenu: "功能",
+  designApplied: (name) => `${name} 已用在这个页面上。`,
+  designRejected: "这条回复还不是能用的 DESIGN.md，页面上的设计没有改。",
+  designFixing: (round, of) => `这份设计文件有问题，正在让模型修正（第 ${round} 次，最多 ${of} 次）…`,
+  designPartial: "能读出来的部分已经用上了。文件里还有要修的地方。",
+  designLeft: "设计文件还是不能用，页面保留了上一套。",
+  designHint: "模型写下的 DESIGN.md。改这里，设计跟着变；它留在这台浏览器里。",
+  openedShare: "从分享链接打开。已存在这台浏览器里。",
   askInterface: "描述你想要的界面",
   replyAgent: "回复智能体",
   message: "消息",
@@ -339,7 +463,7 @@ const zh: Copy = {
   liveGuideTitlePrefix: "在 ",
   liveGuideTitleAccent: "Live Playground",
   liveGuideTitleSuffix: " 里试试",
-  liveGuideBody: "探索更多可交互示例，自定义主题，完整体验 Open Intelligent UI 的能力。",
+  liveGuideBody: "先要一个界面。想换样子时，用一段话或一张截图写成 DESIGN.md。内容存在这台浏览器里。",
   liveGuideAction: "打开 Playground",
   providerOpenAI: "OpenAI",
   providerAnthropic: "Anthropic",

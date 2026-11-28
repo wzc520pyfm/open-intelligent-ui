@@ -1,0 +1,700 @@
+import { parseDesign } from "@open-intelligent-ui/core"
+import type { ChatMessage } from "./live"
+
+/**
+ * A Live session the reader owns: designs they asked a model to write, and
+ * the conversation that produced them. It lives in localStorage. The API key
+ * does not — that stays in the tab, in sessionStorage.
+ */
+export const STUDIO_KEY = "oiui.studio"
+
+/** Query parameter that carries a shared design (and, when it fits, the interface). */
+export const SHARE_PARAM = "studio"
+
+/**
+ * How long the encoded parameter may be. The design is compressed, and a
+ * link has to survive chat apps and static hosts.
+ */
+export const SHARE_LIMIT = 7_500
+
+const TEXT_LIMIT = 100_000
+const DESIGN_CAP = 24
+const TURN_CAP = 40
+const EXPAND_LIMIT = 200_000
+const SEEN_KEY = "oiui.studio.seen"
+
+export type Lane = "design" | "interface"
+
+export interface StoredDesign {
+  id: string
+  name: string
+  source: string
+  /** The request that produced this file, when there was one. */
+  prompt?: string
+}
+
+export interface StoredTurn {
+  role: "user" | "assistant" | "note" | "design"
+  text: string
+  lane?: Lane
+  /** The reader attached a screenshot. The bytes are not stored. */
+  image?: boolean
+  round?: number
+}
+
+export interface StudioRecord {
+  v: 1
+  designs: StoredDesign[]
+  designId?: string
+  lane: Lane
+  turns: StoredTurn[]
+}
+
+export interface DesignAssessment {
+  source: string
+  name: string
+  description?: string
+  /** Safe to put on the page: it has front matter and some color. */
+  usable: boolean
+  /** Fits the contract the design author was given. */
+  ok: boolean
+  issues: string[]
+}
+
+export interface SharePayload {
+  /** A DESIGN.md. Omitted when the shared theme is one that ships with the page. */
+  design?: string
+  /** Id of a shipped theme, when the design is not a custom file. */
+  theme?: string
+  /** The latest interface, when there is one and it fits in the link. */
+  markup?: string
+}
+
+export interface EncodedShare {
+  param: string
+  /** The interface was left out so the link would fit. */
+  markupOmitted: boolean
+}
+
+export interface ImportedStudio {
+  theme?: string
+  designs: { source: string; prompt?: string }[]
+  markup?: string
+}
+
+const EMPTY: StudioRecord = { v: 1, designs: [], lane: "interface", turns: [] }
+
+const PAGE_COLORS = ["background", "canvas", "bg", "surface"]
+const INK_COLORS = ["foreground", "text", "ink", "on-background"]
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+/** Stable id for a design file, so importing the same file twice is one entry. */
+export function designId(source: string): string {
+  let hash = 2166136261
+  for (let i = 0; i < source.length; i++) {
+    hash ^= source.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return `c${(hash >>> 0).toString(36)}`
+}
+
+/**
+ * The DESIGN.md inside a model reply. Models sometimes add a sentence or a
+ * code fence; the file starts at its front matter.
+ */
+export function extractDesignSource(reply: string): string {
+  let text = reply.replace(/\r\n?/g, "\n").trim()
+  if (!text.startsWith("---")) {
+    const leading = /^\s*```[^\n]*\n/i.exec(text)
+    if (leading) text = text.slice(leading[0].length).replace(/\n```\s*$/, "")
+    else {
+      const embedded = /\n```[^\n]*\n/i.exec(text)
+      if (embedded) text = text.slice(embedded.index + embedded[0].length).replace(/\n```\s*$/, "")
+    }
+  }
+  const start = text.search(/^---[ \t]*$/m)
+  if (start < 0) return text.trim()
+  return text.slice(start).trim()
+}
+
+/** What a reply is worth as a design: whether the page can wear it, and what is wrong. */
+export function assessDesign(reply: string): DesignAssessment {
+  const source = extractDesignSource(reply)
+  const issues: string[] = []
+  const front = /^---[ \t]*\n[\s\S]*?\n---[ \t]*(?:\n|$)/.test(source)
+  if (!front) issues.push("Start with YAML front matter, opened and closed with ---.")
+  const design = parseDesign(source)
+  if (front) issues.push(...design.issues)
+  const name = design.name?.trim() ?? ""
+  if (front && !name) issues.push("The front matter needs a name.")
+  const colorCount = Object.keys(design.colors).length
+  const darkCount = Object.keys(design.darkColors).length
+  if (front && !PAGE_COLORS.some((item) => design.colors[item])) {
+    issues.push("colors.light needs a page color named background.")
+  }
+  if (front && !INK_COLORS.some((item) => design.colors[item])) {
+    issues.push("colors.light needs a text color named foreground.")
+  }
+  if (front && colorCount < 8) {
+    issues.push(
+      "colors.light needs the role colors: background, surface, foreground, muted, muted-foreground, border, primary, on-primary, accent, on-accent, and the status colors."
+    )
+  }
+  if (front && darkCount < 4) {
+    issues.push("colors.dark needs the dark scheme: at least background, surface, foreground, and accent.")
+  }
+  if (front && design.prose.trim().length < 40) {
+    issues.push("After the front matter, write how to use the color, type, and motion.")
+  }
+  return {
+    source,
+    name: name || "Custom",
+    ...(design.description ? { description: design.description } : null),
+    usable: front && colorCount > 0 && (name.length > 0 || colorCount >= 4),
+    ok: issues.length === 0,
+    issues,
+  }
+}
+
+export function designLabel(design: StoredDesign, all: readonly StoredDesign[]): string {
+  const twins = all.filter((item) => item.name === design.name)
+  return twins.length > 1 ? `${design.name} · ${design.id.slice(-3)}` : design.name
+}
+
+export function upsertDesign(designs: readonly StoredDesign[], design: StoredDesign): StoredDesign[] {
+  const index = designs.findIndex((item) => item.id === design.id)
+  if (index === -1) return [...designs, design].slice(-DESIGN_CAP)
+  const current = designs[index] as StoredDesign
+  const next: StoredDesign = { ...design, prompt: design.prompt ?? current.prompt }
+  if (current.source === next.source && current.name === next.name && current.prompt === next.prompt) {
+    return designs as StoredDesign[]
+  }
+  const copy = designs.slice()
+  copy[index] = next
+  return copy
+}
+
+export function studioFilename(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40)
+  return `${slug || "design"}.studio.json`
+}
+
+/**
+ * A file another Live session can import. The active design is first.
+ * `kind` is how a random JSON file is refused.
+ */
+export function makeBundle(input: { theme?: string; designs: readonly StoredDesign[]; markup?: string }): string {
+  return JSON.stringify(
+    {
+      version: 1,
+      kind: "open-intelligent-ui-studio",
+      ...(input.theme ? { theme: input.theme } : null),
+      designs: input.designs.map((design) => ({
+        name: design.name,
+        source: design.source,
+        ...(design.prompt ? { prompt: design.prompt } : null),
+      })),
+      ...(input.markup ? { markup: input.markup } : null),
+    },
+    null,
+    2
+  )
+}
+
+/** A studio JSON file, or a raw DESIGN.md. */
+export function parseImport(text: string): ImportedStudio | null {
+  const trimmed = text.trim()
+  if (!trimmed || trimmed.length > 500_000) return null
+  if (trimmed.startsWith("{")) {
+    try {
+      return bundleFrom(JSON.parse(trimmed) as unknown)
+    } catch {
+      return null
+    }
+  }
+  const source = extractDesignSource(trimmed)
+  if (!source.startsWith("---") || !/\ncolors:/.test(source)) return null
+  return { designs: [{ source }] }
+}
+
+function bundleFrom(value: unknown): ImportedStudio | null {
+  if (!isRecord(value)) return null
+  if (value.kind !== "open-intelligent-ui-studio" || value.version !== 1) return null
+  const designs: { source: string; prompt?: string }[] = []
+  if (Array.isArray(value.designs)) {
+    for (const item of value.designs.slice(0, DESIGN_CAP)) {
+      if (!isRecord(item) || typeof item.source !== "string" || !item.source.trim()) continue
+      designs.push({
+        source: item.source.slice(0, TEXT_LIMIT),
+        ...(typeof item.prompt === "string" ? { prompt: item.prompt.slice(0, 4_000) } : null),
+      })
+    }
+  }
+  const markup = typeof value.markup === "string" && value.markup.trim() ? value.markup.slice(0, TEXT_LIMIT) : undefined
+  const theme = typeof value.theme === "string" && /^[a-z0-9-]{1,40}$/.test(value.theme) ? value.theme : undefined
+  if (!designs.length && !markup) return null
+  return {
+    designs,
+    ...(markup ? { markup } : null),
+    ...(theme ? { theme } : null),
+  }
+}
+
+export function downloadText(filename: string, contents: string, type = "application/json"): void {
+  const blob = new Blob([contents], { type })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = filename
+  document.body.append(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+function clip(value: unknown, max: number): string | undefined {
+  if (typeof value !== "string") return undefined
+  if (!value.trim()) return undefined
+  return value.length > max ? value.slice(0, max) : value
+}
+
+function normalize(value: unknown): StudioRecord {
+  if (!isRecord(value)) return EMPTY
+  const designs: StoredDesign[] = []
+  if (Array.isArray(value.designs)) {
+    for (const item of value.designs.slice(-DESIGN_CAP)) {
+      if (!isRecord(item)) continue
+      const source = clip(item.source, TEXT_LIMIT)
+      if (!source) continue
+      const name = clip(item.name, 80)?.trim() || "Custom"
+      const id = clip(item.id, 40)?.trim() || designId(source)
+      const prompt = clip(item.prompt, 4_000)?.trim()
+      designs.push({
+        id,
+        name,
+        source,
+        ...(prompt ? { prompt } : null),
+      })
+    }
+  }
+  const turns: StoredTurn[] = []
+  if (Array.isArray(value.turns)) {
+    for (const item of value.turns.slice(-TURN_CAP)) {
+      if (!isRecord(item)) continue
+      const role = item.role
+      if (role !== "user" && role !== "assistant" && role !== "note" && role !== "design") continue
+      const text = typeof item.text === "string" ? item.text.slice(0, TEXT_LIMIT) : ""
+      const lane = item.lane === "design" || item.lane === "interface" ? item.lane : undefined
+      turns.push({
+        role,
+        text,
+        ...(lane ? { lane } : null),
+        ...(item.image === true ? { image: true } : null),
+        ...(typeof item.round === "number" ? { round: item.round } : null),
+      })
+    }
+  }
+  const designIdValue = clip(value.designId, 40)
+  return {
+    v: 1,
+    designs,
+    ...(designIdValue ? { designId: designIdValue } : null),
+    lane: value.lane === "design" ? "design" : "interface",
+    turns,
+  }
+}
+
+export function readStudio(): StudioRecord {
+  try {
+    const raw = localStorage.getItem(STUDIO_KEY)
+    if (!raw) return EMPTY
+    return normalize(JSON.parse(raw) as unknown)
+  } catch {
+    return EMPTY
+  }
+}
+
+export function writeStudio(record: StudioRecord): void {
+  const bounded = normalize(record)
+  const save = (value: StudioRecord) => localStorage.setItem(STUDIO_KEY, JSON.stringify(value))
+  try {
+    save(bounded)
+  } catch {
+    try {
+      save({ ...bounded, turns: bounded.turns.slice(-8) })
+    } catch {
+      // The browser refused the write. The session still works in memory.
+    }
+  }
+}
+
+interface Wire {
+  v: 1
+  d?: string
+  t?: string
+  m?: string
+}
+
+function wireFrom(payload: SharePayload): Wire | null {
+  const wire: Wire = { v: 1 }
+  if (payload.design) wire.d = payload.design
+  if (payload.theme && /^[a-z0-9-]{1,40}$/.test(payload.theme)) wire.t = payload.theme
+  if (payload.markup) wire.m = payload.markup
+  if (!wire.d && !wire.m && !wire.t) return null
+  return wire
+}
+
+function streamFrom(bytes: Uint8Array): ReadableStream<BufferSource> {
+  const copy = new Uint8Array(bytes.byteLength)
+  copy.set(bytes)
+  return new ReadableStream<BufferSource>({
+    start(controller) {
+      controller.enqueue(copy)
+      controller.close()
+    },
+  })
+}
+
+async function deflate(bytes: Uint8Array): Promise<Uint8Array> {
+  const stream = streamFrom(bytes).pipeThrough(new CompressionStream("deflate-raw"))
+  return new Uint8Array(await new Response(stream).arrayBuffer())
+}
+
+async function inflate(bytes: Uint8Array, limit: number): Promise<Uint8Array | null> {
+  const stream = streamFrom(bytes).pipeThrough(new DecompressionStream("deflate-raw"))
+  const reader = stream.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > limit) {
+      await reader.cancel()
+      return null
+    }
+    chunks.push(value)
+  }
+  const out = new Uint8Array(size)
+  let offset = 0
+  for (const chunk of chunks) {
+    out.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return out
+}
+
+function bytesToBase64Url(bytes: Uint8Array): string {
+  let binary = ""
+  const step = 0x8000
+  for (let i = 0; i < bytes.length; i += step) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + step))
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "")
+}
+
+function base64UrlToBytes(param: string): Uint8Array | null {
+  if (!/^[A-Za-z0-9_-]+$/.test(param)) return null
+  const pad = (4 - (param.length % 4)) % 4
+  const base64 = param.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat(pad)
+  try {
+    const binary = atob(base64)
+    const out = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i)
+    return out
+  } catch {
+    return null
+  }
+}
+
+async function pack(payload: SharePayload): Promise<string | null> {
+  const wire = wireFrom(payload)
+  if (!wire) return null
+  try {
+    const bytes = new TextEncoder().encode(JSON.stringify(wire))
+    return bytesToBase64Url(await deflate(bytes))
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Compresses a share into one query value. When the interface makes the link
+ * too long, it is dropped and the design is kept. Returns null when even the
+ * design does not fit — the reader exports a file instead.
+ */
+export async function encodeShare(payload: SharePayload): Promise<EncodedShare | null> {
+  const full = await pack(payload)
+  if (full && full.length <= SHARE_LIMIT) return { param: full, markupOmitted: false }
+  if (!payload.markup) return null
+  const slim = await pack({ design: payload.design, theme: payload.theme })
+  if (slim && slim.length <= SHARE_LIMIT) return { param: slim, markupOmitted: true }
+  return null
+}
+
+export async function decodeShare(param: string): Promise<SharePayload | null> {
+  if (!param || param.length > 20_000) return null
+  const bytes = base64UrlToBytes(param)
+  if (!bytes) return null
+  let json = ""
+  try {
+    const raw = await inflate(bytes, EXPAND_LIMIT)
+    if (!raw) return null
+    json = new TextDecoder().decode(raw)
+  } catch {
+    return null
+  }
+  try {
+    const wire = JSON.parse(json) as unknown
+    if (!isRecord(wire) || wire.v !== 1) return null
+    const design = clip(wire.d, TEXT_LIMIT)
+    const markup = clip(wire.m, TEXT_LIMIT)
+    const theme = typeof wire.t === "string" && /^[a-z0-9-]{1,40}$/.test(wire.t) ? wire.t : undefined
+    if (!design && !markup && !theme) return null
+    if (design && !design.includes("colors:")) return null
+    return {
+      ...(design ? { design } : null),
+      ...(theme ? { theme } : null),
+      ...(markup ? { markup } : null),
+    }
+  } catch {
+    return null
+  }
+}
+
+/** The address of a Live session. `param` is the compressed share; without it the link only selects a shipped theme. */
+export function shareHref(base: string, param: string | null, themeId?: string): string {
+  const url = new URL(base, "https://open-intelligent-ui.local")
+  const lang = url.searchParams.get("lang")
+  const scheme = url.searchParams.get("scheme")
+  url.search = ""
+  url.hash = ""
+  url.searchParams.set("demo", "live")
+  if (lang === "en" || lang === "zh") url.searchParams.set("lang", lang)
+  if (scheme === "light" || scheme === "dark") url.searchParams.set("scheme", scheme)
+  if (param) url.searchParams.set(SHARE_PARAM, param)
+  else if (themeId && /^[a-z0-9-]{1,40}$/.test(themeId)) url.searchParams.set("design", themeId)
+  return url.toString()
+}
+
+export function shareWasApplied(param: string): boolean {
+  try {
+    return sessionStorage.getItem(SEEN_KEY) === designId(param)
+  } catch {
+    return false
+  }
+}
+
+export function markShareApplied(param: string): void {
+  try {
+    sessionStorage.setItem(SEEN_KEY, designId(param))
+  } catch {
+    // Applying still happens; a refresh may apply the link again.
+  }
+}
+
+export interface ThreadTurn {
+  role: "user" | "assistant" | "note" | "design"
+  text: string
+  lane?: Lane
+}
+
+function laneOf(turn: ThreadTurn): Lane | null {
+  if (turn.role === "note") return null
+  if (turn.role === "design") return "design"
+  if (turn.role === "assistant") return "interface"
+  return turn.lane ?? "interface"
+}
+
+/**
+ * The turns one lane sends to the model. A design reply is the DESIGN.md;
+ * an interface reply is markup. The other lane stays out, so a design file
+ * is not answered as if it were a page.
+ */
+export function modelMessages(
+  turns: readonly ThreadTurn[],
+  lane: Lane,
+  currentDesign: string | undefined,
+  image?: { mediaType: string; data: string }
+): ChatMessage[] {
+  const relevant = turns.filter((turn) => {
+    if (laneOf(turn) !== lane) return false
+    if ((turn.role === "assistant" || turn.role === "design") && !turn.text.trim()) return false
+    return true
+  })
+  const lastDesign = [...relevant].reverse().find((turn) => turn.role === "design")?.text
+  return relevant.map((turn, index) => {
+    const role = turn.role === "user" ? "user" : "assistant"
+    let text = turn.text
+    const last = index === relevant.length - 1 && turn.role === "user"
+    if (last && lane === "design" && currentDesign && currentDesign !== lastDesign) {
+      text = `${text}\n\nThe design currently applied follows. Change it if the request edits it, or replace it if the request is a different design. Reply with the whole DESIGN.md and nothing else.\n\n${currentDesign}`
+    }
+    if (last && image) {
+      return {
+        role,
+        content: [
+          { type: "text", text },
+          { type: "image", mediaType: image.mediaType, data: image.data },
+        ],
+      }
+    }
+    return { role, content: text }
+  })
+}
+
+/**
+ * A small dashboard in the new design, with the filters that drive it, so
+ * type, color, charts and form controls are visible before anyone asks.
+ */
+export const SPECIMEN = `<state channel="all" query="" partners={true} goal={1600000} />
+<state months={[
+  { month: "Jul", web: 221000, retail: 131000, partners: 60000 },
+  { month: "Aug", web: 240000, retail: 134000, partners: 64000 },
+  { month: "Sep", web: 268000, retail: 133000, partners: 70000 },
+  { month: "Oct", web: 262000, retail: 121000, partners: 72000 },
+  { month: "Nov", web: 322000, retail: 128000, partners: 79000 },
+  { month: "Dec", web: 371000, retail: 146000, partners: 87000 }
+]} />
+<state products={[
+  { name: "Trail Runner 3", channel: "web", units: 4210, revenue: 547300, change: 0.22, status: "growing" },
+  { name: "Summit Shell", channel: "retail", units: 1880, revenue: 413600, change: 0.06, status: "steady" },
+  { name: "Basecamp Tent", channel: "web", units: 960, revenue: 345600, change: -0.11, status: "slipping" },
+  { name: "Ridge Pack 40", channel: "partners", units: 2240, revenue: 291200, change: 0.31, status: "growing" },
+  { name: "Merino Base", channel: "web", units: 5120, revenue: 256000, change: 0.02, status: "steady" }
+]} />
+<style>
+  .mix {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+</style>
+
+<derive
+  take={m => channel == "all" || !partners && channel == "partners" ? (partners ? m.web + m.retail + m.partners : m.web + m.retail) : m[channel]}
+  series={months.map(m => ({ month: m.month, value: take(m) }))}
+  revenue={sumBy(series.slice(3), "value")}
+  prior={sumBy(series.slice(0, 3), "value")}
+  delta={prior == 0 ? 0 : revenue / prior - 1}
+  mix={[{ channel: "web", label: "Web", value: sumBy(months.slice(3), "web") }, { channel: "retail", label: "Retail", value: sumBy(months.slice(3), "retail") }].concat(partners ? [{ channel: "partners", label: "Partners", value: sumBy(months.slice(3), "partners") }] : [])}
+  listed={products.filter(p => (channel == "all" || p.channel == channel) && (partners || p.channel != "partners") && (query == "" || p.name.toLowerCase().includes(query.toLowerCase())))}
+/>
+
+<row gap={3} wrap align="end">
+  <box gap={1}>
+    <title level={2}>Northwind</title>
+    <text size="sm" color="muted">Q4 revenue. The filters below change the figures.</text>
+  </box>
+  <spacer />
+  <text size="sm" color="muted" tabular>{currency(revenue)} in Q4</text>
+</row>
+
+<card padding={4} gap={3}>
+  <row gap={3} wrap align="end">
+    <Select bind:value={channel}>
+      <SelectLabel>Channel</SelectLabel>
+      <SelectTrigger><SelectValue /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All channels</SelectItem>
+        <SelectItem value="web">Web</SelectItem>
+        <SelectItem value="retail">Retail</SelectItem>
+        {#if partners}<SelectItem value="partners">Partners</SelectItem>{/if}
+      </SelectContent>
+    </Select>
+    <Field>
+      <FieldLabel>Product</FieldLabel>
+      <Input bind:value={query} placeholder="Search the table" />
+    </Field>
+    <row gap={2} align="center">
+      <Switch bind:checked={partners} aria-label="Include partners" on:checkedChange={if (!$value && channel == "partners") channel = "all"}><SwitchThumb /></Switch>
+      <text size="sm">Partners</text>
+    </row>
+    <spacer />
+    <Button variant="ghost" on:click={channel = "all"; query = ""; partners = true; goal = 1600000}>Reset</Button>
+  </row>
+  <box gap={2}>
+    <row>
+      <text size="sm" color="muted">Target {currency(goal)}</text>
+      <spacer />
+      <text size="sm" tabular color={revenue >= goal ? "success" : "muted"}>{percent(revenue / goal)} of target</text>
+    </row>
+    <Slider min={800000} max={2400000} step={50000} bind:value={goal}>
+      <SliderControl><SliderTrack><SliderIndicator /><SliderThumb aria-label="Revenue target" /></SliderTrack></SliderControl>
+    </Slider>
+  </box>
+</card>
+
+**Q4 closed at {currency(revenue)}, {delta >= 0 ? "up" : "down"} {percent(abs(delta))} on Q3.**
+
+<grid columns={3} gap={3}>
+  <card padding={4}>
+    <Stat label="Revenue" value={revenue} format="currency" digits={0} delta={delta} deltaDigits={0} caption="vs Q3">
+      <Chart type="spark" data={series} y="value" height={36} aria-label="Revenue trend" />
+    </Stat>
+  </card>
+  <card padding={4}>
+    <Stat label="Of target" value={revenue / goal} format="percent" digits={0} caption={currency(goal)} />
+  </card>
+  <card padding={4}>
+    <Stat label="Products" value={listed.length} caption="matching the filters" />
+  </card>
+</grid>
+
+<grid columns={3} gap={3}>
+  <grid-item span={2}>
+    <card padding={4} gap={3}>
+      <title level={3}>By month</title>
+      <Chart type="bar" data={series} x="month" y="value" format="compact" currency="USD" height={220} labels aria-label="Revenue by month" />
+    </card>
+  </grid-item>
+  <card padding={4} gap={3}>
+    <row>
+      <title level={3}>Channel mix</title>
+      <spacer />
+      {#if channel != "all"}<link on:click={channel = "all"} size="sm">Clear</link>{/if}
+    </row>
+    <Chart type="donut" data={mix} x="label" y="value" format="compact" height={160} legend={false} on:select={channel = channel == $value.channel ? "all" : $value.channel} aria-label="Q4 revenue by channel" />
+    <box gap={2}>
+      {#each mix as part, i (part.channel)}
+        <button class="mix" aria-pressed={channel == part.channel} on:click={channel = channel == part.channel ? "all" : part.channel}>
+          <row gap={2} align="center" opacity={channel != "all" && channel != part.channel ? 0.45 : 1}>
+            <box width={8} height={8} radius="full" background="chart-{i + 1}" />
+            <text size="sm">{part.label}</text>
+            <spacer />
+            <text size="sm" tabular color="muted">{percent(part.value / sumBy(mix, "value"))}</text>
+          </row>
+        </button>
+      {/each}
+    </box>
+  </card>
+</grid>
+
+<card padding={4} gap={3}>
+  <row>
+    <title level={3}>Products</title>
+    <spacer />
+    <text size="sm" color="muted">{listed.length} shown</text>
+  </row>
+  <DataTable data={listed} rowKey="name" sortable empty="No products match." columns={[
+    { key: "name", label: "Product" },
+    { key: "units", label: "Units", align: "right" },
+    { key: "revenue", label: "Revenue", format: "currency", align: "right" },
+    { key: "change", label: "vs Q3", format: "percent", align: "right" },
+    { key: "status", label: "Trend", badge: { growing: "success", steady: "neutral", slipping: "danger" } }
+  ]} />
+</card>`

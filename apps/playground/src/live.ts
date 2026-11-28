@@ -1,8 +1,23 @@
 import { type CheckResult, repairMessage } from "@open-intelligent-ui/core/check"
 
+export interface TextPart {
+  type: "text"
+  text: string
+}
+
+export interface ImagePart {
+  type: "image"
+  mediaType: string
+  /** Base64, without the data: prefix. Sent only to the endpoint the reader configured. */
+  data: string
+}
+
+/** A string, or text plus images when the reader attached a screenshot. */
+export type ChatContent = string | Array<TextPart | ImagePart>
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant"
-  content: string
+  content: ChatContent
 }
 
 /** Which protocol the endpoint speaks. */
@@ -153,7 +168,10 @@ async function* streamOpenAI(options: StreamOptions): AsyncGenerator<string> {
     },
     body: JSON.stringify({
       model: options.model,
-      messages: options.messages,
+      messages: options.messages.map((message) => ({
+        role: message.role,
+        content: openAiContent(message.content),
+      })),
       stream: true,
       max_tokens: 8192,
       ...(deepseek ? { thinking: { type: "disabled" } } : null),
@@ -184,11 +202,12 @@ async function* streamAnthropic(options: StreamOptions): AsyncGenerator<string> 
   const request = options.fetch ?? fetch
   const system = options.messages
     .filter((message) => message.role === "system")
-    .map((message) => message.content)
+    .map((message) => (typeof message.content === "string" ? message.content : ""))
+    .filter(Boolean)
     .join("\n\n")
   const messages = options.messages
     .filter((message) => message.role !== "system")
-    .map((message) => ({ role: message.role, content: message.content }))
+    .map((message) => ({ role: message.role, content: anthropicContent(message.content) }))
   const response = await request(`${options.baseUrl.replace(/\/+$/, "")}/v1/messages`, {
     method: "POST",
     headers: {
@@ -271,6 +290,24 @@ function readAnthropicError(body: string): string {
   } catch {
     return body.slice(0, 200)
   }
+}
+
+function openAiContent(content: ChatContent) {
+  if (typeof content === "string") return content
+  return content.map((part) =>
+    part.type === "text"
+      ? { type: "text", text: part.text }
+      : { type: "image_url", image_url: { url: `data:${part.mediaType};base64,${part.data}` } }
+  )
+}
+
+function anthropicContent(content: ChatContent) {
+  if (typeof content === "string") return content
+  return content.map((part) =>
+    part.type === "text"
+      ? { type: "text", text: part.text }
+      : { type: "image", source: { type: "base64", media_type: part.mediaType, data: part.data } }
+  )
 }
 
 /**

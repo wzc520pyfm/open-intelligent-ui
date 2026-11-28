@@ -86,7 +86,7 @@ pnpm install
 pnpm dev
 ```
 
-Open <http://localhost:5173> (or the [deployed playground](https://open-intelligent-ui.pages.dev); Vercel mirror: [open-intelligent-ui-sdk.vercel.app](https://open-intelligent-ui-sdk.vercel.app)). Eleven demos on the left; switch renderer, streaming speed, design, light/dark and width. Inspect shows markup, state and the system prompt. For a real model, pick Live and choose OpenAI, Anthropic, DeepSeek or a custom OpenAI-compatible endpoint. The key stays in this tab.
+Open <http://localhost:5173> (or the [deployed playground](https://open-intelligent-ui.pages.dev); Vercel mirror: [open-intelligent-ui-sdk.vercel.app](https://open-intelligent-ui-sdk.vercel.app)). Eleven demos on the left; switch renderer, streaming speed, design, light/dark and width. Inspect shows markup, state and the system prompt. For a real model, pick Live and choose OpenAI, Anthropic, DeepSeek or a custom OpenAI-compatible endpoint. The key stays in this tab. In Live, describe a design or paste a screenshot and the model writes a DESIGN.md that the page draws; then ask for an interface in that design. The design and the conversation stay in this browser. Export a file someone else can import there, or share a link that carries the design in the address.
 
 ```bash
 pnpm test

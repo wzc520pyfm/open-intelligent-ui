@@ -95,7 +95,7 @@ export function Sidebar(props: {
             id={LIVE}
             icon={Sparkles}
             kind={copy.live}
-            prompt={copy.connectModel}
+            prompt={copy.liveTitle}
             caption={copy.liveCaption}
           />
         </ListBox.Section>

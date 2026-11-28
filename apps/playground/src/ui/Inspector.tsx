@@ -42,6 +42,9 @@ export function Inspector(props: {
   log: LogEntry[]
   prompt: string
   promptHint: string
+  /** Replaces the Markup tab label when the source is a DESIGN.md. */
+  sourceLabel?: string
+  sourceHint?: string
 }) {
   const { copy, log, issues } = props
   const editor = useRef<HTMLTextAreaElement>(null)
@@ -59,7 +62,7 @@ export function Inspector(props: {
     node.scrollTop = Math.max(0, (issue.line - 4) * height)
   }
   const tabs: [Panel, string][] = [
-    ["source", copy.markup],
+    ["source", props.sourceLabel ?? copy.markup],
     ["state", copy.state],
     ["events", copy.events],
     ["prompt", copy.prompt],
@@ -98,12 +101,12 @@ export function Inspector(props: {
         </Tabs.List>
       </Tabs.ListContainer>
       <Tabs.Panel id="source" className="flex min-h-0 flex-1 flex-col p-0">
-        <Hint>{copy.markupHint}</Hint>
+        <Hint>{props.sourceHint ?? copy.markupHint}</Hint>
         <textarea
           ref={editor}
           className="pg-code min-h-0 flex-1 resize-none bg-transparent px-4 pb-4 whitespace-pre text-foreground outline-none"
           spellCheck={false}
-          aria-label={copy.markup}
+          aria-label={props.sourceLabel ?? copy.markup}
           value={props.source}
           onChange={(event) => props.onSource(event.target.value)}
         />

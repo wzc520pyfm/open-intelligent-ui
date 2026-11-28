@@ -67,6 +67,12 @@ export function LiveComposer(props: {
     props.onSubmit()
   }
 
+  const placeholder = live
+    ? props.lane === "design"
+      ? copy.askDesign
+      : copy.askInterface
+    : copy.replyAgent
+
   const onDrop = (event: DragEvent) => {
     if (!live) return
     const file = [...event.dataTransfer.files].find((item) => item.type.startsWith("image/"))
@@ -98,8 +104,8 @@ export function LiveComposer(props: {
               value={props.lane}
               onChange={props.onLane}
               options={[
-                { id: "design", label: copy.laneDesign },
                 { id: "interface", label: copy.laneInterface },
+                { id: "design", label: copy.laneDesign },
               ]}
             />
             {props.shot ? (
@@ -236,29 +242,39 @@ export function LiveComposer(props: {
               </button>
             </InputGroup.Prefix>
           ) : null}
-          <InputGroup.TextArea
-            ref={props.draftRef}
-            rows={1}
-            className="max-h-[calc(2rem*4)] min-h-8 flex-1 resize-none border-0 bg-transparent p-0 leading-8 shadow-none focus-visible:ring-0"
-            value={props.draft}
-            onChange={(event) => props.onDraft(event.target.value)}
-            onPaste={(event) => {
-              if (!live) return
-              const item = [...event.clipboardData.items].find((entry) => entry.type.startsWith("image/"))
-              const file = item?.getAsFile()
-              if (!file) return
-              event.preventDefault()
-              void attach(file)
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+          <div className="relative min-h-8 min-w-0 flex-1 self-end">
+            {props.draft ? null : (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 top-0 z-0 truncate text-base leading-8 text-field-placeholder sm:text-sm"
+              >
+                {placeholder}
+              </span>
+            )}
+            <InputGroup.TextArea
+              ref={props.draftRef}
+              rows={1}
+              className="relative z-10 max-h-[calc(2rem*4)] min-h-8 w-full resize-none border-0 bg-transparent p-0 leading-8 shadow-none placeholder:text-transparent focus-visible:ring-0"
+              value={props.draft}
+              onChange={(event) => props.onDraft(event.target.value)}
+              onPaste={(event) => {
+                if (!live) return
+                const item = [...event.clipboardData.items].find((entry) => entry.type.startsWith("image/"))
+                const file = item?.getAsFile()
+                if (!file) return
                 event.preventDefault()
-                send()
-              }
-            }}
-            placeholder={live ? (props.lane === "design" ? copy.askDesign : copy.askInterface) : copy.replyAgent}
-            aria-label={copy.message}
-          />
+                void attach(file)
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                  event.preventDefault()
+                  send()
+                }
+              }}
+              placeholder={placeholder}
+              aria-label={copy.message}
+            />
+          </div>
           <InputGroup.Suffix className="items-end! self-end gap-1 p-0!">
             {props.streaming && live ? (
               <Button

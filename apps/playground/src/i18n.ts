@@ -180,7 +180,7 @@ const en: Copy = {
   askYourself: "Or ask one yourself",
   live: "Live",
   connectModel: "Connect a model",
-  liveTitle: "A design, then an interface",
+  liveTitle: "An interface, then a design",
   liveCaption: "From a prompt or a screenshot. Saved in this browser. Share a link or a file.",
   writing: "Writing…",
   thinking: "Thinking…",
@@ -201,7 +201,7 @@ const en: Copy = {
   emptyBody: (design) =>
     `The model gets the language, the UI SDK behaviors, the ${design} design and the motion rules as its system prompt, and answers in markup that renders as it streams.`,
   emptyLive:
-    "Describe a look, or paste a screenshot, and the model writes a DESIGN.md that this page draws. Then ask for an interface in that design. The key stays in this tab. The design and the conversation stay in this browser.",
+    "Ask for an interface and this page draws it as the model writes. When you want another look, describe one or paste a screenshot and it becomes a DESIGN.md. The key stays in this tab. The design and the conversation stay in this browser.",
   suggest: [
     "Compare a 15-year and a 30-year mortgage on a $400k home",
     "Help me plan a dinner party for 8",
@@ -284,7 +284,7 @@ const en: Copy = {
   liveGuideTitlePrefix: "Try it in ",
   liveGuideTitleAccent: "Live Playground",
   liveGuideTitleSuffix: "",
-  liveGuideBody: "Write a DESIGN.md from a prompt or a screenshot, then an interface in it. Saved in this browser.",
+  liveGuideBody: "Ask for an interface. Write a DESIGN.md from a prompt or a screenshot when you want another look. Saved in this browser.",
   liveGuideAction: "Open Playground",
   providerOpenAI: "OpenAI",
   providerAnthropic: "Anthropic",
@@ -374,7 +374,7 @@ const zh: Copy = {
   askYourself: "或者自己问一句",
   live: "实时",
   connectModel: "连接模型",
-  liveTitle: "先定设计，再生成界面",
+  liveTitle: "先生成界面，再写设计",
   liveCaption: "用一段话或一张截图。存在这台浏览器里，可以分享链接或文件。",
   writing: "正在写入…",
   thinking: "正在思考…",
@@ -395,7 +395,7 @@ const zh: Copy = {
   emptyBody: (design) =>
     `模型会拿到语言说明、UI SDK 行为、${design} 设计与动效规则作为系统提示词，并以边流边渲染的标记作答。`,
   emptyLive:
-    "描述一种风格，或贴上一张截图，模型会写成 DESIGN.md，这个页面立刻按它来画。然后再要一个用这套设计的界面。密钥只留在本标签页。设计和对话留在这台浏览器里。",
+    "先要一个界面，这个页面会边写边画。想换一套样子时，再描述一种风格或贴上一张截图，模型会写成 DESIGN.md。密钥只留在本标签页。设计和对话留在这台浏览器里。",
   suggest: ["比较一套 40 万美元房子的 15 年和 30 年房贷", "帮我安排一顿 8 人的晚餐", "给我一个处理支持工单的工作台"],
   laneLabel: "这条消息做什么",
   laneDesign: "设计",
@@ -463,7 +463,7 @@ const zh: Copy = {
   liveGuideTitlePrefix: "在 ",
   liveGuideTitleAccent: "Live Playground",
   liveGuideTitleSuffix: " 里试试",
-  liveGuideBody: "用一段话或一张截图写成 DESIGN.md，再生成界面。内容存在这台浏览器里。",
+  liveGuideBody: "先要一个界面。想换样子时，用一段话或一张截图写成 DESIGN.md。内容存在这台浏览器里。",
   liveGuideAction: "打开 Playground",
   providerOpenAI: "OpenAI",
   providerAnthropic: "Anthropic",

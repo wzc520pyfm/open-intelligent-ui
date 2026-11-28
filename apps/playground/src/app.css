@@ -156,6 +156,13 @@ body {
 }
 
 /* Lifted off the stage like a card — HeroUI surface sits above background. */
+/* The placeholder stays one line. Typed text still wraps. */
+.pg-composer textarea:placeholder-shown {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pg-composer {
   --input-group-bg: var(--surface);
   --input-group-bg-hover: var(--surface-hover);

@@ -82,7 +82,7 @@ export interface ImportedStudio {
   markup?: string
 }
 
-const EMPTY: StudioRecord = { v: 1, designs: [], lane: "design", turns: [] }
+const EMPTY: StudioRecord = { v: 1, designs: [], lane: "interface", turns: [] }
 
 const PAGE_COLORS = ["background", "canvas", "bg", "surface"]
 const INK_COLORS = ["foreground", "text", "ink", "on-background"]
@@ -306,7 +306,7 @@ function normalize(value: unknown): StudioRecord {
     v: 1,
     designs,
     ...(designIdValue ? { designId: designIdValue } : null),
-    lane: value.lane === "interface" ? "interface" : "design",
+    lane: value.lane === "design" ? "design" : "interface",
     turns,
   }
 }

@@ -863,7 +863,7 @@ export function App() {
       }
       stop()
       setMode("live")
-      setLane(!shipped && usable.length ? "design" : imported.markup ? "interface" : "design")
+      setLane(!shipped && usable.length ? "design" : "interface")
       setTurns(next)
       setLog([])
       setSurfaceState({})
@@ -879,7 +879,7 @@ export function App() {
     setTurns([])
     setLog([])
     setSurfaceState({})
-    setLane("design")
+    setLane("interface")
     setDraft("")
     setShot(null)
     designBaseline.current = ""
@@ -1161,22 +1161,6 @@ export function App() {
                     {mode === "live" ? (
                       <div className="mt-3 flex w-full max-w-full flex-col items-center gap-4">
                         <div className="flex w-full flex-col items-center gap-2">
-                          <p className="text-xs font-medium tracking-wide text-muted uppercase">{copy.designSuggestLabel}</p>
-                          <div className="flex w-full flex-wrap justify-center gap-2">
-                            {copy.designSuggest.map((text) => (
-                              <Button
-                                key={text}
-                                size="sm"
-                                variant="outline"
-                                className="h-auto! max-w-full bg-background py-1.5 text-left whitespace-normal"
-                                onPress={() => sendLive(text, "design")}
-                              >
-                                {text}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="flex w-full flex-col items-center gap-2">
                           <p className="text-xs font-medium tracking-wide text-muted uppercase">{copy.interfaceSuggestLabel}</p>
                           <div className="flex w-full flex-wrap justify-center gap-2">
                             {copy.suggest.map((text) => (
@@ -1186,6 +1170,22 @@ export function App() {
                                 variant="outline"
                                 className="h-auto! max-w-full bg-background py-1.5 text-left whitespace-normal"
                                 onPress={() => sendLive(text, "interface")}
+                              >
+                                {text}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex w-full flex-col items-center gap-2">
+                          <p className="text-xs font-medium tracking-wide text-muted uppercase">{copy.designSuggestLabel}</p>
+                          <div className="flex w-full flex-wrap justify-center gap-2">
+                            {copy.designSuggest.map((text) => (
+                              <Button
+                                key={text}
+                                size="sm"
+                                variant="outline"
+                                className="h-auto! max-w-full bg-background py-1.5 text-left whitespace-normal"
+                                onPress={() => sendLive(text, "design")}
                               >
                                 {text}
                               </Button>

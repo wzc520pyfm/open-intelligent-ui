@@ -1,5 +1,5 @@
-import { Button, InputGroup } from "@heroui/react"
-import { ArrowUp, Plus, Square, X } from "lucide-react"
+import { Button, InputGroup, Popover } from "@heroui/react"
+import { ArrowUp, Download, Ellipsis, Plus, Share, Square, SquarePen, Upload, X } from "lucide-react"
 import { useEffect, useRef, useState, type DragEvent, type RefObject } from "react"
 import type { Copy } from "../i18n"
 import { shotFromBlob, type Shot } from "../shot"
@@ -32,6 +32,7 @@ export function LiveComposer(props: {
   const importRef = useRef<HTMLInputElement>(null)
   const [shotError, setShotError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
+  const [menu, setMenu] = useState(false)
   const shotAttempt = useRef(0)
   const live = props.mode === "live"
   const canSend = Boolean(props.draft.trim() || (live && props.shot))
@@ -90,8 +91,9 @@ export function LiveComposer(props: {
     >
       <div className="pg-column" data-width={props.width}>
         {live ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <Segmented
+          <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              <Segmented
               label={copy.laneLabel}
               value={props.lane}
               onChange={props.onLane}
@@ -122,6 +124,89 @@ export function LiveComposer(props: {
                 </Button>
               </span>
             ) : null}
+            </div>
+            <Popover isOpen={menu} onOpenChange={setMenu}>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="ghost"
+                className="size-8 min-w-8 rounded-full border border-separator"
+                aria-label={copy.studioMenu}
+                data-pg="studio-menu"
+              >
+                <Ellipsis className="size-4" aria-hidden="true" />
+              </Button>
+              <Popover.Content placement="top end" className="min-w-40">
+                <Popover.Dialog className="flex flex-col gap-0.5 p-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="justify-start"
+                    data-pg="share"
+                    onPress={() => {
+                      setMenu(false)
+                      void props.onShare().then(setNote)
+                    }}
+                  >
+                    <Share className="size-3.5" aria-hidden="true" />
+                    {copy.share}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="justify-start"
+                    data-pg="export"
+                    isDisabled={!props.canExport}
+                    onPress={() => {
+                      setMenu(false)
+                      props.onExport()
+                    }}
+                  >
+                    <Download className="size-3.5" aria-hidden="true" />
+                    {copy.exportStudio}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="justify-start"
+                    data-pg="import"
+                    onPress={() => {
+                      setMenu(false)
+                      importRef.current?.click()
+                    }}
+                  >
+                    <Upload className="size-3.5" aria-hidden="true" />
+                    {copy.importStudio}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="justify-start"
+                    data-pg="new-chat"
+                    onPress={() => {
+                      setMenu(false)
+                      cancelShot()
+                      props.onNew()
+                    }}
+                  >
+                    <SquarePen className="size-3.5" aria-hidden="true" />
+                    {copy.newChat}
+                  </Button>
+                </Popover.Dialog>
+              </Popover.Content>
+            </Popover>
+            <input
+              ref={importRef}
+              type="file"
+              accept=".json,.md,.markdown,text/markdown,application/json"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                event.target.value = ""
+                if (!file) return
+                void props.onImport(file).then(setNote)
+              }}
+            />
           </div>
         ) : null}
         <InputGroup
@@ -200,51 +285,10 @@ export function LiveComposer(props: {
             )}
           </InputGroup.Suffix>
         </InputGroup>
-        {live ? (
+        {live && (props.shot || shotError || note) ? (
           <div className="flex flex-col gap-1.5" data-pg="studio">
             {props.shot ? <p className="text-xs text-muted">{copy.shotHint}</p> : null}
             {shotError ? <p className="text-xs text-muted">{shotError}</p> : null}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Button
-                size="sm"
-                variant="ghost"
-                data-pg="share"
-                onPress={() => {
-                  void props.onShare().then(setNote)
-                }}
-              >
-                {copy.share}
-              </Button>
-              <Button size="sm" variant="ghost" data-pg="export" isDisabled={!props.canExport} onPress={props.onExport}>
-                {copy.exportStudio}
-              </Button>
-              <input
-                ref={importRef}
-                type="file"
-                accept=".json,.md,.markdown,text/markdown,application/json"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0]
-                  event.target.value = ""
-                  if (!file) return
-                  void props.onImport(file).then(setNote)
-                }}
-              />
-              <Button size="sm" variant="ghost" data-pg="import" onPress={() => importRef.current?.click()}>
-                {copy.importStudio}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                data-pg="new-chat"
-                onPress={() => {
-                  cancelShot()
-                  props.onNew()
-                }}
-              >
-                {copy.newChat}
-              </Button>
-            </div>
             {note ? (
               note.startsWith("http") ? (
                 <input

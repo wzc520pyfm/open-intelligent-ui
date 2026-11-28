@@ -107,6 +107,8 @@ export interface Copy {
   imported: string
   importFailed: string
   newChat: string
+  /** The round button that opens share, export, import and a new chat. */
+  studioMenu: string
   designApplied: (name: string) => string
   designRejected: string
   designFixing: (round: number, of: number) => string
@@ -237,6 +239,7 @@ const en: Copy = {
   imported: "Imported. The design is saved in this browser.",
   importFailed: "That file isn't a design or a Live export.",
   newChat: "New",
+  studioMenu: "Actions",
   designApplied: (name) => `${name} is the design on this page.`,
   designRejected: "This reply isn't a usable DESIGN.md, so the design on the page stayed as it was.",
   designFixing: (round, of) =>
@@ -424,6 +427,7 @@ const zh: Copy = {
   imported: "已导入。设计存在这台浏览器里。",
   importFailed: "这个文件不是设计，也不是实时的导出。",
   newChat: "新对话",
+  studioMenu: "功能",
   designApplied: (name) => `${name} 已用在这个页面上。`,
   designRejected: "这条回复还不是能用的 DESIGN.md，页面上的设计没有改。",
   designFixing: (round, of) => `这份设计文件有问题，正在让模型修正（第 ${round} 次，最多 ${of} 次）…`,

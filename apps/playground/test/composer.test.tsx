@@ -39,6 +39,7 @@ const copy = {
   exportStudio: "Export",
   importStudio: "Import",
   newChat: "New",
+  studioMenu: "Actions",
   send: "Send",
   stop: "Stop",
 } as Copy
@@ -81,6 +82,17 @@ function attach() {
   fireEvent.change(input, { target: { files: [file] } })
 }
 
+test("share, export, import and a new chat open from the actions button", async () => {
+  render(<Harness />)
+  expect(screen.queryByRole("button", { name: "Share" })).toBeNull()
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Actions" }))
+  })
+  for (const name of ["Share", "Export", "Import", "New"]) {
+    expect(screen.getByRole("button", { name })).toBeTruthy()
+  }
+})
+
 test("the screenshot control sits before the message, away from send", () => {
   render(<Harness />)
   const attach = screen.getByRole("button", { name: "Attach a screenshot" })
@@ -114,6 +126,9 @@ describe("a screenshot that is still converting", () => {
     render(<Harness />)
     await act(async () => {
       attach()
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Actions" }))
     })
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "New" }))

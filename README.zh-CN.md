@@ -86,7 +86,7 @@ pnpm install
 pnpm dev
 ```
 
-打开 <http://localhost:5173>。左边有十一个示例，可以切换渲染器、调流式速度、切换设计、明暗和宽度；Inspect 面板里能直接改标记、看状态、看发给模型的系统提示词。线上演示站：<https://open-intelligent-ui.pages.dev>（Vercel 镜像：<https://open-intelligent-ui-sdk.vercel.app>）。要接真实模型，选左边的「实时」，在 OpenAI、Anthropic、DeepSeek 或自定义端点中选一个；密钥只留在当前标签页里。
+打开 <http://localhost:5173>。左边有十一个示例，可以切换渲染器、调流式速度、切换设计、明暗和宽度；Inspect 面板里能直接改标记、看状态、看发给模型的系统提示词。线上演示站：<https://open-intelligent-ui.pages.dev>（Vercel 镜像：<https://open-intelligent-ui-sdk.vercel.app>）。要接真实模型，选左边的「实时」，在 OpenAI、Anthropic、DeepSeek 或自定义端点中选一个；密钥只留在当前标签页里。在「实时」里描述一种设计，或贴上一张截图，模型会写成 DESIGN.md，页面立刻按它来画；然后再要一个用这套设计的界面。设计和对话留在这台浏览器里。可以导出文件让别人在「实时」里导入，也可以分享一个把设计放在地址里的链接。
 
 ```bash
 pnpm test

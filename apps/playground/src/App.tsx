@@ -1,31 +1,45 @@
-import { Button, Chip, Drawer, InputGroup, Link, ScrollShadow, Spinner, Tooltip } from "@heroui/react"
+import { Button, Chip, Drawer, Link, ScrollShadow, Spinner, Tooltip } from "@heroui/react"
 import { defineLibrary, type SurfaceAction, type ToolEvent } from "@open-intelligent-ui/core"
 import { checkMarkup, type Issue } from "@open-intelligent-ui/core/check"
 import { buildSystemPrompt } from "@open-intelligent-ui/core/prompt"
-import {
-  ArrowUp,
-  Check,
-  Menu,
-  MessageSquare,
-  Monitor,
-  Moon,
-  PanelRight,
-  RotateCcw,
-  Smartphone,
-  Square,
-  Sun,
-} from "lucide-react"
+import { Check, Menu, MessageSquare, Monitor, Moon, PanelRight, RotateCcw, Smartphone, Sun } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { askDesign, DESIGN_AUTHOR_PROMPT } from "./design-author"
 import { DEMOS, type Demo } from "./demos"
 import { LOCALES, readLocale, t, writeLocale, type Locale } from "./i18n"
 import { CHARTS, type ChartsId, MOTIONS, type MotionId, useEngines } from "./library/engines"
 import { askChecked, type ChatMessage, type LiveSettings, providerById } from "./live"
+import type { Shot } from "./shot"
 import { Surface } from "./surface/Surface"
 import { RENDERERS, type RendererId, type SurfaceHandle } from "./surface/types"
+import {
+  assessDesign,
+  decodeShare,
+  designId,
+  designLabel,
+  downloadText,
+  encodeShare,
+  makeBundle,
+  markShareApplied,
+  modelMessages,
+  parseImport,
+  readStudio,
+  SHARE_PARAM,
+  shareHref,
+  shareWasApplied,
+  SPECIMEN,
+  studioFilename,
+  type Lane,
+  type StoredTurn,
+  upsertDesign,
+  writeStudio,
+} from "./studio"
 import { THEMES } from "./themes"
 import { createTicketTools, TICKET_TOOLS } from "./tools"
 import { GitHubMark, Logo, Picker, Segmented } from "./ui/controls"
+import { DesignCard } from "./ui/DesignCard"
 import { Inspector, type LogEntry, type Panel } from "./ui/Inspector"
+import { LiveComposer } from "./ui/LiveComposer"
 import { LivePlaygroundPromo } from "./ui/LivePlaygroundPromo"
 import { LiveSettingsButton } from "./ui/LiveSettings"
 import { LIVE, Sidebar } from "./ui/Sidebar"
@@ -36,8 +50,12 @@ type Width = "phone" | "chat" | "wide"
 
 interface Turn {
   id: number
-  role: "user" | "assistant" | "note"
+  role: "user" | "assistant" | "note" | "design"
   text: string
+  /** Which lane this turn belongs to. Notes belong to neither. */
+  lane?: Lane
+  /** The reader attached a screenshot. The bytes are not kept. */
+  image?: boolean
   /** Which attempt at this reply is shown. A repaired reply is a new surface, with its own state. */
   round?: number
 }
@@ -96,7 +114,7 @@ function readQuery() {
   }
   const inspect = query.get("inspect")
   return {
-    live: query.get("demo") === LIVE,
+    live: query.get("demo") === LIVE || query.has(SHARE_PARAM),
     demo: DEMOS.find((item) => item.id === query.get("demo")),
     design: THEMES.find((item) => item.id === query.get("design"))?.id,
     renderer: pick(
@@ -147,13 +165,39 @@ function preview(value: unknown): string {
   }
 }
 
+function revive(turns: StoredTurn[]): Turn[] {
+  return turns.map((turn) => ({
+    id: nextId++,
+    role: turn.role,
+    text: turn.text,
+    ...(turn.lane ? { lane: turn.lane } : null),
+    ...(turn.image ? { image: true } : null),
+    ...(turn.round !== undefined ? { round: turn.round } : null),
+  }))
+}
+
+async function copyText(value: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(value)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function App() {
   const query = useMemo(readQuery, [])
+  const stored = useMemo(() => readStudio(), [])
   const [locale, setLocale] = useState<Locale>(() => query.locale ?? readLocale())
   const copy = t(locale)
   const [mode, setMode] = useState<Mode>(query.live ? "live" : "demos")
   const [demo, setDemo] = useState<Demo>(query.demo ?? (DEMOS[0] as Demo))
-  const [themeId, setThemeId] = useState(query.design ?? demo.theme ?? "paper")
+  const [designs, setDesigns] = useState(stored.designs)
+  const [lane, setLane] = useState<Lane>(stored.lane)
+  const [shot, setShot] = useState<Shot | null>(null)
+  const [themeId, setThemeId] = useState(
+    query.design ?? (query.live ? (stored.designId ?? "paper") : (demo.theme ?? "paper"))
+  )
   const [scheme, setScheme] = useState<Scheme>(() => {
     if (query.scheme) return query.scheme
     const initialTheme = query.design ?? (query.demo ?? DEMOS[0])?.theme
@@ -170,7 +214,7 @@ export function App() {
   const desktop = useMedia("(min-width: 1024px)")
   const [inspecting, setInspecting] = useState(() => query.inspect ?? roomy)
   const [menu, setMenu] = useState(false)
-  const [turns, setTurns] = useState<Turn[]>([])
+  const [turns, setTurns] = useState<Turn[]>(() => (query.live ? revive(stored.turns) : []))
   const [streamingId, setStreamingId] = useState<number | null>(null)
   const [thinking, setThinking] = useState(false)
   const [surfaceState, setSurfaceState] = useState<Record<string, unknown>>({})
@@ -180,7 +224,18 @@ export function App() {
   const draftRef = useRef<HTMLTextAreaElement>(null)
   const [useTools, setUseTools] = useState(true)
 
-  const theme = THEMES.find((item) => item.id === themeId) ?? (THEMES[0] as (typeof THEMES)[number])
+  const customTheme = designs.find((item) => item.id === themeId)
+  const theme = customTheme
+    ? { id: customTheme.id, name: customTheme.name, design: customTheme.source }
+    : (THEMES.find((item) => item.id === themeId) ?? (THEMES[0] as (typeof THEMES)[number]))
+  const liveTheme = useRef(query.live ? theme.id : (stored.designId ?? theme.id))
+  const designBaseline = useRef<string | undefined>(undefined)
+  /** The design turn already saved, so editing it updates that file instead of forking one per keystroke. */
+  const appliedTurn = useRef<number | undefined>(undefined)
+  const designsRef = useRef(designs)
+  designsRef.current = designs
+  const themeIdRef = useRef(themeId)
+  themeIdRef.current = themeId
   const tools = useMemo(() => createTicketTools(), [])
   const abort = useRef<AbortController | null>(null)
   const timer = useRef<number | null>(null)
@@ -287,18 +342,16 @@ export function App() {
   )
 
   const askModel = useCallback(
-    async (history: Turn[]) => {
+    async (history: Turn[], image?: Shot) => {
       stop()
-      const reply: Turn = { id: nextId++, role: "assistant", text: "" }
+      const reply: Turn = { id: nextId++, role: "assistant", text: "", lane: "interface" }
       setTurns([...history, reply])
       setStreamingId(reply.id)
       const controller = new AbortController()
       abort.current = controller
       const messages: ChatMessage[] = [
         { role: "system", content: systemPrompt },
-        ...history
-          .filter((turn) => turn.role !== "note")
-          .map((turn) => ({ role: turn.role as "user" | "assistant", content: turn.text })),
+        ...modelMessages(history, "interface", undefined, image),
       ]
       let text = ""
       setThinking(false)
@@ -360,26 +413,118 @@ export function App() {
     [live, systemPrompt, patchTurn, stop, check, record]
   )
 
+  const askForDesign = useCallback(
+    async (history: Turn[], image: Shot | undefined, currentDesign: string | undefined) => {
+      stop()
+      const reply: Turn = { id: nextId++, role: "design", text: "", lane: "design" }
+      setTurns([...history, reply])
+      setStreamingId(reply.id)
+      const controller = new AbortController()
+      abort.current = controller
+      const messages: ChatMessage[] = [
+        { role: "system", content: DESIGN_AUTHOR_PROMPT },
+        ...modelMessages(history, "design", currentDesign, image),
+      ]
+      let text = ""
+      setThinking(false)
+      try {
+        const done = await askDesign({
+          settings: live,
+          messages,
+          signal: controller.signal,
+          repairs: REPAIRS,
+          onReasoning: () => {
+            if (!text) setThinking(true)
+          },
+          onText: (next) => {
+            if (text.length === 0) setThinking(false)
+            text = next
+            patchTurn(reply.id, next)
+          },
+          onRound: (assessment, round, willRepair) => {
+            if (!willRepair) return
+            text = ""
+            setTurns((list) => [
+              ...list.filter((turn) => turn.id !== reply.id),
+              {
+                id: nextId++,
+                role: "note",
+                text: copyRef.current.designFixing(round + 1, REPAIRS),
+              },
+              { ...reply },
+            ])
+          },
+        })
+        if (done.rounds > 1) {
+          const note = done.assessment.ok
+            ? copyRef.current.fixed(done.rounds - 1)
+            : done.assessment.usable
+              ? copyRef.current.designPartial
+              : copyRef.current.designLeft
+          setTurns((list) => [...list, { id: nextId++, role: "note", text: note }])
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          const message = error instanceof Error ? error.message : String(error)
+          setTurns((list) => [...list, { id: nextId++, role: "note", text: message }])
+        }
+      } finally {
+        if (abort.current === controller) {
+          abort.current = null
+          setStreamingId(null)
+          setThinking(false)
+        }
+      }
+    },
+    [live, patchTurn, stop]
+  )
+
+  const sendLive = useCallback(
+    (text: string, nextLane: Lane, image?: Shot) => {
+      const trimmed = text.trim()
+      if (!trimmed && !image) return
+      const body =
+        trimmed ||
+        (nextLane === "design" ? copyRef.current.shotDesignAsk : copyRef.current.shotInterfaceAsk)
+      const user: Turn = {
+        id: nextId++,
+        role: "user",
+        text: body,
+        lane: nextLane,
+        ...(image ? { image: true } : null),
+      }
+      setLane(nextLane)
+      const history = [...turnsRef.current, user]
+      if (!live.model) {
+        setTurns([
+          ...history,
+          { id: nextId++, role: "note", text: copyRef.current.connectNote },
+        ])
+        return
+      }
+      const current = designsRef.current.find((item) => item.id === themeIdRef.current)
+      if (nextLane === "design") void askForDesign(history, image, current?.source)
+      else void askModel(history, image)
+    },
+    [live.model, askForDesign, askModel]
+  )
+
   const say = useCallback(
     (text: string, data?: unknown) => {
       const content =
         data === undefined ? text : `${text}\n\n<interface-data>${JSON.stringify(data)}</interface-data>`
-      const user: Turn = { id: nextId++, role: "user", text: content }
-      if (mode === "live" && live.model) {
-        void askModel([...turnsRef.current, user])
+      if (mode === "live") {
+        sendLive(content, "interface")
         return
       }
+      const user: Turn = { id: nextId++, role: "user", text: content }
       setTurns((list) => [
         ...list,
         user,
-        {
-          id: nextId++,
-          role: "note",
-          text: mode === "live" ? copyRef.current.connectNote : copyRef.current.demoNote,
-        },
+        { id: nextId++, role: "note", text: copyRef.current.demoNote },
       ])
     },
-    [mode, live.model, askModel]
+    [mode, sendLive]
   )
 
   // Speed applies to the next playback, not the one running.
@@ -409,6 +554,110 @@ export function App() {
     sessionStorage.setItem(LIVE_KEY, JSON.stringify(live))
   }, [live])
 
+  useEffect(() => {
+    if (mode !== "live" || streamingId !== null) return
+    writeStudio({
+      v: 1,
+      designs,
+      designId: themeId,
+      lane,
+      turns: turns.map((turn) => ({
+        role: turn.role,
+        text: turn.text,
+        ...(turn.lane ? { lane: turn.lane } : null),
+        ...(turn.image ? { image: true } : null),
+        ...(turn.round !== undefined ? { round: turn.round } : null),
+      })),
+    })
+  }, [mode, streamingId, designs, themeId, lane, turns])
+
+  useEffect(() => {
+    if (mode !== "live") return
+    const latest = [...turns].reverse().find((turn) => turn.role === "design")
+    const text = latest?.text ?? ""
+    if (designBaseline.current === undefined) {
+      designBaseline.current = text
+      appliedTurn.current = latest?.id
+      return
+    }
+    if (streamingId !== null || text === designBaseline.current) {
+      if (appliedTurn.current === undefined) appliedTurn.current = latest?.id
+      return
+    }
+    designBaseline.current = text
+    if (!text.trim() || !latest) return
+    const assessment = assessDesign(text)
+    if (!assessment.usable) return
+    const prompt = [...turns].reverse().find((turn) => turn.role === "user" && turn.lane === "design")?.text
+    const sameTurn = appliedTurn.current === latest.id
+    appliedTurn.current = latest.id
+    const currentId = themeIdRef.current
+    if (sameTurn && designsRef.current.some((item) => item.id === currentId)) {
+      setDesigns((prev) => {
+        const current = prev.find((item) => item.id === currentId)
+        if (!current) return prev
+        return upsertDesign(prev, {
+          id: current.id,
+          name: assessment.name,
+          source: assessment.source,
+          prompt: prompt ?? current.prompt,
+        })
+      })
+      return
+    }
+    const id = designId(assessment.source)
+    setDesigns((prev) => upsertDesign(prev, { id, name: assessment.name, source: assessment.source, prompt }))
+    setThemeId(id)
+    liveTheme.current = id
+  }, [mode, turns, streamingId])
+
+  useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get(SHARE_PARAM)
+    if (!param) return
+    let cancelled = false
+    void decodeShare(param).then((payload) => {
+      if (cancelled) return
+      const seen = shareWasApplied(param)
+      if (!payload) {
+        if (seen) return
+        markShareApplied(param)
+        setMode("live")
+        setTurns((list) => [...list, { id: nextId++, role: "note", text: copyRef.current.shareUnread }])
+        return
+      }
+      if (payload.design) {
+        const assessment = assessDesign(payload.design)
+        if (assessment.usable) {
+          const id = designId(assessment.source)
+          setDesigns((prev) => upsertDesign(prev, { id, name: assessment.name, source: assessment.source }))
+          if (!seen) {
+            setThemeId(id)
+            liveTheme.current = id
+          }
+        }
+      } else if (!seen && payload.theme && THEMES.some((item) => item.id === payload.theme)) {
+        setThemeId(payload.theme)
+        liveTheme.current = payload.theme
+      }
+      if (seen) return
+      markShareApplied(param)
+      const next: Turn[] = [{ id: nextId++, role: "note", text: copyRef.current.openedShare }]
+      if (payload.design) {
+        const source = assessDesign(payload.design).source
+        designBaseline.current = source
+        next.push({ id: nextId++, role: "design", text: source, lane: "design" })
+      } else {
+        designBaseline.current = ""
+      }
+      if (payload.markup) next.push({ id: nextId++, role: "assistant", text: payload.markup, lane: "interface" })
+      setMode("live")
+      setTurns(next)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   // A reply is read from its top, so only a follow-up message scrolls down.
   const turnCount = turns.length
   useEffect(() => {
@@ -418,11 +667,12 @@ export function App() {
     else node.scrollTo({ top: node.scrollHeight, behavior: "smooth" })
   }, [turnCount])
 
-  const latestSurface = [...turns].reverse().find((turn) => turn.role === "assistant")
+  const latestMarkup = [...turns].reverse().find((turn) => turn.role === "assistant")
+  const latestDocument = [...turns].reverse().find((turn) => turn.role === "assistant" || turn.role === "design")
 
   // The markup is checked once it has stopped arriving, and again as it is edited.
   const [issues, setIssues] = useState<Issue[] | null>(null)
-  const settled = streamingId === null ? (latestSurface?.text ?? "") : null
+  const settled = streamingId === null && latestDocument?.role === "assistant" ? (latestMarkup?.text ?? "") : null
   useEffect(() => {
     if (settled === null || !settled.trim()) {
       setIssues(null)
@@ -471,10 +721,15 @@ export function App() {
     if (id === LIVE) {
       if (mode === "live") return
       stop()
+      const saved = readStudio()
       setMode("live")
-      setTurns([])
+      setLane(saved.lane)
+      setTurns(revive(saved.turns))
+      setThemeId(liveTheme.current)
       setLog([])
       setSurfaceState({})
+      designBaseline.current = undefined
+      appliedTurn.current = undefined
       return
     }
     const next = DEMOS.find((item) => item.id === id)
@@ -516,12 +771,132 @@ export function App() {
     return () => ro.disconnect()
   }, [draft, width, fitDraft])
 
+  const markupNow = () =>
+    [...turnsRef.current].reverse().find((turn) => turn.role === "assistant" && turn.text.trim())?.text
+
+  const share = useCallback(async () => {
+    const custom = designs.find((item) => item.id === theme.id)
+    const markup = markupNow()
+    const shipped = THEMES.some((item) => item.id === theme.id) ? theme.id : undefined
+    if (!custom && !markup) {
+      const href = shareHref(window.location.href, null, shipped)
+      const copied = await copyText(href)
+      if (copied) window.history.replaceState(null, "", href)
+      return copied ? copyRef.current.shareCopied : href
+    }
+    const encoded = await encodeShare({
+      ...(custom ? { design: custom.source } : null),
+      ...(!custom && shipped ? { theme: shipped } : null),
+      ...(markup ? { markup } : null),
+    })
+    if (!encoded) return copyRef.current.shareTooBig
+    const href = shareHref(window.location.href, encoded.param)
+    const copied = await copyText(href)
+    if (copied) window.history.replaceState(null, "", href)
+    if (!copied) return href
+    return encoded.markupOmitted ? copyRef.current.shareDesignOnly : copyRef.current.shareCopied
+  }, [designs, theme.id])
+
+  const exportStudio = useCallback(() => {
+    const active = designs.find((item) => item.id === theme.id)
+    const ordered = active ? [active, ...designs.filter((item) => item.id !== active.id)] : designs
+    const shipped = THEMES.some((item) => item.id === theme.id) ? theme.id : undefined
+    const markup = mode === "live" ? markupNow() : undefined
+    downloadText(
+      studioFilename(active?.name ?? theme.name),
+      makeBundle({
+        ...(shipped ? { theme: shipped } : null),
+        designs: ordered,
+        ...(markup ? { markup } : null),
+      })
+    )
+  }, [designs, theme.id, theme.name, mode])
+
+  const importFile = useCallback(
+    async (file: File) => {
+      if (file.size > 500_000) return copyRef.current.importFailed
+      let text = ""
+      try {
+        text = await file.text()
+      } catch {
+        return copyRef.current.importFailed
+      }
+      const imported = parseImport(text)
+      if (!imported) return copyRef.current.importFailed
+      const usable = imported.designs.flatMap((item) => {
+        const assessment = assessDesign(item.source)
+        if (!assessment.usable) return []
+        return [
+          {
+            id: designId(assessment.source),
+            name: assessment.name,
+            source: assessment.source,
+            ...(item.prompt ? { prompt: item.prompt } : null),
+          },
+        ]
+      })
+      if (!usable.length && !imported.markup) return copyRef.current.importFailed
+      const first = usable[0]
+      if (usable.length) {
+        setDesigns((prev) => usable.reduce((list, design) => upsertDesign(list, design), prev))
+        if (first) {
+          setThemeId(first.id)
+          liveTheme.current = first.id
+          designBaseline.current = first.source
+        }
+      } else if (imported.theme && THEMES.some((item) => item.id === imported.theme)) {
+        setThemeId(imported.theme)
+        liveTheme.current = imported.theme
+        designBaseline.current = ""
+      }
+      const next: Turn[] = [{ id: nextId++, role: "note", text: copyRef.current.imported }]
+      if (first) next.push({ id: nextId++, role: "design", text: first.source, lane: "design" })
+      if (imported.markup) {
+        next.push({ id: nextId++, role: "assistant", text: imported.markup, lane: "interface" })
+      }
+      stop()
+      setMode("live")
+      setLane(usable.length ? "design" : "interface")
+      setTurns(next)
+      setLog([])
+      setSurfaceState({})
+      setShot(null)
+      window.history.replaceState(null, "", shareHref(window.location.href, null))
+      return copyRef.current.imported
+    },
+    [stop]
+  )
+
+  const fresh = () => {
+    stop()
+    setTurns([])
+    setLog([])
+    setSurfaceState({})
+    setLane("design")
+    setDraft("")
+    setShot(null)
+    designBaseline.current = ""
+    appliedTurn.current = undefined
+    window.history.replaceState(null, "", shareHref(window.location.href, null))
+  }
+
   const submit = () => {
     const text = draft.trim()
-    if (!text) return
+    if (mode !== "live") {
+      if (!text) return
+      setDraft("")
+      say(text)
+      return
+    }
+    if (!text && !shot) return
+    const image = shot ?? undefined
     setDraft("")
-    say(text)
+    setShot(null)
+    sendLive(text, lane, image)
   }
+
+  const canExport =
+    designs.length > 0 || turns.some((turn) => turn.role === "assistant" && turn.text.trim().length > 0)
 
   const streaming = streamingId !== null
   const status = streaming ? (thinking ? copy.thinking : copy.writing) : copy.done
@@ -541,12 +916,14 @@ export function App() {
       copy={copy}
       panel={panel}
       onPanel={setPanel}
-      source={latestSurface?.text ?? ""}
+      source={latestDocument?.text ?? ""}
       onSource={(text) => {
-        if (!latestSurface) return
+        if (!latestDocument) return
         stop()
-        patchTurn(latestSurface.id, text)
+        patchTurn(latestDocument.id, text)
       }}
+      sourceLabel={latestDocument?.role === "design" ? "DESIGN.md" : undefined}
+      sourceHint={latestDocument?.role === "design" ? copy.designHint : undefined}
       issues={issues}
       state={surfaceState}
       onReset={() => handle.current?.reset()}
@@ -670,9 +1047,15 @@ export function App() {
               <Picker
                 label={copy.design}
                 className={mode === "live" ? "min-w-0 max-w-[9.5rem] sm:max-w-none" : undefined}
-                value={themeId}
-                onChange={setThemeId}
-                options={THEMES.map((item) => ({ id: item.id, label: item.name }))}
+                value={theme.id}
+                onChange={(id) => {
+                  setThemeId(id)
+                  if (mode === "live") liveTheme.current = id
+                }}
+                options={[
+                  ...THEMES.map((item) => ({ id: item.id, label: item.name })),
+                  ...designs.map((item) => ({ id: item.id, label: designLabel(item, designs) })),
+                ]}
               />
               <Picker
                 label={copy.charts}
@@ -765,24 +1148,53 @@ export function App() {
                       <span className="text-lg font-semibold tracking-tight">Open Intelligent UI</span>
                     </div>
                     <h2 className="text-2xl font-semibold tracking-tight text-balance">{copy.emptyTitle}</h2>
-                    <p className="text-sm leading-relaxed text-muted text-balance">{copy.emptyBody(theme.name)}</p>
-                    <div className="mt-3 flex w-full max-w-full flex-wrap justify-center gap-2">
-                      {copy.suggest.map((text) => (
-                        <Button
-                          key={text}
-                          size="sm"
-                          variant="outline"
-                          className={
-                            mode === "live"
-                              ? "max-w-full whitespace-normal bg-background text-left h-auto! py-1.5"
-                              : "bg-background"
-                          }
-                          onPress={() => say(text)}
-                        >
-                          {text}
-                        </Button>
-                      ))}
-                    </div>
+                    <p className="text-sm leading-relaxed text-muted text-balance">
+                      {mode === "live" ? copy.emptyLive : copy.emptyBody(theme.name)}
+                    </p>
+                    {mode === "live" ? (
+                      <div className="mt-3 flex w-full max-w-full flex-col items-center gap-4">
+                        <div className="flex w-full flex-col items-center gap-2">
+                          <p className="text-xs font-medium tracking-wide text-muted uppercase">{copy.designSuggestLabel}</p>
+                          <div className="flex w-full flex-wrap justify-center gap-2">
+                            {copy.designSuggest.map((text) => (
+                              <Button
+                                key={text}
+                                size="sm"
+                                variant="outline"
+                                className="h-auto! max-w-full bg-background py-1.5 text-left whitespace-normal"
+                                onPress={() => sendLive(text, "design")}
+                              >
+                                {text}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex w-full flex-col items-center gap-2">
+                          <p className="text-xs font-medium tracking-wide text-muted uppercase">{copy.interfaceSuggestLabel}</p>
+                          <div className="flex w-full flex-wrap justify-center gap-2">
+                            {copy.suggest.map((text) => (
+                              <Button
+                                key={text}
+                                size="sm"
+                                variant="outline"
+                                className="h-auto! max-w-full bg-background py-1.5 text-left whitespace-normal"
+                                onPress={() => sendLive(text, "interface")}
+                              >
+                                {text}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3 flex w-full max-w-full flex-wrap justify-center gap-2">
+                        {copy.suggest.map((text) => (
+                          <Button key={text} size="sm" variant="outline" className="bg-background" onPress={() => say(text)}>
+                            {text}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ) : null}
                 {turns.map((turn) =>
@@ -792,6 +1204,7 @@ export function App() {
                       data-pg="user"
                       className="max-w-[85%] self-end rounded-3xl rounded-br-lg bg-accent px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-accent-foreground"
                     >
+                      {turn.image ? <span className="mb-1 block text-xs opacity-80">{copy.screenshot}</span> : null}
                       {turn.text.replace(/\n\n<interface-data>[\s\S]*$/, "")}
                     </div>
                   ) : turn.role === "note" ? (
@@ -801,6 +1214,32 @@ export function App() {
                       className="max-w-[85%] self-center rounded-2xl bg-default px-3.5 py-1.5 text-center text-xs leading-relaxed text-muted"
                     >
                       {turn.text}
+                    </div>
+                  ) : turn.role === "design" ? (
+                    <div key={turn.id} className="flex flex-col gap-3">
+                      {turn.id === streamingId && !turn.text ? (
+                        <div data-pg="pending" className="flex items-center gap-2 self-start text-sm text-muted">
+                          <Spinner size="sm" />
+                          {thinking ? copy.thinking : copy.writing}
+                        </div>
+                      ) : null}
+                      <DesignCard source={turn.text} streaming={turn.id === streamingId} copy={copy}>
+                        <Surface
+                          key={`${renderer}:specimen:${turn.id}`}
+                          renderer={renderer}
+                          source={SPECIMEN}
+                          streaming={false}
+                          design={turn.text}
+                          scheme={scheme}
+                          tools={tools}
+                          library={library}
+                          onAction={onAction}
+                          onTool={onTool}
+                          onWarning={onWarning}
+                          failed={copy.rendererFailed}
+                          retry={copy.retry}
+                        />
+                      </DesignCard>
                     </div>
                   ) : (
                     <div key={turn.id} className="pg-reply contents">
@@ -816,7 +1255,7 @@ export function App() {
                       <Surface
                         key={`${renderer}:${turn.id}:${turn.round ?? 0}`}
                         renderer={renderer}
-                        handle={turn.id === latestSurface?.id ? handle : undefined}
+                        handle={turn.id === latestMarkup?.id ? handle : undefined}
                         source={turn.text}
                         streaming={turn.id === streamingId}
                         design={theme.design}
@@ -826,13 +1265,13 @@ export function App() {
                         onAction={onAction}
                         onTool={onTool}
                         onWarning={onWarning}
-                        onStateChange={turn.id === latestSurface?.id ? setSurfaceState : undefined}
+                        onStateChange={turn.id === latestMarkup?.id ? setSurfaceState : undefined}
                         failed={copy.rendererFailed}
                         retry={copy.retry}
                       />
                       {mode === "demos" &&
                       streamingId === null &&
-                      turn.id === latestSurface?.id &&
+                      turn.id === latestMarkup?.id &&
                       turn.text.trim() ? (
                         <LivePlaygroundPromo
                           titlePrefix={copy.liveGuideTitlePrefix}
@@ -849,58 +1288,26 @@ export function App() {
               </div>
             </ScrollShadow>
 
-            <form
-              className="shrink-0 px-3 pb-3 sm:px-6"
-              onSubmit={(event) => {
-                event.preventDefault()
-                submit()
-              }}
-            >
-              <div className="pg-column" data-width={width}>
-                <InputGroup className="pg-composer w-full items-end! rounded-3xl border border-separator py-2 pr-2 pl-4 shadow-sm">
-                  <InputGroup.TextArea
-                    ref={draftRef}
-                    rows={1}
-                    className="max-h-[calc(2rem*4)] min-h-8 flex-1 resize-none border-0 bg-transparent p-0 leading-8 shadow-none focus-visible:ring-0"
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                        event.preventDefault()
-                        submit()
-                      }
-                    }}
-                    placeholder={mode === "live" ? copy.askInterface : copy.replyAgent}
-                    aria-label={copy.message}
-                  />
-                  <InputGroup.Suffix className="items-end! self-end p-0!">
-                    {streaming && mode === "live" ? (
-                      <Button
-                        isIconOnly
-                        size="sm"
-                        variant="secondary"
-                        className="size-8 min-w-8 rounded-full"
-                        aria-label={copy.stop}
-                        onPress={stop}
-                      >
-                        <Square className="size-3" aria-hidden="true" />
-                      </Button>
-                    ) : (
-                      <Button
-                        isIconOnly
-                        size="sm"
-                        type="submit"
-                        className="size-8 min-w-8 rounded-full"
-                        aria-label={copy.send}
-                        isDisabled={!draft.trim()}
-                      >
-                        <ArrowUp className="size-3.5" aria-hidden="true" />
-                      </Button>
-                    )}
-                  </InputGroup.Suffix>
-                </InputGroup>
-              </div>
-            </form>
+            <LiveComposer
+              copy={copy}
+              mode={mode}
+              width={width}
+              lane={lane}
+              onLane={setLane}
+              draft={draft}
+              onDraft={setDraft}
+              draftRef={draftRef}
+              shot={shot}
+              onShot={setShot}
+              streaming={streaming}
+              onSubmit={submit}
+              onStop={stop}
+              onShare={share}
+              onExport={exportStudio}
+              onImport={importFile}
+              onNew={fresh}
+              canExport={canExport}
+            />
           </div>
         </main>
 

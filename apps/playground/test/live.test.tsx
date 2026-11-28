@@ -175,6 +175,82 @@ describe("streaming from Anthropic Messages", () => {
       messages: [{ role: "user", content: "hi" }],
     })
   })
+
+  test("sends a screenshot as an image block and keeps the system text separate", async () => {
+    const calls: { init: RequestInit }[] = []
+    const fake = sse([anthropicDelta("ok") + "data: [DONE]\n\n"])
+    const spy = ((_url: string, init: RequestInit) => {
+      calls.push({ init })
+      return fake("", init)
+    }) as unknown as typeof fetch
+    for await (const _ of streamChat({
+      provider: "anthropic",
+      baseUrl: "https://api.anthropic.com",
+      model: "claude-sonnet-4-5",
+      apiKey: "sk-ant",
+      messages: [
+        { role: "system", content: "Write a design." },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Match this." },
+            { type: "image", mediaType: "image/png", data: "aaaa" },
+          ],
+        },
+      ],
+      fetch: spy,
+    })) {
+      /* drain */
+    }
+    expect(JSON.parse(calls[0]?.init.body as string)).toMatchObject({
+      system: "Write a design.",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Match this." },
+            { type: "image", source: { type: "base64", media_type: "image/png", data: "aaaa" } },
+          ],
+        },
+      ],
+    })
+  })
+})
+
+describe("a screenshot on an OpenAI-compatible endpoint", () => {
+  test("is an image_url data URL", async () => {
+    const calls: { init: RequestInit }[] = []
+    const fake = sse([delta("ok") + "data: [DONE]\n\n"])
+    const spy = ((_url: string, init: RequestInit) => {
+      calls.push({ init })
+      return fake("", init)
+    }) as unknown as typeof fetch
+    for await (const _ of streamChat({
+      provider: "openai",
+      baseUrl: "https://example.test/v1",
+      model: "m",
+      apiKey: "k",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Match this." },
+            { type: "image", mediaType: "image/jpeg", data: "bbbb" },
+          ],
+        },
+      ],
+      fetch: spy,
+    })) {
+      /* drain */
+    }
+    const body = JSON.parse(calls[0]?.init.body as string) as {
+      messages: { content: { type: string; image_url?: { url: string } }[] }[]
+    }
+    expect(body.messages[0]?.content[1]).toEqual({
+      type: "image_url",
+      image_url: { url: "data:image/jpeg;base64,bbbb" },
+    })
+  })
 })
 
 describe("a reply that doesn't check out", () => {

@@ -141,7 +141,7 @@ export function LiveComposer(props: {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="justify-start"
+                    className="w-full justify-start rounded-2xl"
                     data-pg="share"
                     onPress={() => {
                       setMenu(false)
@@ -154,7 +154,7 @@ export function LiveComposer(props: {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="justify-start"
+                    className="w-full justify-start rounded-2xl"
                     data-pg="export"
                     isDisabled={!props.canExport}
                     onPress={() => {
@@ -168,7 +168,7 @@ export function LiveComposer(props: {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="justify-start"
+                    className="w-full justify-start rounded-2xl"
                     data-pg="import"
                     onPress={() => {
                       setMenu(false)
@@ -181,7 +181,7 @@ export function LiveComposer(props: {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="justify-start"
+                    className="w-full justify-start rounded-2xl"
                     data-pg="new-chat"
                     onPress={() => {
                       setMenu(false)

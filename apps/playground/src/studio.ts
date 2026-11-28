@@ -551,128 +551,133 @@ export function modelMessages(
 }
 
 /**
- * A board and a form in the new design, so type, color, cards and controls
- * are visible before anyone asks for an interface.
+ * A small dashboard in the new design, with the filters that drive it, so
+ * type, color, charts and form controls are visible before anyone asks.
  */
-export const SPECIMEN = `<state lanes={[{ id: "backlog", name: "Backlog" }, { id: "doing", name: "Doing" }, { id: "done", name: "Done" }]} draft="" who="" note="" lane="backlog" urgent={false} />
-<state cards={[
-  { id: 1, title: "Match the type in the reference", lane: "backlog", who: "Mina Park", urgent: false },
-  { id: 2, title: "Write the empty state", lane: "backlog", who: "Priya Nair", urgent: true },
-  { id: 3, title: "Token pass on buttons", lane: "doing", who: "Jonas Weber", urgent: false },
-  { id: 4, title: "Check the form in dark mode", lane: "doing", who: "Mina Park", urgent: true },
-  { id: 5, title: "Ship the specimen", lane: "done", who: "Priya Nair", urgent: false }
+export const SPECIMEN = `<state channel="all" query="" partners={true} goal={1600000} />
+<state months={[
+  { month: "Jul", web: 221000, retail: 131000, partners: 60000 },
+  { month: "Aug", web: 240000, retail: 134000, partners: 64000 },
+  { month: "Sep", web: 268000, retail: 133000, partners: 70000 },
+  { month: "Oct", web: 262000, retail: 121000, partners: 72000 },
+  { month: "Nov", web: 322000, retail: 128000, partners: 79000 },
+  { month: "Dec", web: 371000, retail: 146000, partners: 87000 }
 ]} />
-<derive done={cards.filter(c => c.lane == "done").length} open={cards.filter(c => c.lane != "done").length} urgentCount={cards.filter(c => c.urgent && c.lane != "done").length} />
-
-<define name="Ticket" props="card">
-  <card padding={3} gap={2}>
-    <row gap={2}>
-      <text size="sm" weight="medium">{card.title}</text>
-      {#if card.urgent}<badge color="danger">Urgent</badge>{/if}
-    </row>
-    {#if card.note}<text size="xs" color="muted">{card.note}</text>{/if}
-    <row gap={2} align="center">
-      <Avatar class="who"><AvatarFallback>{initials(card.who)}</AvatarFallback></Avatar>
-      <text size="xs" color="muted">{card.who}</text>
-      <spacer />
-      <Button size="sm" variant="ghost" aria-label="Move back" disabled={card.lane == "backlog"} on:click={card.lane = card.lane == "done" ? "doing" : "backlog"}><icon name="arrow-left" size="sm" /></Button>
-      <Button size="sm" variant="ghost" aria-label="Move forward" disabled={card.lane == "done"} on:click={card.lane = card.lane == "backlog" ? "doing" : "done"}><icon name="arrow-right" size="sm" /></Button>
-    </row>
-  </card>
-</define>
-
-<style>
-  .lane { background: var(--iui-color-muted); border-radius: var(--iui-radius-lg); min-height: 160px; }
-  .who { width: 22px; height: 22px; font-size: 10px; }
-  .lane-count { min-width: 1.25rem; text-align: center; }
-  .studio { display: grid; gap: 12px; align-items: start; }
-  .lanes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
-  .fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
-  @container iui (width >= 960px) {
-    .studio { grid-template-columns: minmax(0, 1fr) minmax(240px, 300px); }
-    .fields { grid-template-columns: minmax(0, 1fr); }
-  }
-  @container iui (width < 520px) {
-    .lanes { grid-template-columns: minmax(0, 1fr); }
-    .fields { grid-template-columns: minmax(0, 1fr); }
-  }
-</style>
+<state products={[
+  { name: "Trail Runner 3", channel: "web", units: 4210, revenue: 547300, change: 0.22, status: "growing" },
+  { name: "Summit Shell", channel: "retail", units: 1880, revenue: 413600, change: 0.06, status: "steady" },
+  { name: "Basecamp Tent", channel: "web", units: 960, revenue: 345600, change: -0.11, status: "slipping" },
+  { name: "Ridge Pack 40", channel: "partners", units: 2240, revenue: 291200, change: 0.31, status: "growing" },
+  { name: "Merino Base", channel: "web", units: 5120, revenue: 256000, change: 0.02, status: "steady" }
+]} />
+<derive
+  take={m => channel == "all" ? (partners ? m.web + m.retail + m.partners : m.web + m.retail) : m[channel]}
+  series={months.map(m => ({ month: m.month, value: take(m) }))}
+  revenue={sumBy(series.slice(3), "value")}
+  prior={sumBy(series.slice(0, 3), "value")}
+  delta={prior == 0 ? 0 : revenue / prior - 1}
+  mix={[{ channel: "web", label: "Web", value: sumBy(months.slice(3), "web") }, { channel: "retail", label: "Retail", value: sumBy(months.slice(3), "retail") }].concat(partners ? [{ channel: "partners", label: "Partners", value: sumBy(months.slice(3), "partners") }] : [])}
+  listed={products.filter(p => (channel == "all" || p.channel == channel) && (partners || p.channel != "partners") && (query == "" || p.name.toLowerCase().includes(query.toLowerCase())))}
+/>
 
 <row gap={3} wrap align="end">
   <box gap={1}>
     <title level={2}>Northwind</title>
-    <text size="sm" color="muted">A sprint board in this design. Move a card, or add one with the form.</text>
+    <text size="sm" color="muted">Q4 revenue. The filters below change the figures.</text>
   </box>
   <spacer />
-  <row gap={4}>
-    <box gap={0}>
-      <text size="xs" color="muted">Open</text>
-      <text size="xl" weight="semibold" tabular>{open}</text>
-    </box>
-    <box gap={0}>
-      <text size="xs" color="muted">Urgent</text>
-      <text size="xl" weight="semibold" tabular color="danger">{urgentCount}</text>
-    </box>
-    <box gap={0}>
-      <text size="xs" color="muted">Done</text>
-      <text size="xl" weight="semibold" tabular>{done}</text>
-    </box>
-  </row>
+  <text size="sm" color="muted" tabular>{currency(revenue)} in Q4</text>
 </row>
 
-<Progress value={done} max={cards.length} aria-label="Cards done">
-  <ProgressTrack><ProgressIndicator /></ProgressTrack>
-</Progress>
-
-<div class="studio">
-<div class="lanes">
-  {#each lanes as column (column.id)}
-    <box class="lane" padding={2} gap={2}>
-      <row paddingX={1} align="center">
-        <text size="sm" weight="semibold">{column.name}</text>
-        <spacer />
-        <badge class="lane-count">{cards.filter(c => c.lane == column.id).length}</badge>
-      </row>
-      {#each cards.filter(c => c.lane == column.id) as card (card.id)}
-        <Ticket {card} />
-      {/each}
-    </box>
-  {/each}
-</div>
-
 <card padding={4} gap={3}>
-  <text weight="semibold">Add a card</text>
-  <div class="fields">
-    <Field>
-      <FieldLabel>Title</FieldLabel>
-      <Input bind:value={draft} placeholder="What needs doing?" />
-    </Field>
-    <Field>
-      <FieldLabel>Owner</FieldLabel>
-      <Input bind:value={who} placeholder="Name" />
-    </Field>
-  </div>
-  <Field>
-    <FieldLabel>Note</FieldLabel>
-    <Textarea bind:value={note} placeholder="Context for whoever picks it up" rows={2} />
-  </Field>
-  <row gap={3} wrap align="center">
-    <Select bind:value={lane}>
-      <SelectLabel>Lane</SelectLabel>
+  <row gap={3} wrap align="end">
+    <Select bind:value={channel}>
+      <SelectLabel>Channel</SelectLabel>
       <SelectTrigger><SelectValue /></SelectTrigger>
       <SelectContent>
-        <SelectItem value="backlog">Backlog</SelectItem>
-        <SelectItem value="doing">Doing</SelectItem>
-        <SelectItem value="done">Done</SelectItem>
+        <SelectItem value="all">All channels</SelectItem>
+        <SelectItem value="web">Web</SelectItem>
+        <SelectItem value="retail">Retail</SelectItem>
+        <SelectItem value="partners">Partners</SelectItem>
       </SelectContent>
     </Select>
+    <Field>
+      <FieldLabel>Product</FieldLabel>
+      <Input bind:value={query} placeholder="Search the table" />
+    </Field>
     <row gap={2} align="center">
-      <Switch bind:checked={urgent} aria-label="Urgent"><SwitchThumb /></Switch>
-      <text size="sm">Urgent</text>
+      <Switch bind:checked={partners} aria-label="Include partners" on:checkedChange={if (!$value && channel == "partners") channel = "all"}><SwitchThumb /></Switch>
+      <text size="sm">Partners</text>
     </row>
     <spacer />
-    <Button variant="ghost" on:click={draft = ""; who = ""; note = ""; lane = "backlog"; urgent = false}>Clear</Button>
-    <Button variant="solid" disabled={draft == ""} on:click={cards.push({ id: uid(), title: draft, lane: lane, who: who == "" ? "You" : who, urgent: urgent, note: note }); draft = ""; note = ""}>Add card</Button>
+    <Button variant="ghost" on:click={channel = "all"; query = ""; partners = true; goal = 1600000}>Reset</Button>
   </row>
+  <box gap={2}>
+    <row>
+      <text size="sm" color="muted">Target {currency(goal)}</text>
+      <spacer />
+      <text size="sm" tabular color={revenue >= goal ? "success" : "muted"}>{percent(revenue / goal)} of target</text>
+    </row>
+    <Slider min={800000} max={2400000} step={50000} bind:value={goal}>
+      <SliderControl><SliderTrack><SliderIndicator /><SliderThumb aria-label="Revenue target" /></SliderTrack></SliderControl>
+    </Slider>
+  </box>
 </card>
-</div>`
+
+**Q4 closed at {currency(revenue)}, {delta >= 0 ? "up" : "down"} {percent(abs(delta))} on Q3.**
+
+<grid columns={3} gap={3}>
+  <card padding={4}>
+    <Stat label="Revenue" value={revenue} format="currency" digits={0} delta={delta} deltaDigits={0} caption="vs Q3">
+      <Chart type="spark" data={series} y="value" height={36} aria-label="Revenue trend" />
+    </Stat>
+  </card>
+  <card padding={4}>
+    <Stat label="Of target" value={revenue / goal} format="percent" digits={0} caption={currency(goal)} />
+  </card>
+  <card padding={4}>
+    <Stat label="Products" value={listed.length} caption="matching the filters" />
+  </card>
+</grid>
+
+<grid columns={3} gap={3}>
+  <grid-item span={2}>
+    <card padding={4} gap={3}>
+      <title level={3}>By month</title>
+      <Chart type="bar" data={series} x="month" y="value" format="compact" currency="USD" height={220} labels aria-label="Revenue by month" />
+    </card>
+  </grid-item>
+  <card padding={4} gap={3}>
+    <row>
+      <title level={3}>Channel mix</title>
+      <spacer />
+      {#if channel != "all"}<link on:click={channel = "all"} size="sm">Clear</link>{/if}
+    </row>
+    <Chart type="donut" data={mix} x="label" y="value" format="compact" height={160} legend={false} on:select={channel = channel == $value.channel ? "all" : $value.channel} aria-label="Q4 revenue by channel" />
+    <box gap={2}>
+      {#each mix as part, i (part.channel)}
+        <row gap={2} align="center" on:click={channel = channel == part.channel ? "all" : part.channel} style="cursor: pointer" opacity={channel != "all" && channel != part.channel ? 0.45 : 1}>
+          <box width={8} height={8} radius="full" background="chart-{i + 1}" />
+          <text size="sm">{part.label}</text>
+          <spacer />
+          <text size="sm" tabular color="muted">{percent(part.value / sumBy(mix, "value"))}</text>
+        </row>
+      {/each}
+    </box>
+  </card>
+</grid>
+
+<card padding={4} gap={3}>
+  <row>
+    <title level={3}>Products</title>
+    <spacer />
+    <text size="sm" color="muted">{listed.length} shown</text>
+  </row>
+  <DataTable data={listed} rowKey="name" sortable empty="No products match." columns={[
+    { key: "name", label: "Product" },
+    { key: "units", label: "Units", align: "right" },
+    { key: "revenue", label: "Revenue", format: "currency", align: "right" },
+    { key: "change", label: "vs Q3", format: "percent", align: "right" },
+    { key: "status", label: "Trend", badge: { growing: "success", steady: "neutral", slipping: "danger" } }
+  ]} />
+</card>`
